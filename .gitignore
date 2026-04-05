@@ -1,7 +1,14 @@
+# Python
 __pycache__/
 *.pyc
+.venv/
+
+# SQLite
 *.db
 *.db-wal
 *.db-shm
-.venv/
+
+# macOS
 .DS_Store
+
+image_cache
