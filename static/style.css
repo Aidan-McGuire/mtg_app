@@ -1,0 +1,366 @@
+/* ── Reset & variables ─────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #111318;
+  --surface:   #1c1f26;
+  --surface2:  #252830;
+  --accent:    #c89b3c;
+  --text:      #e8e6df;
+  --muted:     #6e6c64;
+  --border:    #2c2f38;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── App shell ─────────────────────────────────────────────────────────────── */
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ── Nav ───────────────────────────────────────────────────────────────────── */
+#nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.nav-title {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--accent);
+  letter-spacing: 2px;
+  margin-right: 12px;
+}
+
+.nav-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  padding: 6px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: color 0.12s, background 0.12s;
+}
+.nav-btn:hover  { color: var(--text); background: var(--surface2); }
+.nav-btn.active { color: var(--accent); background: var(--surface2); }
+
+/* ── Views ─────────────────────────────────────────────────────────────────── */
+.view { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+.view.active { display: flex; }
+
+.placeholder-msg {
+  padding: 40px;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* ── Search bar ────────────────────────────────────────────────────────────── */
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  flex-shrink: 0;
+}
+
+#search-input {
+  width: 360px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 14px;
+  padding: 8px 14px;
+  outline: none;
+  transition: border-color 0.12s;
+}
+#search-input:focus { border-color: var(--accent); }
+#search-input::placeholder { color: var(--muted); }
+
+.kbd-hints {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+kbd {
+  display: inline-block;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-size: 11px;
+  font-family: monospace;
+}
+
+/* ── Card grid ─────────────────────────────────────────────────────────────── */
+.card-grid {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 16px 24px;
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  /* grid-template-columns and grid-auto-rows set by JS */
+}
+
+/* ── Card tile ─────────────────────────────────────────────────────────────── */
+.card-tile {
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.1s, transform 0.1s;
+  user-select: none;
+  display: flex;
+  flex-direction: column;
+}
+.card-tile:hover   { border-color: var(--surface2); transform: translateY(-1px); }
+.card-tile.focused { border-color: var(--accent); outline: none; }
+
+.card-img-wrap {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  background: var(--surface2);
+  overflow: hidden;
+}
+.card-img-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.card-img-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 11px;
+  text-align: center;
+  padding: 8px;
+}
+
+.card-info {
+  padding: 6px 8px 8px;
+}
+.card-name {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 2px;
+}
+.card-meta {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 6px;
+}
+
+/* ── Quantity controls ─────────────────────────────────────────────────────── */
+.qty-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.qty-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.1s, border-color 0.1s, color 0.1s;
+}
+.qty-btn:hover { background: var(--accent); border-color: var(--accent); color: #111; }
+
+.qty-label {
+  font-size: 12px;
+  min-width: 18px;
+  text-align: center;
+  color: var(--muted);
+}
+.qty-label.owned { color: var(--accent); font-weight: 700; }
+
+/* ── Grid status messages ──────────────────────────────────────────────────── */
+.grid-message {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: var(--muted);
+  padding: 48px 0;
+}
+
+/* ── Modal ─────────────────────────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.modal-overlay.hidden { display: none; }
+
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  max-width: 960px;
+  width: 92vw;
+  max-height: 92vh;
+  overflow-y: auto;
+  position: relative;
+  padding: 28px;
+}
+.modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 17px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: color 0.1s, background 0.1s;
+}
+.modal-close:hover { color: var(--text); background: var(--surface2); }
+
+.modal-content {
+  display: flex;
+  gap: 28px;
+}
+
+/* Left column: main image + art strip */
+.modal-left {
+  flex-shrink: 0;
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modal-img img {
+  width: 100%;
+  border-radius: 10px;
+  display: block;
+}
+.modal-img-placeholder {
+  width: 100%;
+  aspect-ratio: 488 / 680;
+  background: var(--surface2);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* Art options strip */
+.modal-art-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.art-thumb {
+  width: 72px;
+  aspect-ratio: 488 / 680;
+  border-radius: 5px;
+  overflow: hidden;
+  border: 2px solid var(--border);
+  cursor: pointer;
+  transition: border-color 0.1s, transform 0.1s;
+  flex-shrink: 0;
+}
+.art-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.art-thumb:hover   { border-color: var(--muted); transform: scale(1.04); }
+.art-thumb.active  { border-color: var(--accent); }
+
+.art-show-all {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--muted);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 4px 8px;
+  transition: color 0.1s, border-color 0.1s;
+  align-self: flex-end;
+  white-space: nowrap;
+}
+.art-show-all:hover { color: var(--text); border-color: var(--muted); }
+
+/* Right column: card details */
+.modal-details { flex: 1; min-width: 0; padding-top: 2px; }
+
+.modal-name {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 6px;
+  padding-right: 28px;
+}
+.modal-mana  { font-size: 14px; color: var(--muted); margin-bottom: 8px; }
+.modal-type  {
+  font-size: 14px;
+  color: var(--accent);
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.modal-oracle {
+  font-size: 14px;
+  line-height: 1.7;
+  white-space: pre-line;
+  margin-bottom: 24px;
+}
+.modal-collection { display: flex; align-items: center; gap: 8px; }
+.modal-collection .qty-btn  { width: 30px; height: 30px; font-size: 18px; }
+.modal-collection .qty-label { font-size: 15px; min-width: 24px; }
+.modal-collection .qty-owned-label { font-size: 13px; color: var(--muted); }
+
+@media (max-width: 600px) {
+  .modal-content { flex-direction: column; }
+  .modal-left { width: 100%; }
+  .kbd-hints { display: none; }
+}

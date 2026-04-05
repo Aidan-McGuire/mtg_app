@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pkill -f 'uvicorn app:app' 2>/dev/null; sleep 0.5 && cd /Users/mcg/projects/mtg_app && uvicorn app:app --reload >> /tmp/mtg_app.log 2>&1 &",
+            "async": true,
+            "statusMessage": "Restarting server..."
+          }
+        ]
+      }
+    ]
+  }
+}

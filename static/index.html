@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MTG App</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <nav id="nav">
+      <span class="nav-title">MTG</span>
+      <button class="nav-btn active" data-view="browser">Cards</button>
+      <button class="nav-btn" data-view="decks">Decks</button>
+    </nav>
+
+    <div id="view-browser" class="view active">
+      <div class="search-bar">
+        <input type="text" id="search-input"
+          placeholder="Search cards…  (press / to focus)"
+          autocomplete="off" spellcheck="false">
+        <span class="kbd-hints">
+          <kbd>↑↓←→</kbd> navigate &nbsp;
+          <kbd>Space</kbd> detail &nbsp;
+          <kbd>+</kbd> / <kbd>-</kbd> collection
+        </span>
+      </div>
+      <div id="card-grid" class="card-grid"></div>
+    </div>
+
+    <div id="view-decks" class="view">
+      <div class="decks-layout">
+        <aside class="decks-sidebar">
+          <div class="decks-sidebar-hdr">
+            <span class="decks-label">Decks</span>
+            <button id="new-deck-btn" class="action-btn">+ New</button>
+          </div>
+          <div id="deck-list"></div>
+        </aside>
+        <div class="deck-main">
+          <div id="deck-empty" class="deck-empty">Select a deck or create a new one</div>
+          <div id="deck-editor" class="deck-editor hidden">
+            <div class="deck-editor-hdr">
+              <span id="deck-editor-name" class="deck-editor-name"></span>
+              <div class="deck-editor-acts">
+                <button id="deck-rename-btn" class="action-btn">Rename</button>
+                <button id="deck-delete-btn" class="action-btn action-btn-danger">Delete</button>
+                <span class="view-toggle">
+                  <button class="vtoggle-btn active" data-dview="grid">Grid</button>
+                  <button class="vtoggle-btn" data-dview="text">Text</button>
+                </span>
+              </div>
+            </div>
+            <div class="deck-editor-body">
+              <div class="deck-search-col">
+                <input id="deck-search" class="deck-search-input"
+                  placeholder="Search cards to add…  (/ to focus)"
+                  autocomplete="off" spellcheck="false">
+                <div id="deck-search-results"></div>
+              </div>
+              <div class="deck-content-col">
+                <div id="deck-grid-view" class="deck-grid-view"></div>
+                <div id="deck-text-view" class="deck-text-view hidden"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card detail modal -->
+  <div id="modal-overlay" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div id="modal" class="modal">
+      <button id="modal-close" class="modal-close" aria-label="Close">✕</button>
+      <div id="modal-content" class="modal-content"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

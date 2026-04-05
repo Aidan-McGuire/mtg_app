@@ -46,6 +46,33 @@ def initialize_database():
         );
     """)
 
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS collection (
+            id INTEGER PRIMARY KEY,
+            card_id INTEGER NOT NULL UNIQUE REFERENCES cards(id),
+            quantity INTEGER NOT NULL DEFAULT 0
+        );
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS decks (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS deck_cards (
+            id INTEGER PRIMARY KEY,
+            deck_id INTEGER NOT NULL REFERENCES decks(id) ON DELETE CASCADE,
+            card_id INTEGER NOT NULL REFERENCES cards(id),
+            quantity INTEGER NOT NULL DEFAULT 1,
+            is_commander INTEGER NOT NULL DEFAULT 0,
+            UNIQUE(deck_id, card_id)
+        );
+    """)
+
     # only insert version if empty
     cur.execute("SELECT COUNT(*) FROM schema_version;")
     if cur.fetchone()[0] == 0:

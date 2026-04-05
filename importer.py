@@ -87,7 +87,7 @@ def import_cards():
               continue
 
           seen_oracle_ids.add(oracle_id)
-
+          # add into cards
           cur.execute("""
               INSERT OR IGNORE INTO cards (
                   oracle_id,
@@ -111,7 +111,8 @@ def import_cards():
               sort_colors(card.get("color_identity")),
               extract_image_uri(card)
           ))
-
+          
+          # add into fts
           cur.execute("""
           INSERT INTO cards_fts (name, oracle_text)
           VALUES (?, ?)
