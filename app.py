@@ -253,21 +253,8 @@ def import_collection(body: CollectionImport):
 
 
 # ---------------------------------------------------------------------------
-# Decks
+# Shared helpers
 # ---------------------------------------------------------------------------
-
-class DeckCreate(BaseModel):
-    name: str
-
-
-class DeckRename(BaseModel):
-    name: str
-
-
-class DeckImport(BaseModel):
-    name: str
-    list: str
-
 
 _ENTRY_RE = re.compile(r'^(\d+)x?\s+(.+?)(?:\s+\([A-Z0-9]{2,6}\)\s+\d+.*)?$')
 _MARKER_RE = re.compile(r'\s+\*[A-Z]+\*$')  # strip *F* foil markers etc.
@@ -313,6 +300,23 @@ def lookup_card_id(cur, name: str) -> int | None:
     )
     row = cur.fetchone()
     return row["id"] if row else None
+
+
+# ---------------------------------------------------------------------------
+# Decks
+# ---------------------------------------------------------------------------
+
+class DeckCreate(BaseModel):
+    name: str
+
+
+class DeckRename(BaseModel):
+    name: str
+
+
+class DeckImport(BaseModel):
+    name: str
+    list: str
 
 
 @app.get("/api/decks")
