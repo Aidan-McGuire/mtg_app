@@ -746,6 +746,7 @@ function openColImportModal() {
   document.getElementById('col-import-result').textContent = '';
   document.getElementById('col-import-submit').disabled = false;
   document.getElementById('col-import-submit').textContent = 'Import';
+  document.getElementById('col-import-submit').onclick = null;
   // Reset to text tab
   document.querySelectorAll('#col-import-overlay .import-tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelector('#col-import-overlay .import-tab-btn[data-tab="text"]').classList.add('active');
@@ -775,6 +776,7 @@ document.querySelectorAll('#col-import-overlay .import-tab-btn').forEach(btn => 
     const tab = btn.dataset.tab;
     document.getElementById('col-import-tab-text').classList.toggle('hidden', tab !== 'text');
     document.getElementById('col-import-tab-csv').classList.toggle('hidden', tab !== 'csv');
+    if (tab !== 'csv') document.getElementById('csv-preview').classList.add('hidden');
   });
 });
 
@@ -795,6 +797,11 @@ document.getElementById('col-import-file').addEventListener('change', e => {
       preview.textContent = 'Could not parse CSV — check file format';
       preview.classList.remove('hidden');
     }
+  };
+  reader.onerror = () => {
+    const preview = document.getElementById('csv-preview');
+    preview.textContent = 'Could not read file.';
+    preview.classList.remove('hidden');
   };
   reader.readAsText(file);
 });
@@ -824,6 +831,7 @@ document.getElementById('col-import-submit').addEventListener('click', async () 
     const res = await API.importCollection(list);
     const { imported, not_found } = res;
 
+    // Refresh collection grid before showing result — imported cards should appear even on partial success
     await loadCollectionView();
 
     if (not_found.length === 0) {
@@ -837,7 +845,7 @@ document.getElementById('col-import-submit').addEventListener('click', async () 
       resultEl.classList.remove('hidden');
       btn.disabled = false;
       btn.textContent = 'Done';
-      btn.addEventListener('click', closeColImportModal, { once: true });
+      btn.onclick = closeColImportModal;
     }
   } catch (err) {
     resultEl.className = 'import-result import-result-error';
