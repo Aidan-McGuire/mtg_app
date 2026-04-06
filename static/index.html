@@ -11,6 +11,7 @@
     <nav id="nav">
       <span class="nav-title">MTG</span>
       <button class="nav-btn active" data-view="browser">Cards</button>
+      <button class="nav-btn" data-view="collection">Collection</button>
       <button class="nav-btn" data-view="decks">Decks</button>
     </nav>
 
@@ -28,12 +29,30 @@
       <div id="card-grid" class="card-grid"></div>
     </div>
 
+    <div id="view-collection" class="view">
+      <div class="search-bar">
+        <input type="text" id="collection-search"
+          placeholder="Filter collection…  (press / to focus)"
+          autocomplete="off" spellcheck="false">
+        <span id="collection-count" class="collection-count"></span>
+        <button id="import-collection-btn" class="action-btn">↑ Import</button>
+        <span class="kbd-hints">
+          <kbd>Space</kbd> detail &nbsp;
+          <kbd>+</kbd> / <kbd>-</kbd> quantity
+        </span>
+      </div>
+      <div id="collection-grid" class="card-grid"></div>
+    </div>
+
     <div id="view-decks" class="view">
       <div class="decks-layout">
         <aside class="decks-sidebar">
           <div class="decks-sidebar-hdr">
             <span class="decks-label">Decks</span>
-            <button id="new-deck-btn" class="action-btn">+ New</button>
+            <div class="decks-sidebar-btns">
+              <button id="import-deck-btn" class="action-btn">↑ Import</button>
+              <button id="new-deck-btn" class="action-btn">+ New</button>
+            </div>
           </div>
           <div id="deck-list"></div>
         </aside>
@@ -74,6 +93,53 @@
     <div id="modal" class="modal">
       <button id="modal-close" class="modal-close" aria-label="Close">✕</button>
       <div id="modal-content" class="modal-content"></div>
+    </div>
+  </div>
+
+  <!-- Import deck modal -->
+  <div id="import-overlay" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal import-modal">
+      <button id="import-close" class="modal-close" aria-label="Close">✕</button>
+      <div class="import-modal-title">Import Deck</div>
+      <div class="import-modal-body">
+        <input id="import-name" class="import-name-input" type="text" placeholder="Deck name…" autocomplete="off">
+        <textarea id="import-list" class="import-textarea"
+          placeholder="Paste decklist here…&#10;&#10;1 Atraxa, Praetors' Voice&#10;4 Lightning Bolt&#10;24 Forest&#10;&#10;Section headers and // comments are ignored."></textarea>
+        <div id="import-result" class="import-result hidden"></div>
+        <div class="import-actions">
+          <button id="import-submit" class="action-btn import-submit-btn">Import</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import collection modal -->
+  <div id="col-import-overlay" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal import-modal">
+      <button id="col-import-close" class="modal-close" aria-label="Close">✕</button>
+      <div class="import-modal-title">Import Collection</div>
+      <div class="import-modal-body">
+        <div class="import-tabs">
+          <button class="import-tab-btn active" data-tab="text">Text list</button>
+          <button class="import-tab-btn" data-tab="csv">Moxfield CSV</button>
+        </div>
+        <div id="col-import-tab-text" class="import-tab-panel">
+          <textarea id="col-import-list" class="import-textarea"
+            placeholder="Paste card list here…&#10;&#10;1 Atraxa, Praetors' Voice&#10;4 Lightning Bolt&#10;&#10;Section headers and // comments are ignored."></textarea>
+        </div>
+        <div id="col-import-tab-csv" class="import-tab-panel hidden">
+          <label class="csv-file-label">
+            <span id="csv-file-name" class="csv-file-name">No file chosen</span>
+            <input id="col-import-file" type="file" accept=".csv" class="csv-file-input">
+            <span class="action-btn">Choose file</span>
+          </label>
+          <div id="csv-preview" class="csv-preview hidden"></div>
+        </div>
+        <div id="col-import-result" class="import-result hidden"></div>
+        <div class="import-actions">
+          <button id="col-import-submit" class="action-btn import-submit-btn">Import</button>
+        </div>
+      </div>
     </div>
   </div>
 
