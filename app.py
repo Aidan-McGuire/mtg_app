@@ -46,6 +46,56 @@ def get_db():
 
 
 # ---------------------------------------------------------------------------
+# Shared helpers
+# ---------------------------------------------------------------------------
+
+_ENTRY_RE = re.compile(r'^(\d+)x?\s+(.+?)(?:\s+\([A-Z0-9]{2,6}\)(?:\s+\d+.*)?)?$')
+_MARKER_RE = re.compile(r'\s+\*[A-Z]+\*$')  # strip *F* foil markers etc.
+
+
+def parse_decklist(text: str) -> list[tuple[int, str]]:
+    """Return [(quantity, card_name), ...] from a pasted decklist."""
+    entries = []
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line.startswith('//') or line.startswith('#'):
+            continue
+        m = _ENTRY_RE.match(line)
+        if not m:
+            continue  # section header or unrecognised line
+        qty  = int(m.group(1))
+        name = _MARKER_RE.sub('', m.group(2)).strip()
+        if qty > 0 and name:
+            entries.append((qty, name))
+    return entries
+
+
+def lookup_card_id(cur, name: str) -> int | None:
+    """Look up a card id by name, handling MDFC slash variants."""
+    # 1. Exact match
+    cur.execute("SELECT id FROM cards WHERE name = ? COLLATE NOCASE LIMIT 1", (name,))
+    row = cur.fetchone()
+    if row:
+        return row["id"]
+
+    # 2. Single slash → double slash (Moxfield/Archidekt export MDFCs as "A / B")
+    normalized = name.replace(' / ', ' // ')
+    if normalized != name:
+        cur.execute("SELECT id FROM cards WHERE name = ? COLLATE NOCASE LIMIT 1", (normalized,))
+        row = cur.fetchone()
+        if row:
+            return row["id"]
+
+    # 3. Front-face-only (user wrote just "Bala Ged Recovery" without the back face)
+    cur.execute(
+        "SELECT id FROM cards WHERE name LIKE ? COLLATE NOCASE LIMIT 1",
+        (name + ' //%',)
+    )
+    row = cur.fetchone()
+    return row["id"] if row else None
+
+
+# ---------------------------------------------------------------------------
 # Image cache
 # ---------------------------------------------------------------------------
 
@@ -250,56 +300,6 @@ def import_collection(body: CollectionImport):
         conn.commit()
 
     return {"imported": imported, "not_found": not_found}
-
-
-# ---------------------------------------------------------------------------
-# Shared helpers
-# ---------------------------------------------------------------------------
-
-_ENTRY_RE = re.compile(r'^(\d+)x?\s+(.+?)(?:\s+\([A-Z0-9]{2,6}\)\s+\d+.*)?$')
-_MARKER_RE = re.compile(r'\s+\*[A-Z]+\*$')  # strip *F* foil markers etc.
-
-
-def parse_decklist(text: str) -> list[tuple[int, str]]:
-    """Return [(quantity, card_name), ...] from a pasted decklist."""
-    entries = []
-    for line in text.splitlines():
-        line = line.strip()
-        if not line or line.startswith('//') or line.startswith('#'):
-            continue
-        m = _ENTRY_RE.match(line)
-        if not m:
-            continue  # section header or unrecognised line
-        qty  = int(m.group(1))
-        name = _MARKER_RE.sub('', m.group(2)).strip()
-        if qty > 0 and name:
-            entries.append((qty, name))
-    return entries
-
-
-def lookup_card_id(cur, name: str) -> int | None:
-    """Look up a card id by name, handling MDFC slash variants."""
-    # 1. Exact match
-    cur.execute("SELECT id FROM cards WHERE name = ? COLLATE NOCASE LIMIT 1", (name,))
-    row = cur.fetchone()
-    if row:
-        return row["id"]
-
-    # 2. Single slash → double slash (Moxfield/Archidekt export MDFCs as "A / B")
-    normalized = name.replace(' / ', ' // ')
-    if normalized != name:
-        cur.execute("SELECT id FROM cards WHERE name = ? COLLATE NOCASE LIMIT 1", (normalized,))
-        row = cur.fetchone()
-        if row:
-            return row["id"]
-
-    # 3. Front-face-only (user wrote just "Bala Ged Recovery" without the back face)
-    cur.execute(
-        "SELECT id FROM cards WHERE name LIKE ? COLLATE NOCASE LIMIT 1",
-        (name + ' //%',)
-    )
-    row = cur.fetchone()
-    return row["id"] if row else None
 
 
 # ---------------------------------------------------------------------------
