@@ -88,6 +88,18 @@ const API = {
     }
     return r.json();
   },
+  async importCollection(list) {
+    const r = await fetch('/api/collection/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ list }),
+    });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      throw new Error(err.detail || 'Import failed');
+    }
+    return r.json();
+  },
   imageUrl(uri) {
     return `/api/image?url=${encodeURIComponent(uri)}`;
   },
@@ -517,6 +529,9 @@ document.addEventListener('keydown', e => {
     if (!document.getElementById('import-overlay').classList.contains('hidden')) {
       closeImportModal(); return;
     }
+    if (!document.getElementById('col-import-overlay').classList.contains('hidden')) {
+      closeColImportModal(); return;
+    }
     searchInput.blur();
     deckSearch.blur();
     return;
@@ -680,6 +695,157 @@ document.getElementById('collection-search').addEventListener('input', e => {
 
 document.getElementById('collection-search').addEventListener('keydown', e => {
   if (e.key === 'Escape') { e.target.blur(); collectionState.query = ''; renderCollectionGrid(); }
+});
+
+function parseMoxfieldCsv(text) {
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  if (!lines.length) return '';
+
+  function parseCsvRow(line) {
+    const fields = [];
+    let cur = '', inQuote = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        if (inQuote && line[i + 1] === '"') { cur += '"'; i++; }
+        else inQuote = !inQuote;
+      } else if (ch === ',' && !inQuote) {
+        fields.push(cur); cur = '';
+      } else {
+        cur += ch;
+      }
+    }
+    fields.push(cur);
+    return fields;
+  }
+
+  const header = parseCsvRow(lines[0]).map(h => h.toLowerCase());
+  const countIdx = header.indexOf('count');
+  const nameIdx  = header.indexOf('name');
+  if (countIdx === -1 || nameIdx === -1) return '';
+
+  return lines.slice(1).map(line => {
+    const fields = parseCsvRow(line);
+    const count = parseInt(fields[countIdx], 10);
+    const name  = fields[nameIdx] || '';
+    return (count > 0 && name) ? `${count}x ${name}` : null;
+  }).filter(Boolean).join('\n');
+}
+
+// ── Collection import modal ───────────────────────────────────────────────────
+
+let colImportList = ''; // assembled list string (from text tab or parsed CSV)
+
+function openColImportModal() {
+  colImportList = '';
+  document.getElementById('col-import-list').value = '';
+  document.getElementById('col-import-file').value = '';
+  document.getElementById('csv-file-name').textContent = 'No file chosen';
+  document.getElementById('csv-preview').classList.add('hidden');
+  document.getElementById('col-import-result').classList.add('hidden');
+  document.getElementById('col-import-result').textContent = '';
+  document.getElementById('col-import-submit').disabled = false;
+  document.getElementById('col-import-submit').textContent = 'Import';
+  // Reset to text tab
+  document.querySelectorAll('#col-import-overlay .import-tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('#col-import-overlay .import-tab-btn[data-tab="text"]').classList.add('active');
+  document.getElementById('col-import-tab-text').classList.remove('hidden');
+  document.getElementById('col-import-tab-csv').classList.add('hidden');
+  document.getElementById('col-import-overlay').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  document.getElementById('col-import-list').focus();
+}
+
+function closeColImportModal() {
+  document.getElementById('col-import-overlay').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+document.getElementById('import-collection-btn').addEventListener('click', openColImportModal);
+document.getElementById('col-import-close').addEventListener('click', closeColImportModal);
+document.getElementById('col-import-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('col-import-overlay')) closeColImportModal();
+});
+
+// Tab switching
+document.querySelectorAll('#col-import-overlay .import-tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#col-import-overlay .import-tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const tab = btn.dataset.tab;
+    document.getElementById('col-import-tab-text').classList.toggle('hidden', tab !== 'text');
+    document.getElementById('col-import-tab-csv').classList.toggle('hidden', tab !== 'csv');
+  });
+});
+
+// CSV file picker
+document.getElementById('col-import-file').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  document.getElementById('csv-file-name').textContent = file.name;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    colImportList = parseMoxfieldCsv(ev.target.result);
+    const preview = document.getElementById('csv-preview');
+    const lineCount = colImportList ? colImportList.split('\n').length : 0;
+    if (lineCount > 0) {
+      preview.textContent = `${lineCount} card entr${lineCount !== 1 ? 'ies' : 'y'} parsed`;
+      preview.classList.remove('hidden');
+    } else {
+      preview.textContent = 'Could not parse CSV — check file format';
+      preview.classList.remove('hidden');
+    }
+  };
+  reader.readAsText(file);
+});
+
+// Submit
+document.getElementById('col-import-submit').addEventListener('click', async () => {
+  const activeTab = document.querySelector('#col-import-overlay .import-tab-btn.active').dataset.tab;
+  const list = activeTab === 'text'
+    ? document.getElementById('col-import-list').value.trim()
+    : colImportList;
+
+  const resultEl = document.getElementById('col-import-result');
+  const btn = document.getElementById('col-import-submit');
+
+  if (!list) {
+    resultEl.className = 'import-result import-result-error';
+    resultEl.textContent = activeTab === 'csv' ? 'No CSV file selected or file could not be parsed.' : 'List is empty.';
+    resultEl.classList.remove('hidden');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Importing…';
+  resultEl.classList.add('hidden');
+
+  try {
+    const res = await API.importCollection(list);
+    const { imported, not_found } = res;
+
+    await loadCollectionView();
+
+    if (not_found.length === 0) {
+      closeColImportModal();
+    } else {
+      resultEl.className = 'import-result import-result-warn';
+      resultEl.innerHTML =
+        `Imported ${imported} card${imported !== 1 ? 's' : ''}. ` +
+        `<strong>${not_found.length} not found:</strong><br>` +
+        not_found.map(n => esc(n)).join('<br>');
+      resultEl.classList.remove('hidden');
+      btn.disabled = false;
+      btn.textContent = 'Done';
+      btn.addEventListener('click', closeColImportModal, { once: true });
+    }
+  } catch (err) {
+    resultEl.className = 'import-result import-result-error';
+    resultEl.textContent = err.message || 'Import failed.';
+    resultEl.classList.remove('hidden');
+    btn.disabled = false;
+    btn.textContent = 'Import';
+  }
 });
 
 // ── Deck state ────────────────────────────────────────────────────────────────
