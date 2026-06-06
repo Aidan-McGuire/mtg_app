@@ -186,6 +186,13 @@ function esc(str) {
     .replace(/"/g, '&quot;');
 }
 
+function tagChipsHtml(tags, type) {
+  if (!tags || !tags.length) return '';
+  return `<div class="tag-chips-row">${
+    tags.map(t => `<span class="tag-chip ${type}" title="${esc(t)}">${esc(t)}</span>`).join('')
+  }</div>`;
+}
+
 function buildCardTile(card) {
   const q = qty(card.id);
   const div = document.createElement('div');
@@ -210,6 +217,7 @@ function buildCardTile(card) {
         <span class="qty-label${q > 0 ? ' owned' : ''}" data-qty-for="${card.id}">${q}</span>
         <button class="qty-btn" data-action="inc" title="Add to collection (+)">+</button>
       </div>
+      ${tagChipsHtml(card.collection_tags, 'collection-tag')}
     </div>`;
 
   div.querySelector('[data-action="inc"]').addEventListener('click', e => {
@@ -347,7 +355,7 @@ function handleGridKey(e) {
     case 'ArrowLeft':  e.preventDefault(); setFocused(cur < 0 ? 0 : cur - 1);    break;
     case 'ArrowDown':  e.preventDefault(); setFocused(cur < 0 ? 0 : cur + cols); break;
     case 'ArrowUp':    e.preventDefault(); setFocused(cur < 0 ? 0 : cur - cols); break;
-    case ' ': { e.preventDefault(); const c = focusedCard(); if (c) openModal(c); break; }
+    case 'Enter': { e.preventDefault(); const c = focusedCard(); if (c) openModal(c); break; }
     case '+': case '=': { e.preventDefault(); const c = focusedCard(); if (c) increment(c.id); break; }
     case '-':           { e.preventDefault(); const c = focusedCard(); if (c) decrement(c.id); break; }
   }
@@ -548,8 +556,8 @@ document.addEventListener('keydown', e => {
     }
   }
 
-  // Space opens focused card (defaults to first card if none focused)
-  if (e.key === ' ' && state.cards.length > 0) {
+  // Enter opens focused card (defaults to first card if none focused)
+  if (e.key === 'Enter' && state.cards.length > 0) {
     e.preventDefault();
     if (state.focusedIdx < 0) setFocused(0);
     const c = focusedCard();
@@ -975,6 +983,8 @@ function buildDeckCardTile(card) {
         <button class="deck-cmd-btn${card.is_commander ? ' active' : ''}" title="Toggle commander">♛</button>
         <button class="deck-remove-btn" title="Remove">×</button>
       </div>
+      ${tagChipsHtml(card.collection_tags, 'collection-tag')}
+      ${tagChipsHtml(card.deck_tags, 'deck-tag')}
     </div>`;
 
   div.querySelector('[data-action="inc"]').addEventListener('click', e => { e.stopPropagation(); incDeckCard(card.id); });
