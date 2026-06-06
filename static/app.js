@@ -483,7 +483,7 @@ function buildTagEditor({ label, chipClass, tags, suggestions, onAdd, onRemove }
       if (e.key === 'Enter' || e.key === ',') {
         e.preventDefault();
         const val = input.value.trim().toLowerCase().replace(/,/g, '');
-        if (!val) return;
+        if (!val || currentTags.includes(val)) return;
         currentTags = await onAdd(val);
         render();
       }
@@ -612,7 +612,7 @@ async function loadModalTags(card, deckContext) {
       },
       onRemove: async (tag) => {
         await API.removeCollectionTag(card.id, tag);
-        const updated = await API.getCollectionCardTags(card.id);
+        const updated = collTags.filter(t => t !== tag);
         syncCollectionTagsOnCard(card.id, updated);
         return updated;
       },
@@ -632,7 +632,7 @@ async function loadModalTags(card, deckContext) {
       },
       onRemove: async (tag) => {
         await API.removeDeckTag(deckContext.deckId, card.id, tag);
-        const updated = await API.getDeckCardTags(deckContext.deckId, card.id);
+        const updated = deckTags.filter(t => t !== tag);
         syncDeckTagsOnCard(card.id, updated);
         return updated;
       },
