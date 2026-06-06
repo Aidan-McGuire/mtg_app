@@ -505,7 +505,14 @@ def update_deck_card(deck_id: int, card_id: int, body: DeckCardUpdate):
 def remove_card_from_deck(deck_id: int, card_id: int):
     with get_db() as conn:
         cur = conn.cursor()
-        cur.execute("DELETE FROM deck_cards WHERE deck_id = ? AND card_id = ?", (deck_id, card_id))
+        cur.execute(
+            "DELETE FROM deck_card_tags WHERE deck_id = ? AND card_id = ?",
+            (deck_id, card_id)
+        )
+        cur.execute(
+            "DELETE FROM deck_cards WHERE deck_id = ? AND card_id = ?",
+            (deck_id, card_id)
+        )
         if cur.rowcount == 0:
             raise HTTPException(404, "Card not in deck")
         conn.commit()
@@ -574,6 +581,38 @@ def remove_collection_tag(card_id: int, tag: str):
         cur.execute(
             "DELETE FROM collection_tags WHERE card_id = ? AND tag = ?",
             (card_id, tag.strip().lower())
+        )
+        conn.commit()
+
+
+@app.post("/api/decks/{deck_id}/cards/{card_id}/tags")
+def add_deck_card_tag(deck_id: int, card_id: int, body: TagAdd):
+    tag = body.tag.strip().lower()
+    if not tag:
+        raise HTTPException(400, "Tag cannot be empty")
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT 1 FROM deck_cards WHERE deck_id = ? AND card_id = ?",
+            (deck_id, card_id)
+        )
+        if not cur.fetchone():
+            raise HTTPException(404, "Card not in deck")
+        cur.execute(
+            "INSERT OR IGNORE INTO deck_card_tags (deck_id, card_id, tag) VALUES (?, ?, ?)",
+            (deck_id, card_id, tag)
+        )
+        conn.commit()
+        return fetch_deck_tags(cur, deck_id, card_id)
+
+
+@app.delete("/api/decks/{deck_id}/cards/{card_id}/tags/{tag}", status_code=204)
+def remove_deck_card_tag(deck_id: int, card_id: int, tag: str):
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "DELETE FROM deck_card_tags WHERE deck_id = ? AND card_id = ? AND tag = ?",
+            (deck_id, card_id, tag.strip().lower())
         )
         conn.commit()
 
