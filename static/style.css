@@ -995,6 +995,7 @@ kbd {
   user-select: none;
   border-bottom: 1px solid var(--border);
   margin-bottom: 10px;
+  color: var(--muted);
 }
 .group-header:hover { color: var(--text); }
 
@@ -1019,6 +1020,7 @@ kbd {
 
 .group-body {
   display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 10px;
 }
-.group-body.hidden { display: none; }
+.group-body.collapsed { display: none; }
