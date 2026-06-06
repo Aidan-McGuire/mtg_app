@@ -100,6 +100,46 @@ const API = {
     }
     return r.json();
   },
+  async getCollectionCardTags(cardId) {
+    const r = await fetch(`/api/collection/${cardId}/tags`);
+    return r.ok ? r.json() : [];
+  },
+  async addCollectionTag(cardId, tag) {
+    const r = await fetch(`/api/collection/${cardId}/tags`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tag }),
+    });
+    if (!r.ok) throw new Error('Failed to add tag');
+    return r.json();
+  },
+  async removeCollectionTag(cardId, tag) {
+    await fetch(`/api/collection/${cardId}/tags/${encodeURIComponent(tag)}`, { method: 'DELETE' });
+  },
+  async getDeckCardTags(deckId, cardId) {
+    const r = await fetch(`/api/decks/${deckId}/cards/${cardId}/tags`);
+    return r.ok ? r.json() : [];
+  },
+  async addDeckTag(deckId, cardId, tag) {
+    const r = await fetch(`/api/decks/${deckId}/cards/${cardId}/tags`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tag }),
+    });
+    if (!r.ok) throw new Error('Failed to add tag');
+    return r.json();
+  },
+  async removeDeckTag(deckId, cardId, tag) {
+    await fetch(`/api/decks/${deckId}/cards/${cardId}/tags/${encodeURIComponent(tag)}`, { method: 'DELETE' });
+  },
+  async listCollectionTags() {
+    const r = await fetch('/api/collection/tags');
+    return r.ok ? r.json() : [];
+  },
+  async listDeckTags(deckId) {
+    const r = await fetch(`/api/decks/${deckId}/tags`);
+    return r.ok ? r.json() : [];
+  },
   imageUrl(uri) {
     return `/api/image?url=${encodeURIComponent(uri)}`;
   },
@@ -363,7 +403,7 @@ function handleGridKey(e) {
 
 // ── Modal ─────────────────────────────────────────────────────────────────────
 
-function openModal(card) {
+function openModal(card, deckContext = null) {
   state.modalCard = card;
   const q = qty(card.id);
 
@@ -392,6 +432,7 @@ function openModal(card) {
         <button class="qty-btn" data-action="inc" title="Add (+)">+</button>
         <span class="qty-owned-label">owned</span>
       </div>
+      <div id="modal-tags-section"></div>
     </div>`;
 
   contentEl.querySelector('[data-action="inc"]').addEventListener('click', () => increment(card.id));
@@ -403,6 +444,54 @@ function openModal(card) {
 
   // Fetch and render art options asynchronously
   loadPrintings(card);
+  loadModalTags(card, deckContext);
+}
+
+function buildTagEditor({ label, chipClass, tags, suggestions, onAdd, onRemove }) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'modal-tags-section';
+
+  let currentTags = [...tags];
+
+  function render() {
+    wrapper.innerHTML = `
+      <div class="modal-tags-label">${esc(label)}</div>
+      <div class="modal-tags-chips">
+        ${currentTags.map(t => `
+          <span class="modal-tag-chip ${chipClass}" data-tag="${esc(t)}">
+            ${esc(t)}
+            <button class="modal-tag-remove" title="Remove">×</button>
+          </span>`).join('')}
+        <input class="modal-tag-input" list="tag-suggestions-${chipClass}"
+          placeholder="Add tag…" autocomplete="off">
+        <datalist id="tag-suggestions-${chipClass}">
+          ${suggestions.map(s => `<option value="${esc(s)}">`).join('')}
+        </datalist>
+      </div>`;
+
+    wrapper.querySelectorAll('.modal-tag-remove').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const tag = btn.closest('[data-tag]').dataset.tag;
+        currentTags = await onRemove(tag);
+        render();
+      });
+    });
+
+    const input = wrapper.querySelector('.modal-tag-input');
+    input.addEventListener('keydown', async (e) => {
+      if (e.key === 'Enter' || e.key === ',') {
+        e.preventDefault();
+        const val = input.value.trim().toLowerCase().replace(/,/g, '');
+        if (!val) return;
+        currentTags = await onAdd(val);
+        render();
+      }
+    });
+  }
+
+  render();
+  return wrapper;
 }
 
 async function loadPrintings(card) {
@@ -489,6 +578,76 @@ async function loadPrintings(card) {
 
   updateMainImage();
   renderStrip();
+}
+
+async function loadModalTags(card, deckContext) {
+  const section = document.getElementById('modal-tags-section');
+  if (!section) return;
+
+  const inCollection = qty(card.id) > 0;
+
+  const [collTags, deckTags] = await Promise.all([
+    inCollection ? API.getCollectionCardTags(card.id) : Promise.resolve([]),
+    deckContext ? API.getDeckCardTags(deckContext.deckId, card.id) : Promise.resolve([]),
+  ]);
+
+  const [allCollTags, allDeckTags] = await Promise.all([
+    inCollection ? API.listCollectionTags() : Promise.resolve([]),
+    deckContext ? API.listDeckTags(deckContext.deckId) : Promise.resolve([]),
+  ]);
+
+  if (!section.isConnected) return;
+  section.innerHTML = '';
+
+  if (inCollection) {
+    section.appendChild(buildTagEditor({
+      label: 'Collection tags',
+      chipClass: 'collection-tag',
+      tags: collTags,
+      suggestions: allCollTags,
+      onAdd: async (tag) => {
+        const updated = await API.addCollectionTag(card.id, tag);
+        syncCollectionTagsOnCard(card.id, updated);
+        return updated;
+      },
+      onRemove: async (tag) => {
+        await API.removeCollectionTag(card.id, tag);
+        const updated = await API.getCollectionCardTags(card.id);
+        syncCollectionTagsOnCard(card.id, updated);
+        return updated;
+      },
+    }));
+  }
+
+  if (deckContext) {
+    section.appendChild(buildTagEditor({
+      label: 'Deck tags',
+      chipClass: 'deck-tag',
+      tags: deckTags,
+      suggestions: allDeckTags,
+      onAdd: async (tag) => {
+        const updated = await API.addDeckTag(deckContext.deckId, card.id, tag);
+        syncDeckTagsOnCard(card.id, updated);
+        return updated;
+      },
+      onRemove: async (tag) => {
+        await API.removeDeckTag(deckContext.deckId, card.id, tag);
+        const updated = await API.getDeckCardTags(deckContext.deckId, card.id);
+        syncDeckTagsOnCard(card.id, updated);
+        return updated;
+      },
+    }));
+  }
+}
+
+function syncCollectionTagsOnCard(cardId, tags) {
+  const card = collectionState.cards.find(c => c.id === cardId);
+  if (card) { card.collection_tags = tags; renderCollectionGrid(); }
+}
+
+function syncDeckTagsOnCard(cardId, tags) {
+  const card = deckState.deckCards.find(c => c.id === cardId);
+  if (card) { card.deck_tags = tags; renderDeckContent(); }
 }
 
 function closeModal() {
@@ -991,7 +1150,7 @@ function buildDeckCardTile(card) {
   div.querySelector('[data-action="dec"]').addEventListener('click', e => { e.stopPropagation(); decDeckCard(card.id); });
   div.querySelector('.deck-cmd-btn').addEventListener('click', e => { e.stopPropagation(); toggleCommander(card.id); });
   div.querySelector('.deck-remove-btn').addEventListener('click', e => { e.stopPropagation(); removeDeckCard(card.id); });
-  div.addEventListener('click', () => openModal(card));
+  div.addEventListener('click', () => openModal(card, { deckId: deckState.currentDeckId }));
 
   return div;
 }
@@ -1043,7 +1202,7 @@ function renderDeckText() {
         <span class="deck-text-qty">${card.quantity}x</span>
         <span class="deck-text-name">${esc(card.name)}</span>
         <span class="deck-text-mana">${esc(card.mana_cost || '')}</span>`;
-      row.addEventListener('click', () => openModal(card));
+      row.addEventListener('click', () => openModal(card, { deckId: deckState.currentDeckId }));
       section.appendChild(row);
     }
     el.appendChild(section);
