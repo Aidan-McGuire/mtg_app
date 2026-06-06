@@ -506,6 +506,12 @@ def remove_card_from_deck(deck_id: int, card_id: int):
     with get_db() as conn:
         cur = conn.cursor()
         cur.execute(
+            "SELECT 1 FROM deck_cards WHERE deck_id = ? AND card_id = ?",
+            (deck_id, card_id)
+        )
+        if not cur.fetchone():
+            raise HTTPException(404, "Card not in deck")
+        cur.execute(
             "DELETE FROM deck_card_tags WHERE deck_id = ? AND card_id = ?",
             (deck_id, card_id)
         )
@@ -513,8 +519,6 @@ def remove_card_from_deck(deck_id: int, card_id: int):
             "DELETE FROM deck_cards WHERE deck_id = ? AND card_id = ?",
             (deck_id, card_id)
         )
-        if cur.rowcount == 0:
-            raise HTTPException(404, "Card not in deck")
         conn.commit()
 
 
