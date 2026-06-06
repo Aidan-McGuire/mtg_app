@@ -34,3 +34,39 @@ def test_list_deck_tags_empty(client):
     r = client.get("/api/decks/1/tags")
     assert r.status_code == 200
     assert r.json() == []
+
+
+def test_add_collection_tag(client):
+    r = client.post("/api/collection/1/tags", json={"tag": "  Foil  "})
+    assert r.status_code == 200
+    assert r.json() == ["foil"]  # normalized to lowercase, trimmed
+
+
+def test_add_duplicate_collection_tag_is_noop(client):
+    client.post("/api/collection/1/tags", json={"tag": "foil"})
+    r = client.post("/api/collection/1/tags", json={"tag": "foil"})
+    assert r.status_code == 200
+    assert r.json() == ["foil"]  # still just one
+
+
+def test_delete_collection_tag(client):
+    client.post("/api/collection/1/tags", json={"tag": "foil"})
+    r = client.delete("/api/collection/1/tags/foil")
+    assert r.status_code == 204
+    tags = client.get("/api/collection/1/tags").json()
+    assert tags == []
+
+
+def test_collection_tags_appear_in_list(client):
+    client.post("/api/collection/1/tags", json={"tag": "ramp"})
+    r = client.get("/api/collection/tags")
+    assert "ramp" in r.json()
+
+
+def test_decrement_to_zero_deletes_collection_tags(client):
+    client.post("/api/collection/1/tags", json={"tag": "foil"})
+    # Decrement 4 times to reach 0 (card has qty=4 in fixture)
+    for _ in range(4):
+        client.post("/api/collection/1/decrement")
+    tags = client.get("/api/collection/1/tags").json()
+    assert tags == []
