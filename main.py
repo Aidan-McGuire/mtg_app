@@ -87,7 +87,8 @@ def migrate_database():
     cur = conn.cursor()
 
     cur.execute("SELECT version FROM schema_version LIMIT 1;")
-    version = cur.fetchone()[0]
+    row = cur.fetchone()
+    version = row[0] if row else 0
 
     if version < 2:
         cur.execute("""
