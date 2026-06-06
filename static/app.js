@@ -608,6 +608,7 @@ async function loadModalTags(card, deckContext) {
       suggestions: allCollTags,
       onAdd: async (tag) => {
         const updated = await API.addCollectionTag(card.id, tag);
+        trackedCollTags = updated;
         syncCollectionTagsOnCard(card.id, updated);
         return updated;
       },
@@ -629,6 +630,7 @@ async function loadModalTags(card, deckContext) {
       suggestions: allDeckTags,
       onAdd: async (tag) => {
         const updated = await API.addDeckTag(deckContext.deckId, card.id, tag);
+        trackedDeckTags = updated;
         syncDeckTagsOnCard(card.id, updated);
         return updated;
       },
@@ -1392,7 +1394,7 @@ async function addCardToDeck(cardId, cardData) {
     deckState.addingCards.add(cardId);
     try {
       const res = await API.addCardToDeck(deckState.currentDeckId, cardId);
-      deckState.deckCards.push({ ...cardData, quantity: res.quantity, is_commander: false });
+      deckState.deckCards.push({ ...cardData, quantity: res.quantity, is_commander: false, collection_tags: [], deck_tags: [] });
       syncDeckCount();
       renderDeckContent();
     } catch (e) { console.error(e); }
