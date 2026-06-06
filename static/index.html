@@ -22,7 +22,7 @@
           autocomplete="off" spellcheck="false">
         <span class="kbd-hints">
           <kbd>↑↓←→</kbd> navigate &nbsp;
-          <kbd>Space</kbd> detail &nbsp;
+          <kbd>Enter</kbd> detail &nbsp;
           <kbd>+</kbd> / <kbd>-</kbd> collection
         </span>
       </div>
@@ -36,8 +36,12 @@
           autocomplete="off" spellcheck="false">
         <span id="collection-count" class="collection-count"></span>
         <button id="import-collection-btn" class="action-btn">↑ Import</button>
+        <select id="collection-group-by" class="group-by-select">
+          <option value="none">Group: None</option>
+          <option value="collection-tag">Group: Tag</option>
+        </select>
         <span class="kbd-hints">
-          <kbd>Space</kbd> detail &nbsp;
+          <kbd>Enter</kbd> detail &nbsp;
           <kbd>+</kbd> / <kbd>-</kbd> quantity
         </span>
       </div>
@@ -64,6 +68,11 @@
               <div class="deck-editor-acts">
                 <button id="deck-rename-btn" class="action-btn">Rename</button>
                 <button id="deck-delete-btn" class="action-btn action-btn-danger">Delete</button>
+                <select id="deck-group-by" class="group-by-select">
+                  <option value="none">Group: None</option>
+                  <option value="collection-tag">Collection tag</option>
+                  <option value="deck-tag">Deck tag</option>
+                </select>
                 <span class="view-toggle">
                   <button class="vtoggle-btn active" data-dview="grid">Grid</button>
                   <button class="vtoggle-btn" data-dview="text">Text</button>

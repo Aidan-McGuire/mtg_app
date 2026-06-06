@@ -813,7 +813,73 @@ init();
 const collectionState = {
   cards: [],   // full card objects with .quantity
   query: '',
+  groupBy: 'none',   // 'none' | 'collection-tag'
 };
+
+const collectionGroupCollapsed = new Set();
+const deckGroupCollapsed = new Set();
+
+/**
+ * Groups an array of card objects by a tag field.
+ * Returns [{label, cards}, ...] sorted alphabetically, "Untagged" last.
+ * A card with N tags appears in N groups.
+ */
+function groupCards(cards, tagField) {
+  const map = new Map();
+  for (const card of cards) {
+    const tags = card[tagField] || [];
+    if (!tags.length) {
+      if (!map.has('Untagged')) map.set('Untagged', []);
+      map.get('Untagged').push(card);
+    } else {
+      for (const tag of tags) {
+        if (!map.has(tag)) map.set(tag, []);
+        map.get(tag).push(card);
+      }
+    }
+  }
+  const groups = [];
+  for (const [label, groupCards] of map) {
+    if (label !== 'Untagged') groups.push({ label, cards: groupCards });
+  }
+  groups.sort((a, b) => a.label.localeCompare(b.label));
+  if (map.has('Untagged')) groups.push({ label: 'Untagged', cards: map.get('Untagged') });
+  return groups;
+}
+
+function renderGroupedGrid(container, groups, buildTileFn, collapsedState) {
+  container.innerHTML = '';
+  for (const group of groups) {
+    const section = document.createElement('div');
+    section.className = 'group-section';
+
+    const isCollapsed = collapsedState.has(group.label);
+    const header = document.createElement('div');
+    header.className = 'group-header' + (isCollapsed ? ' collapsed' : '');
+    header.innerHTML = `
+      <span class="group-header-label">${esc(group.label)}</span>
+      <span class="group-header-count">${group.cards.length}</span>
+      <span class="group-header-chevron">▾</span>`;
+    header.addEventListener('click', () => {
+      if (collapsedState.has(group.label)) {
+        collapsedState.delete(group.label);
+      } else {
+        collapsedState.add(group.label);
+      }
+      header.classList.toggle('collapsed');
+      body.classList.toggle('collapsed');
+    });
+
+    const body = document.createElement('div');
+    body.className = 'group-body' + (isCollapsed ? ' collapsed' : '');
+
+    for (const card of group.cards) body.appendChild(buildTileFn(card));
+
+    section.appendChild(header);
+    section.appendChild(body);
+    container.appendChild(section);
+  }
+}
 
 async function loadCollectionView() {
   try {
@@ -852,9 +918,14 @@ function renderCollectionGrid() {
     return;
   }
 
-  const frag = document.createDocumentFragment();
-  for (const card of filtered) frag.appendChild(buildCardTile(card));
-  grid.appendChild(frag);
+  if (collectionState.groupBy !== 'none') {
+    const groups = groupCards(filtered, 'collection_tags');
+    renderGroupedGrid(grid, groups, buildCardTile, collectionGroupCollapsed);
+  } else {
+    const frag = document.createDocumentFragment();
+    for (const card of filtered) frag.appendChild(buildCardTile(card));
+    grid.appendChild(frag);
+  }
 }
 
 document.getElementById('collection-search').addEventListener('input', e => {
@@ -864,6 +935,12 @@ document.getElementById('collection-search').addEventListener('input', e => {
 
 document.getElementById('collection-search').addEventListener('keydown', e => {
   if (e.key === 'Escape') { e.target.blur(); collectionState.query = ''; renderCollectionGrid(); }
+});
+
+document.getElementById('collection-group-by').addEventListener('change', e => {
+  collectionState.groupBy = e.target.value;
+  collectionGroupCollapsed.clear();
+  renderCollectionGrid();
 });
 
 function parseMoxfieldCsv(text) {
@@ -1032,6 +1109,7 @@ const deckState = {
   currentDeckId:  null,
   deckCards:      [],
   deckView:       'grid',
+  groupBy:        'none',   // 'none' | 'collection-tag' | 'deck-tag'
   searchResults:  [],
   searchFocusIdx: -1,
   addingCards:    new Set(), // card IDs with an in-flight add request
@@ -1114,14 +1192,20 @@ function renderDeckGrid() {
     el.innerHTML = '<div class="deck-empty-msg">No cards yet — search to add some.</div>';
     return;
   }
-  const sorted = [...deckState.deckCards].sort((a, b) => {
-    if (a.is_commander && !b.is_commander) return -1;
-    if (!a.is_commander && b.is_commander) return 1;
-    return a.name.localeCompare(b.name);
-  });
-  const frag = document.createDocumentFragment();
-  for (const card of sorted) frag.appendChild(buildDeckCardTile(card));
-  el.appendChild(frag);
+  if (deckState.groupBy !== 'none') {
+    const tagField = deckState.groupBy === 'deck-tag' ? 'deck_tags' : 'collection_tags';
+    const groups = groupCards(deckState.deckCards, tagField);
+    renderGroupedGrid(el, groups, buildDeckCardTile, deckGroupCollapsed);
+  } else {
+    const sorted = [...deckState.deckCards].sort((a, b) => {
+      if (a.is_commander && !b.is_commander) return -1;
+      if (!a.is_commander && b.is_commander) return 1;
+      return a.name.localeCompare(b.name);
+    });
+    const frag = document.createDocumentFragment();
+    for (const card of sorted) frag.appendChild(buildDeckCardTile(card));
+    el.appendChild(frag);
+  }
 }
 
 function buildDeckCardTile(card) {
@@ -1371,6 +1455,12 @@ document.querySelectorAll('.vtoggle-btn').forEach(btn => {
     deckState.deckView = btn.dataset.dview;
     renderDeckContent();
   });
+});
+
+document.getElementById('deck-group-by').addEventListener('change', e => {
+  deckState.groupBy = e.target.value;
+  deckGroupCollapsed.clear();
+  renderDeckContent();
 });
 
 // ── Import modal ──────────────────────────────────────────────────────────────
