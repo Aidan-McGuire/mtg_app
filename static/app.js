@@ -599,6 +599,7 @@ async function loadModalTags(card, deckContext) {
   if (!section.isConnected) return;
   section.innerHTML = '';
 
+  let trackedCollTags = [...collTags];
   if (inCollection) {
     section.appendChild(buildTagEditor({
       label: 'Collection tags',
@@ -612,14 +613,15 @@ async function loadModalTags(card, deckContext) {
       },
       onRemove: async (tag) => {
         await API.removeCollectionTag(card.id, tag);
-        const updated = collTags.filter(t => t !== tag);
-        syncCollectionTagsOnCard(card.id, updated);
-        return updated;
+        trackedCollTags = trackedCollTags.filter(t => t !== tag);
+        syncCollectionTagsOnCard(card.id, trackedCollTags);
+        return trackedCollTags;
       },
     }));
   }
 
   if (deckContext) {
+    let trackedDeckTags = [...deckTags];
     section.appendChild(buildTagEditor({
       label: 'Deck tags',
       chipClass: 'deck-tag',
@@ -632,9 +634,9 @@ async function loadModalTags(card, deckContext) {
       },
       onRemove: async (tag) => {
         await API.removeDeckTag(deckContext.deckId, card.id, tag);
-        const updated = deckTags.filter(t => t !== tag);
-        syncDeckTagsOnCard(card.id, updated);
-        return updated;
+        trackedDeckTags = trackedDeckTags.filter(t => t !== tag);
+        syncDeckTagsOnCard(card.id, trackedDeckTags);
+        return trackedDeckTags;
       },
     }));
   }
