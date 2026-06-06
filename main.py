@@ -82,5 +82,37 @@ def initialize_database():
     conn.close()
     print("Database initialized at", DB_PATH.resolve())
 
+def migrate_database():
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("SELECT version FROM schema_version LIMIT 1;")
+    version = cur.fetchone()[0]
+
+    if version < 2:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS collection_tags (
+                id      INTEGER PRIMARY KEY,
+                card_id INTEGER NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+                tag     TEXT    NOT NULL,
+                UNIQUE(card_id, tag)
+            );
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS deck_card_tags (
+                id      INTEGER PRIMARY KEY,
+                deck_id INTEGER NOT NULL REFERENCES decks(id) ON DELETE CASCADE,
+                card_id INTEGER NOT NULL REFERENCES cards(id),
+                tag     TEXT    NOT NULL,
+                UNIQUE(deck_id, card_id, tag)
+            );
+        """)
+        cur.execute("UPDATE schema_version SET version = 2;")
+
+    conn.commit()
+    conn.close()
+
 if __name__ == "__main__":
     initialize_database()
+    migrate_database()
+    print("Migration complete.")

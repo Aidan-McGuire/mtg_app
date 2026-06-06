@@ -21,6 +21,9 @@ CARD_COLS_C = "c.id, c.oracle_id, c.name, c.mana_cost, c.cmc, c.type_line, c.ora
 
 IMAGE_CACHE_DIR.mkdir(exist_ok=True)
 
+from main import migrate_database
+migrate_database()
+
 app = FastAPI()
 
 
