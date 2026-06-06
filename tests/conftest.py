@@ -1,6 +1,5 @@
 import pytest
 import sqlite3
-from pathlib import Path
 from fastapi.testclient import TestClient
 
 _SCHEMA = """
@@ -75,7 +74,9 @@ def db_path(tmp_path):
 @pytest.fixture
 def client(db_path, monkeypatch):
     import app as app_module
+    import main as main_module
     monkeypatch.setattr(app_module, "DB_PATH", db_path)
+    monkeypatch.setattr(main_module, "DB_PATH", db_path)
     # Suppress static file mount errors in test environment
     with TestClient(app_module.app, raise_server_exceptions=True) as c:
         yield c
