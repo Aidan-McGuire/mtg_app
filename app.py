@@ -301,6 +301,10 @@ class CollectionImport(BaseModel):
     list: str
 
 
+class TagAdd(BaseModel):
+    tag: str
+
+
 @app.post("/api/collection/import")
 def import_collection(body: CollectionImport):
     entries = parse_decklist(body.list)
@@ -329,10 +333,6 @@ def import_collection(body: CollectionImport):
 # ---------------------------------------------------------------------------
 # Decks
 # ---------------------------------------------------------------------------
-
-class TagAdd(BaseModel):
-    tag: str
-
 
 class DeckCreate(BaseModel):
     name: str
@@ -555,9 +555,10 @@ def add_collection_tag(card_id: int, body: TagAdd):
         raise HTTPException(400, "Tag cannot be empty")
     with get_db() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT id FROM cards WHERE id = ?", (card_id,))
-        if not cur.fetchone():
-            raise HTTPException(404, "Card not found")
+        cur.execute("SELECT quantity FROM collection WHERE card_id = ?", (card_id,))
+        row = cur.fetchone()
+        if not row or row["quantity"] == 0:
+            raise HTTPException(404, "Card not in collection")
         cur.execute(
             "INSERT OR IGNORE INTO collection_tags (card_id, tag) VALUES (?, ?)",
             (card_id, tag)
