@@ -21,6 +21,22 @@ CARD_COLS_C = "c.id, c.oracle_id, c.name, c.mana_cost, c.cmc, c.type_line, c.ora
 
 IMAGE_CACHE_DIR.mkdir(exist_ok=True)
 
+
+def fetch_collection_tags(cur, card_id: int) -> list[str]:
+    cur.execute(
+        "SELECT tag FROM collection_tags WHERE card_id = ? ORDER BY tag",
+        (card_id,)
+    )
+    return [r[0] for r in cur.fetchall()]
+
+
+def fetch_deck_tags(cur, deck_id: int, card_id: int) -> list[str]:
+    cur.execute(
+        "SELECT tag FROM deck_card_tags WHERE deck_id = ? AND card_id = ? ORDER BY tag",
+        (deck_id, card_id)
+    )
+    return [r[0] for r in cur.fetchall()]
+
 from main import migrate_database
 migrate_database()
 
@@ -242,7 +258,10 @@ def get_collection():
             WHERE col.quantity > 0
             ORDER BY c.name
         """)
-        return [dict(r) for r in cur.fetchall()]
+        rows = [dict(r) for r in cur.fetchall()]
+        for row in rows:
+            row["collection_tags"] = fetch_collection_tags(cur, row["id"])
+        return rows
 
 
 @app.post("/api/collection/{card_id}/increment")
@@ -382,7 +401,11 @@ def get_deck_cards(deck_id: int):
             WHERE dc.deck_id = ?
             ORDER BY dc.is_commander DESC, c.name
         """, (deck_id,))
-        return [dict(r) for r in cur.fetchall()]
+        rows = [dict(r) for r in cur.fetchall()]
+        for row in rows:
+            row["collection_tags"] = fetch_collection_tags(cur, row["id"])
+            row["deck_tags"] = fetch_deck_tags(cur, deck_id, row["id"])
+        return rows
 
 
 @app.post("/api/decks/import", status_code=201)
@@ -480,6 +503,43 @@ def remove_card_from_deck(deck_id: int, card_id: int):
         if cur.rowcount == 0:
             raise HTTPException(404, "Card not in deck")
         conn.commit()
+
+
+# ---------------------------------------------------------------------------
+# Tag read / autocomplete endpoints
+# ---------------------------------------------------------------------------
+
+@app.get("/api/collection/tags")
+def list_collection_tags():
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT DISTINCT tag FROM collection_tags ORDER BY tag")
+        return [r[0] for r in cur.fetchall()]
+
+
+@app.get("/api/collection/{card_id}/tags")
+def get_collection_card_tags(card_id: int):
+    with get_db() as conn:
+        cur = conn.cursor()
+        return fetch_collection_tags(cur, card_id)
+
+
+@app.get("/api/decks/{deck_id}/tags")
+def list_deck_tags(deck_id: int):
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT DISTINCT tag FROM deck_card_tags WHERE deck_id = ? ORDER BY tag",
+            (deck_id,)
+        )
+        return [r[0] for r in cur.fetchall()]
+
+
+@app.get("/api/decks/{deck_id}/cards/{card_id}/tags")
+def get_deck_card_tags(deck_id: int, card_id: int):
+    with get_db() as conn:
+        cur = conn.cursor()
+        return fetch_deck_tags(cur, deck_id, card_id)
 
 
 # ---------------------------------------------------------------------------
