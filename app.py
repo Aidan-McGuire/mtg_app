@@ -9,6 +9,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from main import migrate_database
 
 DB_PATH = Path("mtg.db")
 IMAGE_CACHE_DIR = Path("image_cache")
@@ -37,7 +38,6 @@ def fetch_deck_tags(cur, deck_id: int, card_id: int) -> list[str]:
     )
     return [r[0] for r in cur.fetchall()]
 
-from main import migrate_database
 migrate_database()
 
 app = FastAPI()
