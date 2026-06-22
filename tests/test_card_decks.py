@@ -32,3 +32,4 @@ def test_card_in_multiple_decks_sorted_distinct(client, db_path):
 def test_card_not_found(client):
     r = client.get("/api/cards/9999/decks")
     assert r.status_code == 404
+    assert r.json() == {"detail": "Card not found"}
