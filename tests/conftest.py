@@ -82,3 +82,28 @@ def client(db_path, monkeypatch):
     # Suppress static file mount errors in test environment
     with TestClient(app_module.app, raise_server_exceptions=True) as c:
         yield c
+
+
+@pytest.fixture
+def seed_cards(db_path):
+    conn = sqlite3.connect(str(db_path))
+    rows = [
+        # oracle_id, name, mana_cost, cmc, type_line, oracle_text, colors, ci, power, toughness
+        ("bears", "Grizzly Bears", "{1}{G}", 2, "Creature — Bear", "", "G", "G", "2", "2"),
+        ("ele", "Wise Elephant", "{4}{G}", 5, "Creature — Elephant", "Draw a card.", "G", "G", "3", "5"),
+        ("isle", "Ancestral Vision", "{U}", 1, "Sorcery", "Draw three cards.", "U", "U", None, None),
+        ("wall", "Steel Wall", "{1}", 1, "Artifact Creature — Wall", "Defender", "", "", "0", "4"),
+        ("hydra", "Mystery Hydra", "{X}{G}", 1, "Creature — Hydra", "", "G", "G", "*", "*"),
+    ]
+    for oid, name, mc, cmc, tl, ot, col, ci, p, t in rows:
+        conn.execute(
+            "INSERT INTO cards (oracle_id, name, mana_cost, cmc, type_line, oracle_text, colors, color_identity, power, toughness) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (oid, name, mc, cmc, tl, ot, col, ci, p, t),
+        )
+    # add Grizzly Bears to collection + the existing test deck
+    bears_id = conn.execute("SELECT id FROM cards WHERE oracle_id='bears'").fetchone()[0]
+    conn.execute("INSERT INTO collection (card_id, quantity) VALUES (?, 2)", (bears_id,))
+    conn.execute("INSERT INTO deck_cards (deck_id, card_id, quantity) VALUES (1, ?, 1)", (bears_id,))
+    conn.commit()
+    conn.close()

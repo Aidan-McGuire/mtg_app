@@ -17,8 +17,8 @@ IMAGE_CACHE_MAX_BYTES = 500 * 1024 * 1024  # 500MB
 SCRYFALL_IMAGE_HOSTS = ("https://cards.scryfall.io/", "https://c1.scryfall.com/")
 
 # Shared card column list — update here if the cards table schema changes
-CARD_COLS   = "id, oracle_id, name, mana_cost, cmc, type_line, oracle_text, colors, color_identity, image_uri"
-CARD_COLS_C = "c.id, c.oracle_id, c.name, c.mana_cost, c.cmc, c.type_line, c.oracle_text, c.colors, c.color_identity, c.image_uri"
+CARD_COLS   = "id, oracle_id, name, mana_cost, cmc, type_line, oracle_text, colors, color_identity, image_uri, power, toughness"
+CARD_COLS_C = "c.id, c.oracle_id, c.name, c.mana_cost, c.cmc, c.type_line, c.oracle_text, c.colors, c.color_identity, c.image_uri, c.power, c.toughness"
 
 IMAGE_CACHE_DIR.mkdir(exist_ok=True)
 
@@ -250,8 +250,8 @@ def get_collection():
     with get_db() as conn:
         cur = conn.cursor()
         cur.execute("""
-            SELECT c.id, c.name, c.mana_cost, c.cmc, c.type_line,
-                   c.colors, c.color_identity, c.image_uri,
+            SELECT c.id, c.name, c.mana_cost, c.cmc, c.type_line, c.oracle_text,
+                   c.colors, c.color_identity, c.image_uri, c.power, c.toughness,
                    col.quantity
             FROM collection col
             JOIN cards c ON c.id = col.card_id
