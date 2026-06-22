@@ -716,6 +716,7 @@ function openModal(card, deckContext = null) {
         <span class="qty-owned-label">owned</span>
       </div>
       <div id="modal-tags-section"></div>
+      <div id="modal-decks-section"></div>
     </div>`;
 
   contentEl.querySelector('[data-action="inc"]').addEventListener('click', () => increment(card.id));
@@ -728,6 +729,46 @@ function openModal(card, deckContext = null) {
   // Fetch and render art options asynchronously
   loadPrintings(card);
   loadModalTags(card, deckContext);
+  loadModalDecks(card);
+}
+
+async function loadModalDecks(card) {
+  const section = document.getElementById('modal-decks-section');
+  if (!section) return;
+
+  let decks;
+  try {
+    const r = await fetch(`/api/cards/${card.id}/decks`);
+    decks = r.ok ? await r.json() : [];
+  } catch {
+    decks = [];
+  }
+
+  if (!section.isConnected) return; // modal was closed
+
+  if (!decks.length) {
+    section.innerHTML = '';            // hidden entirely when card is in no decks
+    return;
+  }
+
+  section.innerHTML = `
+    <div class="modal-tags-label">In decks</div>
+    <div class="modal-decks-list">
+      ${decks.map(d => `<button class="modal-deck-link" data-deck-id="${d.id}">${esc(d.name)}</button>`).join('')}
+    </div>`;
+
+  section.querySelectorAll('.modal-deck-link').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const deckId = Number(btn.dataset.deckId);
+      closeModal();
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('view-decks').classList.add('active');
+      document.querySelector('.nav-btn[data-view="decks"]').classList.add('active');
+      loadDeckList();
+      selectDeck(deckId);
+    });
+  });
 }
 
 function buildTagEditor({ label, chipClass, tags, suggestions, onAdd, onRemove }) {
