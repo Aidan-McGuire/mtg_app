@@ -20,6 +20,46 @@ SCRYFALL_IMAGE_HOSTS = ("https://cards.scryfall.io/", "https://c1.scryfall.com/"
 CARD_COLS   = "id, oracle_id, name, mana_cost, cmc, type_line, oracle_text, colors, color_identity, image_uri, power, toughness"
 CARD_COLS_C = "c.id, c.oracle_id, c.name, c.mana_cost, c.cmc, c.type_line, c.oracle_text, c.colors, c.color_identity, c.image_uri, c.power, c.toughness"
 
+COLOR_LETTERS = ("W", "U", "B", "R", "G")
+
+
+def _build_card_filters(colors, colorless, types, cmc_min, cmc_max, text, col=""):
+    """Return (sql_fragments, params) for the optional card filters.
+
+    `col` is an optional column prefix (e.g. "c.") for aliased queries.
+    """
+    frags, params = [], []
+
+    if colorless:
+        frags.append(f"{col}color_identity = ''")
+    elif colors:
+        wanted = [c for c in colors.upper().split(",") if c in COLOR_LETTERS]
+        if wanted:
+            # subset: stripping every selected letter leaves nothing (colorless '' passes)
+            expr = f"{col}color_identity"
+            for letter in wanted:
+                expr = f"REPLACE({expr}, '{letter}', '')"
+            frags.append(f"{expr} = ''")
+
+    type_list = [t.strip() for t in types.split(",") if t.strip()] if types else []
+    if type_list:
+        ors = " OR ".join([f"{col}type_line LIKE ?"] * len(type_list))
+        frags.append(f"({ors})")
+        params.extend(f"%{t}%" for t in type_list)
+
+    if cmc_min is not None:
+        frags.append(f"{col}cmc >= ?")
+        params.append(cmc_min)
+    if cmc_max is not None:
+        frags.append(f"{col}cmc <= ?")
+        params.append(cmc_max)
+
+    if text and text.strip():
+        frags.append(f"{col}oracle_text LIKE ?")
+        params.append(f"%{text.strip()}%")
+
+    return frags, params
+
 IMAGE_CACHE_DIR.mkdir(exist_ok=True)
 
 
@@ -152,10 +192,22 @@ async def proxy_image(url: str = Query(...)):
 # ---------------------------------------------------------------------------
 
 @app.get("/api/cards")
-def search_cards(q: str = Query(""), limit: int = Query(40, le=200), offset: int = Query(0)):
+def search_cards(
+    q: str = Query(""),
+    limit: int = Query(40, le=200),
+    offset: int = Query(0),
+    colors: str = Query(""),
+    colorless: bool = Query(False),
+    types: str = Query(""),
+    cmc_min: float | None = Query(None),
+    cmc_max: float | None = Query(None),
+    text: str = Query(""),
+):
     with get_db() as conn:
         cur = conn.cursor()
         if q.strip():
+            cfrags, cparams = _build_card_filters(colors, colorless, types, cmc_min, cmc_max, text, col="c.")
+            where_c = "".join(f" AND {f}" for f in cfrags)
             try:
                 cur.execute(f"""
                     SELECT {CARD_COLS_C}
@@ -163,26 +215,33 @@ def search_cards(q: str = Query(""), limit: int = Query(40, le=200), offset: int
                     JOIN cards c ON c.rowid = f.rowid
                     WHERE cards_fts MATCH ?
                       AND c.type_line NOT LIKE 'Token%'
+                      {where_c}
                     ORDER BY rank
                     LIMIT ? OFFSET ?
-                """, (q.strip() + "*", limit, offset))
+                """, (q.strip() + "*", *cparams, limit, offset))
             except sqlite3.OperationalError:
+                bfrags, bparams = _build_card_filters(colors, colorless, types, cmc_min, cmc_max, text)
+                where_b = "".join(f" AND {f}" for f in bfrags)
                 cur.execute(f"""
                     SELECT {CARD_COLS}
                     FROM cards
                     WHERE name LIKE ?
                       AND type_line NOT LIKE 'Token%'
+                      {where_b}
                     ORDER BY name
                     LIMIT ? OFFSET ?
-                """, (f"%{q.strip()}%", limit, offset))
+                """, (f"%{q.strip()}%", *bparams, limit, offset))
         else:
+            frags, params = _build_card_filters(colors, colorless, types, cmc_min, cmc_max, text)
+            where_extra = "".join(f" AND {f}" for f in frags)
             cur.execute(f"""
                 SELECT {CARD_COLS}
                 FROM cards
                 WHERE type_line NOT LIKE 'Token%'
+                  {where_extra}
                 ORDER BY name
                 LIMIT ? OFFSET ?
-            """, (limit, offset))
+            """, (*params, limit, offset))
         return [dict(r) for r in cur.fetchall()]
 
 
