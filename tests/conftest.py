@@ -15,7 +15,9 @@ CREATE TABLE cards (
     colors TEXT,
     color_identity TEXT,
     image_uri TEXT,
-    image_path TEXT
+    image_path TEXT,
+    power TEXT,
+    toughness TEXT
 );
 CREATE TABLE collection (
     id INTEGER PRIMARY KEY,
@@ -48,9 +50,9 @@ CREATE TABLE deck_card_tags (
     tag TEXT NOT NULL,
     UNIQUE(deck_id, card_id, tag)
 );
-INSERT INTO schema_version VALUES (2);
-INSERT INTO cards (id, oracle_id, name, type_line) VALUES (1, 'bolt-uuid', 'Lightning Bolt', 'Instant');
-INSERT INTO cards (id, oracle_id, name, type_line) VALUES (2, 'forest-uuid', 'Forest', 'Basic Land');
+INSERT INTO schema_version VALUES (3);
+INSERT INTO cards (id, oracle_id, name, mana_cost, cmc, type_line) VALUES (1, 'bolt-uuid', 'Lightning Bolt', '{R}', 1, 'Instant');
+INSERT INTO cards (id, oracle_id, name, mana_cost, cmc, type_line) VALUES (2, 'forest-uuid', 'Forest', NULL, 0, 'Basic Land');
 INSERT INTO collection (card_id, quantity) VALUES (1, 4);
 INSERT INTO decks (id, name) VALUES (1, 'Test Deck');
 INSERT INTO deck_cards (deck_id, card_id, quantity) VALUES (1, 1, 4);
@@ -80,3 +82,34 @@ def client(db_path, monkeypatch):
     # Suppress static file mount errors in test environment
     with TestClient(app_module.app, raise_server_exceptions=True) as c:
         yield c
+
+
+@pytest.fixture
+def seed_cards(db_path):
+    conn = sqlite3.connect(str(db_path))
+    # Remove base stub cards so sort/filter tests see only the seeded set.
+    conn.execute("DELETE FROM deck_cards WHERE card_id IN (SELECT id FROM cards WHERE oracle_id IN ('bolt-uuid', 'forest-uuid'))")
+    conn.execute("DELETE FROM collection WHERE card_id IN (SELECT id FROM cards WHERE oracle_id IN ('bolt-uuid', 'forest-uuid'))")
+    conn.execute("DELETE FROM cards WHERE oracle_id IN ('bolt-uuid', 'forest-uuid')")
+    assert conn.execute("SELECT COUNT(*) FROM cards").fetchone()[0] == 0, \
+        "seed_cards expected a clean cards table after deleting base stubs"
+    rows = [
+        # oracle_id, name, mana_cost, cmc, type_line, oracle_text, colors, ci, power, toughness
+        ("bears", "Grizzly Bears", "{1}{G}", 2, "Creature — Bear", "", "G", "G", "2", "2"),
+        ("ele", "Wise Elephant", "{4}{G}", 5, "Creature — Elephant", "Draw a card.", "G", "G", "3", "5"),
+        ("isle", "Ancestral Vision", "{U}", 1, "Sorcery", "Draw three cards.", "U", "U", None, None),
+        ("wall", "Steel Wall", "{1}", 1, "Artifact Creature — Wall", "Defender", "", "", "0", "4"),
+        ("hydra", "Mystery Hydra", "{X}{G}", 1, "Creature — Hydra", "", "G", "G", "*", "*"),
+    ]
+    for oid, name, mc, cmc, tl, ot, col, ci, p, t in rows:
+        conn.execute(
+            "INSERT INTO cards (oracle_id, name, mana_cost, cmc, type_line, oracle_text, colors, color_identity, power, toughness) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (oid, name, mc, cmc, tl, ot, col, ci, p, t),
+        )
+    # add Grizzly Bears to collection + the existing test deck
+    bears_id = conn.execute("SELECT id FROM cards WHERE oracle_id='bears'").fetchone()[0]
+    conn.execute("INSERT INTO collection (card_id, quantity) VALUES (?, 2)", (bears_id,))
+    conn.execute("INSERT INTO deck_cards (deck_id, card_id, quantity) VALUES (1, ?, 1)", (bears_id,))
+    conn.commit()
+    conn.close()

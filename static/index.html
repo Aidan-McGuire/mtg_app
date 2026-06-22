@@ -20,6 +20,7 @@
         <input type="text" id="search-input"
           placeholder="Search cards…  (press / to focus)"
           autocomplete="off" spellcheck="false">
+        <div id="browser-filter-controls"></div>
         <span class="kbd-hints">
           <kbd>↑↓←→</kbd> navigate &nbsp;
           <kbd>Enter</kbd> detail &nbsp;
@@ -40,6 +41,7 @@
           <option value="none">Group: None</option>
           <option value="collection-tag">Group: Tag</option>
         </select>
+        <div id="collection-filter-controls"></div>
         <span class="kbd-hints">
           <kbd>Enter</kbd> detail &nbsp;
           <kbd>+</kbd> / <kbd>-</kbd> quantity
@@ -73,6 +75,7 @@
                   <option value="collection-tag">Collection tag</option>
                   <option value="deck-tag">Deck tag</option>
                 </select>
+                <div id="deck-filter-controls"></div>
                 <span class="view-toggle">
                   <button class="vtoggle-btn active" data-dview="grid">Grid</button>
                   <button class="vtoggle-btn" data-dview="text">Text</button>

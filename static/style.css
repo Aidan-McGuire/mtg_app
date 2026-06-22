@@ -1024,3 +1024,23 @@ kbd {
   gap: 10px;
 }
 .group-body.collapsed { display: none; }
+
+.filter-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; position: relative; }
+.sort-select { padding: 4px 6px; }
+.dir-btn, .filters-btn, .clear-filters-btn { padding: 4px 8px; }
+.filter-badge { display: inline-block; min-width: 16px; padding: 0 4px; border-radius: 8px;
+  background: #c33; color: #fff; font-size: 11px; text-align: center; }
+.filter-badge.hidden { display: none; }
+.filter-panel { position: absolute; top: 110%; left: 0; z-index: 20;
+  background: #1e1e24; border: 1px solid #444; border-radius: 6px; padding: 12px;
+  display: flex; flex-direction: column; gap: 10px; min-width: 280px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4); }
+.filter-panel.hidden { display: none; }
+.filter-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.filter-group-label { font-size: 12px; opacity: 0.7; width: 80px; }
+.color-btn { width: 26px; height: 26px; border-radius: 50%; border: 1px solid #555;
+  background: #2a2a32; color: #ddd; cursor: pointer; }
+.color-btn.active { outline: 2px solid #6cf; }
+.check-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 12px;
+  padding: 2px 6px; border: 1px solid #444; border-radius: 12px; cursor: pointer; }
+.cmc-input { width: 50px; padding: 3px; }

@@ -17,8 +17,82 @@ IMAGE_CACHE_MAX_BYTES = 500 * 1024 * 1024  # 500MB
 SCRYFALL_IMAGE_HOSTS = ("https://cards.scryfall.io/", "https://c1.scryfall.com/")
 
 # Shared card column list — update here if the cards table schema changes
-CARD_COLS   = "id, oracle_id, name, mana_cost, cmc, type_line, oracle_text, colors, color_identity, image_uri"
-CARD_COLS_C = "c.id, c.oracle_id, c.name, c.mana_cost, c.cmc, c.type_line, c.oracle_text, c.colors, c.color_identity, c.image_uri"
+CARD_COLS   = "id, oracle_id, name, mana_cost, cmc, type_line, oracle_text, colors, color_identity, image_uri, power, toughness"
+CARD_COLS_C = "c.id, c.oracle_id, c.name, c.mana_cost, c.cmc, c.type_line, c.oracle_text, c.colors, c.color_identity, c.image_uri, c.power, c.toughness"
+
+COLOR_LETTERS = ("W", "U", "B", "R", "G")
+
+
+def _build_card_filters(colors, colorless, types, cmc_min, cmc_max, text, col=""):
+    """Return (sql_fragments, params) for the optional card filters.
+
+    `col` is an optional column prefix (e.g. "c.") for aliased queries.
+    """
+    frags, params = [], []
+
+    if colorless:
+        frags.append(f"{col}color_identity = ''")
+    elif colors:
+        wanted = list(dict.fromkeys(
+                c.strip() for c in colors.upper().split(",") if c.strip() in COLOR_LETTERS
+            ))
+        if wanted:
+            # subset: stripping every selected letter leaves nothing (colorless '' passes)
+            expr = f"{col}color_identity"
+            for letter in wanted:
+                expr = f"REPLACE({expr}, '{letter}', '')"
+            frags.append(f"{expr} = ''")
+
+    type_list = [t.strip() for t in types.split(",") if t.strip()] if types else []
+    if type_list:
+        ors = " OR ".join([f"{col}type_line LIKE ?"] * len(type_list))
+        frags.append(f"({ors})")
+        params.extend(f"%{t}%" for t in type_list)
+
+    if cmc_min is not None:
+        frags.append(f"{col}cmc >= ?")
+        params.append(cmc_min)
+    if cmc_max is not None:
+        frags.append(f"{col}cmc <= ?")
+        params.append(cmc_max)
+
+    if text and text.strip():
+        frags.append(f"{col}oracle_text LIKE ?")
+        params.append(f"%{text.strip()}%")
+
+    return frags, params
+
+_TYPE_RANK_SQL = """CASE
+    WHEN {col} LIKE '%Creature%'     THEN 0
+    WHEN {col} LIKE '%Instant%'      THEN 1
+    WHEN {col} LIKE '%Sorcery%'      THEN 2
+    WHEN {col} LIKE '%Enchantment%'  THEN 3
+    WHEN {col} LIKE '%Artifact%'     THEN 4
+    WHEN {col} LIKE '%Planeswalker%' THEN 5
+    WHEN {col} LIKE '%Land%'         THEN 6
+    WHEN {col} LIKE '%Battle%'       THEN 7
+    ELSE 8 END"""
+
+
+def _order_by(sort, direction, col_prefix=""):
+    """Return an ORDER BY clause body. Unknown sort -> name."""
+    d = "DESC" if direction == "desc" else "ASC"
+    name = f"{col_prefix}name COLLATE NOCASE"
+    if sort == "cmc":
+        return f"{col_prefix}cmc {d}, {name} ASC"
+    if sort == "type":
+        rank = _TYPE_RANK_SQL.format(col=f"{col_prefix}type_line")
+        return f"{rank} {d}, {name} ASC"
+    if sort in ("power", "toughness"):
+        c = f"{col_prefix}{sort}"
+        # numeric rows first; non-numeric/NULL last (regardless of direction)
+        return (
+            f"CASE WHEN {c} GLOB '[0-9]*' THEN 0 ELSE 1 END ASC, "
+            f"CASE WHEN {c} GLOB '[0-9]*' THEN CAST({c} AS REAL) ELSE NULL END {d}, "
+            f"{name} ASC"
+        )
+    return f"{name} {d}"
+
 
 IMAGE_CACHE_DIR.mkdir(exist_ok=True)
 
@@ -152,37 +226,59 @@ async def proxy_image(url: str = Query(...)):
 # ---------------------------------------------------------------------------
 
 @app.get("/api/cards")
-def search_cards(q: str = Query(""), limit: int = Query(40, le=200), offset: int = Query(0)):
+def search_cards(
+    q: str = Query(""),
+    limit: int = Query(40, le=200),
+    offset: int = Query(0),
+    colors: str = Query(""),
+    colorless: bool = Query(False),
+    types: str = Query(""),
+    cmc_min: float | None = Query(None),
+    cmc_max: float | None = Query(None),
+    text: str = Query(""),
+    sort: str = Query("name"),
+    direction: str = Query("asc", alias="dir"),
+):
     with get_db() as conn:
         cur = conn.cursor()
         if q.strip():
+            cfrags, cparams = _build_card_filters(colors, colorless, types, cmc_min, cmc_max, text, col="c.")
+            where_c = "".join(f" AND {f}" for f in cfrags)
             try:
+                fts_order = "rank" if sort == "name" else _order_by(sort, direction, "c.")
                 cur.execute(f"""
                     SELECT {CARD_COLS_C}
                     FROM cards_fts f
                     JOIN cards c ON c.rowid = f.rowid
                     WHERE cards_fts MATCH ?
                       AND c.type_line NOT LIKE 'Token%'
-                    ORDER BY rank
+                      {where_c}
+                    ORDER BY {fts_order}
                     LIMIT ? OFFSET ?
-                """, (q.strip() + "*", limit, offset))
+                """, (q.strip() + "*", *cparams, limit, offset))
             except sqlite3.OperationalError:
+                bfrags, bparams = _build_card_filters(colors, colorless, types, cmc_min, cmc_max, text)
+                where_b = "".join(f" AND {f}" for f in bfrags)
                 cur.execute(f"""
                     SELECT {CARD_COLS}
                     FROM cards
                     WHERE name LIKE ?
                       AND type_line NOT LIKE 'Token%'
-                    ORDER BY name
+                      {where_b}
+                    ORDER BY {_order_by(sort, direction)}
                     LIMIT ? OFFSET ?
-                """, (f"%{q.strip()}%", limit, offset))
+                """, (f"%{q.strip()}%", *bparams, limit, offset))
         else:
+            frags, params = _build_card_filters(colors, colorless, types, cmc_min, cmc_max, text)
+            where_extra = "".join(f" AND {f}" for f in frags)
             cur.execute(f"""
                 SELECT {CARD_COLS}
                 FROM cards
                 WHERE type_line NOT LIKE 'Token%'
-                ORDER BY name
+                  {where_extra}
+                ORDER BY {_order_by(sort, direction)}
                 LIMIT ? OFFSET ?
-            """, (limit, offset))
+            """, (*params, limit, offset))
         return [dict(r) for r in cur.fetchall()]
 
 
@@ -250,8 +346,8 @@ def get_collection():
     with get_db() as conn:
         cur = conn.cursor()
         cur.execute("""
-            SELECT c.id, c.name, c.mana_cost, c.cmc, c.type_line,
-                   c.colors, c.color_identity, c.image_uri,
+            SELECT c.id, c.name, c.mana_cost, c.cmc, c.type_line, c.oracle_text,
+                   c.colors, c.color_identity, c.image_uri, c.power, c.toughness,
                    col.quantity
             FROM collection col
             JOIN cards c ON c.id = col.card_id

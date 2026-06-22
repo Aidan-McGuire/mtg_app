@@ -1,8 +1,8 @@
 // ── API ───────────────────────────────────────────────────────────────────────
 
 const API = {
-  async searchCards(q = '', limit = 40, offset = 0) {
-    const p = new URLSearchParams({ q, limit, offset });
+  async searchCards(q = '', limit = 40, offset = 0, extra = {}) {
+    const p = new URLSearchParams({ q, limit, offset, ...extra });
     const r = await fetch(`/api/cards?${p}`);
     if (!r.ok) throw new Error('Search failed');
     return r.json();
@@ -156,9 +156,287 @@ const state = {
   loading:    false,
   hasMore:    true,
   modalCard:  null,
+  filter:     null,   // filter/sort model, initialized in init()
 };
 
 const LIMIT = 40;
+
+// ── Filter / Sort module ───────────────────────────────────────────────────────
+
+const COLOR_LETTERS = ['W', 'U', 'B', 'R', 'G'];
+const TYPE_OPTIONS = ['Creature', 'Instant', 'Sorcery', 'Enchantment',
+                      'Artifact', 'Planeswalker', 'Land', 'Battle'];
+const SORT_OPTIONS_BASE = [
+  { value: 'name', label: 'Name' },
+  { value: 'cmc',  label: 'Mana value' },
+  { value: 'type', label: 'Type' },
+  { value: 'power', label: 'Power' },
+  { value: 'toughness', label: 'Toughness' },
+];
+const SORT_OPTION_QUANTITY = { value: 'quantity', label: 'Quantity' };
+
+function makeFilterModel(overrides = {}) {
+  return {
+    text: '', colors: new Set(), colorlessOnly: false,
+    types: new Set(), cmcMin: null, cmcMax: null, tags: new Set(),
+    sort: 'name', dir: 'asc', ...overrides,
+  };
+}
+
+function typeRank(typeLine) {
+  const tl = typeLine || '';
+  const i = TYPE_OPTIONS.findIndex(t => tl.includes(t));
+  return i === -1 ? TYPE_OPTIONS.length : i;
+}
+
+function ptNum(v) {
+  const n = parseFloat(v);
+  return Number.isFinite(n) && /^[0-9]/.test(String(v)) ? n : null;
+}
+
+function sortComparator(model) {
+  const dir = model.dir === 'desc' ? -1 : 1;
+  const byName = (a, b) => a.name.localeCompare(b.name);
+  return (a, b) => {
+    let r;
+    switch (model.sort) {
+      case 'cmc':      r = (a.cmc ?? 0) - (b.cmc ?? 0); break;
+      case 'quantity': r = (a.quantity ?? 0) - (b.quantity ?? 0); break;
+      case 'type':     r = typeRank(a.type_line) - typeRank(b.type_line); break;
+      case 'power':
+      case 'toughness': {
+        const av = ptNum(a[model.sort]), bv = ptNum(b[model.sort]);
+        if (av === null && bv === null) return byName(a, b);
+        if (av === null) return 1;    // missing/non-numeric always last
+        if (bv === null) return -1;
+        r = av - bv;
+        break;
+      }
+      default: return byName(a, b) * dir;   // name
+    }
+    return r !== 0 ? r * dir : byName(a, b);
+  };
+}
+
+function applyFilters(cards, model) {
+  return cards.filter(c => {
+    if (model.text) {
+      const t = model.text.toLowerCase();
+      if (!c.name.toLowerCase().includes(t) &&
+          !(c.oracle_text || '').toLowerCase().includes(t)) return false;
+    }
+    if (model.colorlessOnly) {
+      if ((c.color_identity || '') !== '') return false;
+    } else if (model.colors.size) {
+      for (const ch of (c.color_identity || '')) {
+        if (!model.colors.has(ch)) return false;   // subset; '' passes
+      }
+    }
+    if (model.types.size) {
+      const tl = c.type_line || '';
+      if (![...model.types].some(ty => tl.includes(ty))) return false;
+    }
+    if (model.cmcMin != null && (c.cmc ?? 0) < model.cmcMin) return false;
+    if (model.cmcMax != null && (c.cmc ?? 0) > model.cmcMax) return false;
+    if (model.tags.size) {
+      const tags = [...(c.collection_tags || []), ...(c.deck_tags || [])];
+      if (![...model.tags].some(tg => tags.includes(tg))) return false;
+    }
+    return true;
+  });
+}
+
+function activeFilterCount(model) {
+  let n = 0;
+  if (model.text) n++;
+  if (model.colorlessOnly || model.colors.size) n++;
+  if (model.types.size) n++;
+  if (model.cmcMin != null || model.cmcMax != null) n++;
+  if (model.tags.size) n++;
+  return n;
+}
+
+function modelToParams(model) {
+  const p = {};
+  if (model.text) p.text = model.text;
+  if (model.colorlessOnly) p.colorless = '1';
+  else if (model.colors.size) p.colors = [...model.colors].join(',');
+  if (model.types.size) p.types = [...model.types].join(',');
+  if (model.cmcMin != null) p.cmc_min = model.cmcMin;
+  if (model.cmcMax != null) p.cmc_max = model.cmcMax;
+  if (model.sort) p.sort = model.sort;
+  if (model.dir) p.dir = model.dir;
+  return p;
+}
+
+/**
+ * Render a filter/sort control bar into `container`.
+ * config: { model, facets:Set<'colors'|'types'|'cmc'|'tags'>,
+ *           sortOptions:[{value,label}], tagOptions:[], onChange:fn }
+ */
+function buildFilterControls(container, config) {
+  const { model, facets, sortOptions, tagOptions = [], onChange } = config;
+  container.innerHTML = '';
+  container.className = 'filter-bar';
+
+  // Sort select + direction toggle
+  const sortSel = document.createElement('select');
+  sortSel.className = 'sort-select';
+  for (const opt of sortOptions) {
+    const o = document.createElement('option');
+    o.value = opt.value; o.textContent = `Sort: ${opt.label}`;
+    if (opt.value === model.sort) o.selected = true;
+    sortSel.appendChild(o);
+  }
+  sortSel.addEventListener('change', () => { model.sort = sortSel.value; onChange(); });
+
+  const dirBtn = document.createElement('button');
+  dirBtn.className = 'dir-btn action-btn';
+  dirBtn.textContent = model.dir === 'desc' ? '↓' : '↑';
+  dirBtn.title = 'Toggle sort direction';
+  dirBtn.addEventListener('click', () => {
+    model.dir = model.dir === 'desc' ? 'asc' : 'desc';
+    dirBtn.textContent = model.dir === 'desc' ? '↓' : '↑';
+    onChange();
+  });
+
+  // Filters disclosure
+  const filterBtn = document.createElement('button');
+  filterBtn.className = 'filters-btn action-btn';
+  const badge = document.createElement('span');
+  badge.className = 'filter-badge';
+  const refreshBadge = () => {
+    const n = activeFilterCount(model);
+    badge.textContent = n ? String(n) : '';
+    badge.classList.toggle('hidden', n === 0);
+  };
+  filterBtn.textContent = 'Filters ';
+  filterBtn.appendChild(badge);
+
+  const panel = document.createElement('div');
+  panel.className = 'filter-panel hidden';
+  filterBtn.addEventListener('click', () => panel.classList.toggle('hidden'));
+
+  // Colors
+  if (facets.has('colors')) {
+    const grp = document.createElement('div');
+    grp.className = 'filter-group';
+    grp.innerHTML = '<span class="filter-group-label">Colors</span>';
+    // Declare clBtn before the loop so the loop's click handlers can reference it.
+    const clBtn = document.createElement('button');
+    clBtn.className = 'color-btn color-C' + (model.colorlessOnly ? ' active' : '');
+    clBtn.textContent = 'C';
+    clBtn.title = 'Colorless only';
+    for (const letter of COLOR_LETTERS) {
+      const b = document.createElement('button');
+      b.className = 'color-btn color-' + letter +
+        (model.colors.has(letter) ? ' active' : '');
+      b.textContent = letter;
+      b.dataset.color = letter;
+      b.addEventListener('click', () => {
+        if (model.colors.has(letter)) model.colors.delete(letter);
+        else { model.colors.add(letter); model.colorlessOnly = false; }
+        b.classList.toggle('active');
+        clBtn.classList.toggle('active', model.colorlessOnly);
+        refreshBadge(); onChange();
+      });
+      grp.appendChild(b);
+    }
+    clBtn.addEventListener('click', () => {
+      model.colorlessOnly = !model.colorlessOnly;
+      if (model.colorlessOnly) model.colors.clear();
+      grp.querySelectorAll('.color-btn').forEach(x =>
+        x.classList.toggle('active',
+          x === clBtn ? model.colorlessOnly : model.colors.has(x.dataset.color)));
+      refreshBadge(); onChange();
+    });
+    grp.appendChild(clBtn);
+    panel.appendChild(grp);
+  }
+
+  // Types
+  if (facets.has('types')) {
+    const grp = document.createElement('div');
+    grp.className = 'filter-group';
+    grp.innerHTML = '<span class="filter-group-label">Types</span>';
+    for (const ty of TYPE_OPTIONS) {
+      const lab = document.createElement('label');
+      lab.className = 'check-pill';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.checked = model.types.has(ty);
+      cb.addEventListener('change', () => {
+        if (cb.checked) model.types.add(ty); else model.types.delete(ty);
+        refreshBadge(); onChange();
+      });
+      lab.appendChild(cb);
+      lab.appendChild(document.createTextNode(ty));
+      grp.appendChild(lab);
+    }
+    panel.appendChild(grp);
+  }
+
+  // CMC range
+  if (facets.has('cmc')) {
+    const grp = document.createElement('div');
+    grp.className = 'filter-group';
+    grp.innerHTML = '<span class="filter-group-label">Mana value</span>';
+    const mk = (key, ph) => {
+      const inp = document.createElement('input');
+      inp.type = 'number'; inp.min = '0'; inp.className = 'cmc-input';
+      inp.placeholder = ph;
+      if (model[key] != null) inp.value = model[key];
+      inp.addEventListener('input', () => {
+        model[key] = inp.value === '' ? null : parseFloat(inp.value);
+        refreshBadge(); onChange();
+      });
+      return inp;
+    };
+    grp.appendChild(mk('cmcMin', 'min'));
+    grp.appendChild(document.createTextNode('–'));
+    grp.appendChild(mk('cmcMax', 'max'));
+    panel.appendChild(grp);
+  }
+
+  // Tags
+  if (facets.has('tags') && tagOptions.length) {
+    const grp = document.createElement('div');
+    grp.className = 'filter-group';
+    grp.innerHTML = '<span class="filter-group-label">Tags</span>';
+    for (const tag of tagOptions) {
+      const lab = document.createElement('label');
+      lab.className = 'check-pill';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.checked = model.tags.has(tag);
+      cb.addEventListener('change', () => {
+        if (cb.checked) model.tags.add(tag); else model.tags.delete(tag);
+        refreshBadge(); onChange();
+      });
+      lab.appendChild(cb);
+      lab.appendChild(document.createTextNode(tag));
+      grp.appendChild(lab);
+    }
+    panel.appendChild(grp);
+  }
+
+  // Clear
+  const clearBtn = document.createElement('button');
+  clearBtn.className = 'clear-filters-btn action-btn';
+  clearBtn.textContent = 'Clear';
+  clearBtn.addEventListener('click', () => {
+    // Text search is owned by the page's search box, so Clear preserves it.
+    const keepText = model.text;
+    Object.assign(model, makeFilterModel({ sort: model.sort, dir: model.dir, text: keepText }));
+    buildFilterControls(container, config);  // re-render to reset control state
+    onChange();
+  });
+  panel.appendChild(clearBtn);
+
+  refreshBadge();
+  container.appendChild(sortSel);
+  container.appendChild(dirBtn);
+  container.appendChild(filterBtn);
+  container.appendChild(panel);
+}
 
 // ── Collection ────────────────────────────────────────────────────────────────
 
@@ -297,17 +575,21 @@ function setGridMessage(msg) {
 
 let searchTimer = null;
 
+function reloadCards() {
+  state.offset = 0;
+  state.hasMore = true;
+  state.cards = [];
+  clearGrid();
+  loadCards();
+}
+
 function onSearchInput(e) {
   const q = e.target.value;
   clearTimeout(searchTimer);
   searchTimer = setTimeout(() => {
     if (q === state.query) return;
-    state.query  = q;
-    state.offset = 0;
-    state.hasMore = true;
-    state.cards  = [];
-    clearGrid();
-    loadCards();
+    state.query = q;
+    reloadCards();
   }, 300);
 }
 
@@ -318,7 +600,8 @@ async function loadCards() {
   if (state.offset === 0) setGridMessage('Loading…');
 
   try {
-    const cards = await API.searchCards(state.query, LIMIT, state.offset);
+    const extra = state.filter ? modelToParams(state.filter) : {};
+    const cards = await API.searchCards(state.query, LIMIT, state.offset, extra);
     if (state.offset === 0) clearGrid();
 
     if (cards.length === 0 && state.offset === 0) {
@@ -697,6 +980,8 @@ document.addEventListener('keydown', e => {
   }
 
   if (e.key === 'Escape') {
+    const openPanel = document.querySelector('.filter-panel:not(.hidden)');
+    if (openPanel) { openPanel.classList.add('hidden'); return; }
     if (!document.getElementById('import-overlay').classList.contains('hidden')) {
       closeImportModal(); return;
     }
@@ -729,6 +1014,13 @@ document.addEventListener('keydown', e => {
 
   if (!decksActive && document.activeElement !== searchInput) {
     handleGridKey(e);
+  }
+});
+
+// Close any open filter panel when clicking outside a filter bar.
+document.addEventListener('click', e => {
+  if (!e.target.closest('.filter-bar')) {
+    document.querySelectorAll('.filter-panel:not(.hidden)').forEach(p => p.classList.add('hidden'));
   }
 });
 
@@ -803,6 +1095,14 @@ async function init() {
   new ResizeObserver(() => computeGrid(browserGrid)).observe(browserGrid);
   new ResizeObserver(() => computeGrid(collectionGrid)).observe(collectionGrid);
 
+  state.filter = makeFilterModel();
+  buildFilterControls(document.getElementById('browser-filter-controls'), {
+    model: state.filter,
+    facets: new Set(['colors', 'types', 'cmc']),
+    sortOptions: SORT_OPTIONS_BASE,
+    onChange: reloadCards,
+  });
+
   loadCards();
   loadDeckList();
   document.getElementById('search-input').focus();
@@ -816,6 +1116,7 @@ const collectionState = {
   cards: [],   // full card objects with .quantity
   query: '',
   groupBy: 'none',   // 'none' | 'collection-tag'
+  filter: makeFilterModel(),
 };
 
 const collectionGroupCollapsed = new Set();
@@ -890,6 +1191,14 @@ async function loadCollectionView() {
     state.collection = {};
     for (const r of rows) state.collection[r.id] = r.quantity;
     collectionState.cards = rows;
+    const tagOptions = await API.listCollectionTags();
+    buildFilterControls(document.getElementById('collection-filter-controls'), {
+      model: collectionState.filter,
+      facets: new Set(['colors', 'types', 'cmc', 'tags']),
+      sortOptions: [...SORT_OPTIONS_BASE, SORT_OPTION_QUANTITY],
+      tagOptions,
+      onChange: renderCollectionGrid,
+    });
     renderCollectionGrid();
   } catch (e) {
     console.error(e);
@@ -901,31 +1210,31 @@ function renderCollectionGrid() {
   const countEl = document.getElementById('collection-count');
   grid.innerHTML = '';
 
-  const q = collectionState.query.toLowerCase();
-  const filtered = q
-    ? collectionState.cards.filter(c => c.name.toLowerCase().includes(q))
-    : collectionState.cards;
+  collectionState.filter.text = collectionState.query;   // name/text box feeds the model
+  const filtered = applyFilters(collectionState.cards, collectionState.filter);
+  const cmp = sortComparator(collectionState.filter);
 
-  const totalCopies  = filtered.reduce((s, c) => s + c.quantity, 0);
-  const uniqueCards  = filtered.length;
+  const totalCopies = filtered.reduce((s, c) => s + c.quantity, 0);
   countEl.textContent = filtered.length
-    ? `${totalCopies} card${totalCopies !== 1 ? 's' : ''} · ${uniqueCards} unique`
+    ? `${totalCopies} card${totalCopies !== 1 ? 's' : ''} · ${filtered.length} unique`
     : '';
 
   if (!filtered.length) {
     const msg = document.createElement('div');
     msg.className = 'grid-message';
-    msg.textContent = collectionState.query ? 'No matches.' : 'No cards in collection yet.';
+    msg.textContent = (collectionState.query || activeFilterCount(collectionState.filter))
+      ? 'No matches.' : 'No cards in collection yet.';
     grid.appendChild(msg);
     return;
   }
 
   if (collectionState.groupBy !== 'none') {
     const groups = groupCards(filtered, 'collection_tags');
+    for (const g of groups) g.cards.sort(cmp);
     renderGroupedGrid(grid, groups, buildCardTile, collectionGroupCollapsed);
   } else {
     const frag = document.createDocumentFragment();
-    for (const card of filtered) frag.appendChild(buildCardTile(card));
+    for (const card of [...filtered].sort(cmp)) frag.appendChild(buildCardTile(card));
     grid.appendChild(frag);
   }
 }
@@ -1112,6 +1421,7 @@ const deckState = {
   deckCards:      [],
   deckView:       'grid',
   groupBy:        'none',   // 'none' | 'collection-tag' | 'deck-tag'
+  filter:         makeFilterModel(),
   searchResults:  [],
   searchFocusIdx: -1,
   addingCards:    new Set(), // card IDs with an in-flight add request
@@ -1153,9 +1463,21 @@ function renderDeckList() {
 async function selectDeck(id) {
   deckState.currentDeckId = id;
   deckState.deckCards = [];
+  deckState.filter = makeFilterModel();   // reset filters between decks
   renderDeckList();
   try {
     deckState.deckCards = await API.getDeckCards(id);
+    const [collTags, deckTags] = await Promise.all([
+      API.listCollectionTags(),
+      API.listDeckTags(id),
+    ]);
+    buildFilterControls(document.getElementById('deck-filter-controls'), {
+      model: deckState.filter,
+      facets: new Set(['colors', 'types', 'cmc', 'tags']),
+      sortOptions: [...SORT_OPTIONS_BASE, SORT_OPTION_QUANTITY],
+      tagOptions: [...new Set([...collTags, ...deckTags])].sort(),
+      onChange: renderDeckContent,
+    });
     showDeckEditor();
   } catch (e) {
     console.error(e);
@@ -1190,19 +1512,22 @@ function renderDeckContent() {
 function renderDeckGrid() {
   const el = document.getElementById('deck-grid-view');
   el.innerHTML = '';
-  if (!deckState.deckCards.length) {
-    el.innerHTML = '<div class="deck-empty-msg">No cards yet — search to add some.</div>';
+  const filtered = applyFilters(deckState.deckCards, deckState.filter);
+  if (!filtered.length) {
+    el.innerHTML = '<div class="deck-empty-msg">No cards match — adjust filters or search to add some.</div>';
     return;
   }
+  const cmp = sortComparator(deckState.filter);
   if (deckState.groupBy !== 'none') {
     const tagField = deckState.groupBy === 'deck-tag' ? 'deck_tags' : 'collection_tags';
-    const groups = groupCards(deckState.deckCards, tagField);
+    const groups = groupCards(filtered, tagField);
+    for (const g of groups) g.cards.sort(cmp);
     renderGroupedGrid(el, groups, buildDeckCardTile, deckGroupCollapsed);
   } else {
-    const sorted = [...deckState.deckCards].sort((a, b) => {
-      if (a.is_commander && !b.is_commander) return -1;
+    const sorted = [...filtered].sort((a, b) => {
+      if (a.is_commander && !b.is_commander) return -1;   // commander pinned first
       if (!a.is_commander && b.is_commander) return 1;
-      return a.name.localeCompare(b.name);
+      return cmp(a, b);
     });
     const frag = document.createDocumentFragment();
     for (const card of sorted) frag.appendChild(buildDeckCardTile(card));
@@ -1246,8 +1571,11 @@ function buildDeckCardTile(card) {
 function renderDeckText() {
   const el = document.getElementById('deck-text-view');
   el.innerHTML = '';
-  if (!deckState.deckCards.length) {
-    el.innerHTML = '<div class="deck-empty-msg">No cards yet — search to add some.</div>';
+  const filtered = applyFilters(deckState.deckCards, deckState.filter);
+  if (!filtered.length) {
+    el.innerHTML = deckState.deckCards.length
+      ? '<div class="deck-empty-msg">No cards match — adjust filters.</div>'
+      : '<div class="deck-empty-msg">No cards yet — search to add some.</div>';
     return;
   }
 
@@ -1263,7 +1591,7 @@ function renderDeckText() {
     Other:        [],
   };
 
-  for (const card of deckState.deckCards) {
+  for (const card of filtered) {
     if (card.is_commander) { groups.Commander.push(card); continue; }
     const t = card.type_line || '';
     if      (t.includes('Creature'))     groups.Creature.push(card);
