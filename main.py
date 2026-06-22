@@ -110,6 +110,11 @@ def migrate_database():
         """)
         cur.execute("UPDATE schema_version SET version = 2;")
 
+    if version < 3:
+        cur.execute("ALTER TABLE cards ADD COLUMN power TEXT;")
+        cur.execute("ALTER TABLE cards ADD COLUMN toughness TEXT;")
+        cur.execute("UPDATE schema_version SET version = 3;")
+
     conn.commit()
     conn.close()
 

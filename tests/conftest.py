@@ -15,7 +15,9 @@ CREATE TABLE cards (
     colors TEXT,
     color_identity TEXT,
     image_uri TEXT,
-    image_path TEXT
+    image_path TEXT,
+    power TEXT,
+    toughness TEXT
 );
 CREATE TABLE collection (
     id INTEGER PRIMARY KEY,
@@ -48,7 +50,7 @@ CREATE TABLE deck_card_tags (
     tag TEXT NOT NULL,
     UNIQUE(deck_id, card_id, tag)
 );
-INSERT INTO schema_version VALUES (2);
+INSERT INTO schema_version VALUES (3);
 INSERT INTO cards (id, oracle_id, name, type_line) VALUES (1, 'bolt-uuid', 'Lightning Bolt', 'Instant');
 INSERT INTO cards (id, oracle_id, name, type_line) VALUES (2, 'forest-uuid', 'Forest', 'Basic Land');
 INSERT INTO collection (card_id, quantity) VALUES (1, 4);
