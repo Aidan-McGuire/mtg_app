@@ -91,6 +91,8 @@ def seed_cards(db_path):
     conn.execute("DELETE FROM deck_cards WHERE card_id IN (SELECT id FROM cards WHERE oracle_id IN ('bolt-uuid', 'forest-uuid'))")
     conn.execute("DELETE FROM collection WHERE card_id IN (SELECT id FROM cards WHERE oracle_id IN ('bolt-uuid', 'forest-uuid'))")
     conn.execute("DELETE FROM cards WHERE oracle_id IN ('bolt-uuid', 'forest-uuid')")
+    assert conn.execute("SELECT COUNT(*) FROM cards").fetchone()[0] == 0, \
+        "seed_cards expected a clean cards table after deleting base stubs"
     rows = [
         # oracle_id, name, mana_cost, cmc, type_line, oracle_text, colors, ci, power, toughness
         ("bears", "Grizzly Bears", "{1}{G}", 2, "Creature — Bear", "", "G", "G", "2", "2"),
