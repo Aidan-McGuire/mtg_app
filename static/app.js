@@ -956,11 +956,6 @@ function closeModal() {
 // ── Global keyboard handler ───────────────────────────────────────────────────
 
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') {
-    const openPanel = document.querySelector('.filter-panel:not(.hidden)');
-    if (openPanel) { openPanel.classList.add('hidden'); return; }
-  }
-
   const searchInput      = document.getElementById('search-input');
   const deckSearch       = document.getElementById('deck-search');
   const collectionSearch = document.getElementById('collection-search');
@@ -985,6 +980,8 @@ document.addEventListener('keydown', e => {
   }
 
   if (e.key === 'Escape') {
+    const openPanel = document.querySelector('.filter-panel:not(.hidden)');
+    if (openPanel) { openPanel.classList.add('hidden'); return; }
     if (!document.getElementById('import-overlay').classList.contains('hidden')) {
       closeImportModal(); return;
     }
