@@ -1411,6 +1411,7 @@ const deckState = {
   deckCards:      [],
   deckView:       'grid',
   groupBy:        'none',   // 'none' | 'collection-tag' | 'deck-tag'
+  filter:         makeFilterModel(),
   searchResults:  [],
   searchFocusIdx: -1,
   addingCards:    new Set(), // card IDs with an in-flight add request
@@ -1452,9 +1453,19 @@ function renderDeckList() {
 async function selectDeck(id) {
   deckState.currentDeckId = id;
   deckState.deckCards = [];
+  deckState.filter = makeFilterModel();   // reset filters between decks
   renderDeckList();
   try {
     deckState.deckCards = await API.getDeckCards(id);
+    const collTags = await API.listCollectionTags();
+    const deckTags = await API.listDeckTags(id);
+    buildFilterControls(document.getElementById('deck-filter-controls'), {
+      model: deckState.filter,
+      facets: new Set(['colors', 'types', 'cmc', 'tags']),
+      sortOptions: [...SORT_OPTIONS_BASE, SORT_OPTION_QUANTITY],
+      tagOptions: [...new Set([...collTags, ...deckTags])].sort(),
+      onChange: renderDeckContent,
+    });
     showDeckEditor();
   } catch (e) {
     console.error(e);
@@ -1489,19 +1500,22 @@ function renderDeckContent() {
 function renderDeckGrid() {
   const el = document.getElementById('deck-grid-view');
   el.innerHTML = '';
-  if (!deckState.deckCards.length) {
-    el.innerHTML = '<div class="deck-empty-msg">No cards yet — search to add some.</div>';
+  const filtered = applyFilters(deckState.deckCards, deckState.filter);
+  if (!filtered.length) {
+    el.innerHTML = '<div class="deck-empty-msg">No cards match — adjust filters or search to add some.</div>';
     return;
   }
+  const cmp = sortComparator(deckState.filter);
   if (deckState.groupBy !== 'none') {
     const tagField = deckState.groupBy === 'deck-tag' ? 'deck_tags' : 'collection_tags';
-    const groups = groupCards(deckState.deckCards, tagField);
+    const groups = groupCards(filtered, tagField);
+    for (const g of groups) g.cards.sort(cmp);
     renderGroupedGrid(el, groups, buildDeckCardTile, deckGroupCollapsed);
   } else {
-    const sorted = [...deckState.deckCards].sort((a, b) => {
-      if (a.is_commander && !b.is_commander) return -1;
+    const sorted = [...filtered].sort((a, b) => {
+      if (a.is_commander && !b.is_commander) return -1;   // commander pinned first
       if (!a.is_commander && b.is_commander) return 1;
-      return a.name.localeCompare(b.name);
+      return cmp(a, b);
     });
     const frag = document.createDocumentFragment();
     for (const card of sorted) frag.appendChild(buildDeckCardTile(card));
@@ -1562,7 +1576,7 @@ function renderDeckText() {
     Other:        [],
   };
 
-  for (const card of deckState.deckCards) {
+  for (const card of applyFilters(deckState.deckCards, deckState.filter)) {
     if (card.is_commander) { groups.Commander.push(card); continue; }
     const t = card.type_line || '';
     if      (t.includes('Creature'))     groups.Creature.push(card);
