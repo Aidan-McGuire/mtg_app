@@ -589,7 +589,6 @@ function onSearchInput(e) {
   searchTimer = setTimeout(() => {
     if (q === state.query) return;
     state.query = q;
-    if (state.filter) state.filter.text = q;
     reloadCards();
   }, 300);
 }
@@ -601,7 +600,8 @@ async function loadCards() {
   if (state.offset === 0) setGridMessage('Loading…');
 
   try {
-    const cards = await API.searchCards(state.query, LIMIT, state.offset, state.filter ? modelToParams(state.filter) : {});
+    const extra = state.filter ? modelToParams(state.filter) : {};
+    const cards = await API.searchCards(state.query, LIMIT, state.offset, extra);
     if (state.offset === 0) clearGrid();
 
     if (cards.length === 0 && state.offset === 0) {
