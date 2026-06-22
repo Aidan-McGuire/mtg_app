@@ -46,6 +46,17 @@ def extract_image_uri(card):
 
     return None
 
+
+def extract_pt(card):
+    """Return (power, toughness) from the card or its front face, else (None, None)."""
+    if card.get("power") is not None or card.get("toughness") is not None:
+        return card.get("power"), card.get("toughness")
+    for face in card.get("card_faces", []):
+        if face.get("power") is not None or face.get("toughness") is not None:
+            return face.get("power"), face.get("toughness")
+    return None, None
+
+
 def normalize_number(value):
     if value is None:
         return None
@@ -54,87 +65,84 @@ def normalize_number(value):
     return value
 
 
+def _stream_cards(download_url):
+    """Yield card dicts from the streamed, gzip-decoded Scryfall bulk data."""
+    response = requests.get(download_url, stream=True)
+    response.raise_for_status()
+    gzip_file = gzip.GzipFile(fileobj=response.raw)
+    return ijson.items(gzip_file, "item")
+
+
 def import_cards():
     download_url = get_bulk_download_url()
     print("Downloading and streaming bulk data...")
-    
-    response = requests.get(download_url, stream=True)
-    response.raise_for_status()
 
     conn = get_connection()
     cur = conn.cursor()
 
+    existing = {row[0] for row in cur.execute("SELECT oracle_id FROM cards")}
     seen_oracle_ids = set()
     batch = 0
     inserted = 0
 
-    gzip_file = gzip.GzipFile(fileobj=response.raw)
-    parser = ijson.items(gzip_file, "item")
-
-    for card in parser:
+    for card in _stream_cards(download_url):
         try:
-          # Skip tokens and digital-only cards
-          if card.get("layout") == "token":
-              continue
-          if card.get("digital"):
-              continue
+            if card.get("layout") == "token":
+                continue
+            if card.get("digital"):
+                continue
 
-          oracle_id = card.get("oracle_id")
-          if not oracle_id:
+            oracle_id = card.get("oracle_id")
+            if not oracle_id or oracle_id in seen_oracle_ids:
+                continue
+            seen_oracle_ids.add(oracle_id)
+
+            power, toughness = extract_pt(card)
+            values = (
+                card.get("name"),
+                card.get("mana_cost"),
+                normalize_number(card.get("cmc")),
+                card.get("type_line"),
+                card.get("oracle_text"),
+                sort_colors(card.get("colors")),
+                sort_colors(card.get("color_identity")),
+                extract_image_uri(card),
+                power,
+                toughness,
+            )
+
+            if oracle_id in existing:
+                cur.execute("""
+                    UPDATE cards SET
+                        name = ?, mana_cost = ?, cmc = ?, type_line = ?,
+                        oracle_text = ?, colors = ?, color_identity = ?,
+                        image_uri = ?, power = ?, toughness = ?
+                    WHERE oracle_id = ?
+                """, (*values, oracle_id))
+            else:
+                cur.execute("""
+                    INSERT INTO cards (
+                        name, mana_cost, cmc, type_line, oracle_text,
+                        colors, color_identity, image_uri, power, toughness, oracle_id
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (*values, oracle_id))
+                cur.execute(
+                    "INSERT INTO cards_fts (name, oracle_text) VALUES (?, ?)",
+                    (card.get("name"), card.get("oracle_text")),
+                )
+
+            batch += 1
+            inserted += 1
+            if batch >= BATCH_SIZE:
+                conn.commit()
+                print(f"Processed {inserted} cards...")
+                batch = 0
+        except Exception as e:
+            print("Skipping card, error:", e)
             continue
 
-          if oracle_id in seen_oracle_ids:
-              continue
-
-          seen_oracle_ids.add(oracle_id)
-          # add into cards
-          cur.execute("""
-              INSERT OR IGNORE INTO cards (
-                  oracle_id,
-                  name,
-                  mana_cost,
-                  cmc,
-                  type_line,
-                  oracle_text,
-                  colors,
-                  color_identity,
-                  image_uri
-              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-          """, (
-              oracle_id,
-              card.get("name"),
-              card.get("mana_cost"),
-              normalize_number(card.get("cmc")),
-              card.get("type_line"),
-              card.get("oracle_text"),
-              sort_colors(card.get("colors")),
-              sort_colors(card.get("color_identity")),
-              extract_image_uri(card)
-          ))
-          
-          # add into fts
-          cur.execute("""
-          INSERT INTO cards_fts (name, oracle_text)
-          VALUES (?, ?)
-          """, (
-              card.get("name"),
-              card.get("oracle_text")
-          ))
-
-          batch += 1
-          inserted += 1
-
-          if batch >= BATCH_SIZE:
-              conn.commit()
-              print(f"Inserted {inserted} cards...")
-              batch = 0
-        except Exception as e:
-          print("Skipping card, error:", e)
-          continue
-
     conn.commit()
-
-    print("Finished inserting cards.")
+    print("Finished importing cards.")
     conn.close()
 
 if __name__ == "__main__":
