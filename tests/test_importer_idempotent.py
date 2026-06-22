@@ -82,3 +82,80 @@ def test_reimport_is_idempotent_and_backfills(tmp_path, monkeypatch):
     assert len(rows) == 1                      # no duplicate card row
     assert rows[0] == ("1", "1")               # power/toughness backfilled
     assert fts_count == 1                      # no duplicate FTS row on re-run
+
+
+def test_fts_updated_on_reimport(tmp_path, monkeypatch):
+    """UPDATE path must keep cards_fts in sync with the cards row."""
+    db = _make_db(tmp_path)
+    monkeypatch.setattr(importer, "DB_PATH", db)
+    monkeypatch.setattr(importer, "get_bulk_download_url", lambda: "x")
+
+    # First import: card with original oracle_text
+    monkeypatch.setattr(
+        importer, "_stream_cards",
+        lambda url: iter([_card("elf-uuid", "Llanowar Elves", oracle_text="Tap for mana.")]),
+    )
+    importer.import_cards()
+
+    # Second import: same card with updated oracle_text (errata)
+    monkeypatch.setattr(
+        importer, "_stream_cards",
+        lambda url: iter([_card("elf-uuid", "Llanowar Elves", oracle_text="Add {G}.")]),
+    )
+    importer.import_cards()
+
+    conn = sqlite3.connect(str(db))
+    old_fts = conn.execute(
+        "SELECT COUNT(*) FROM cards_fts WHERE oracle_text = 'Tap for mana.'"
+    ).fetchone()[0]
+    new_fts = conn.execute(
+        "SELECT COUNT(*) FROM cards_fts WHERE oracle_text = 'Add {G}.'"
+    ).fetchone()[0]
+    total_fts = conn.execute("SELECT COUNT(*) FROM cards_fts").fetchone()[0]
+    conn.close()
+
+    assert total_fts == 1       # still only one FTS row
+    assert old_fts == 0         # stale text gone
+    assert new_fts == 1         # updated text searchable
+
+
+def test_new_card_inserted_on_second_import(tmp_path, monkeypatch):
+    """A brand-new oracle_id in a re-import must land in both cards and cards_fts."""
+    db = _make_db(tmp_path)
+    monkeypatch.setattr(importer, "DB_PATH", db)
+    monkeypatch.setattr(importer, "get_bulk_download_url", lambda: "x")
+
+    # First import: one card
+    monkeypatch.setattr(
+        importer, "_stream_cards",
+        lambda url: iter([_card("elf-uuid", "Llanowar Elves")]),
+    )
+    importer.import_cards()
+
+    # Second import: original card + a brand-new card
+    monkeypatch.setattr(
+        importer, "_stream_cards",
+        lambda url: iter([
+            _card("elf-uuid", "Llanowar Elves"),
+            _card("bolt-uuid", "Lightning Bolt", type_line="Instant",
+                  oracle_text="Lightning Bolt deals 3 damage to any target.",
+                  colors=["R"], color_identity=["R"]),
+        ]),
+    )
+    importer.import_cards()
+
+    conn = sqlite3.connect(str(db))
+    card_count = conn.execute("SELECT COUNT(*) FROM cards").fetchone()[0]
+    fts_count = conn.execute("SELECT COUNT(*) FROM cards_fts").fetchone()[0]
+    bolt_cards = conn.execute(
+        "SELECT COUNT(*) FROM cards WHERE oracle_id = 'bolt-uuid'"
+    ).fetchone()[0]
+    bolt_fts = conn.execute(
+        "SELECT COUNT(*) FROM cards_fts WHERE name = 'Lightning Bolt'"
+    ).fetchone()[0]
+    conn.close()
+
+    assert card_count == 2      # original + new card
+    assert fts_count == 2       # FTS row inserted for new card too
+    assert bolt_cards == 1      # new card present in cards
+    assert bolt_fts == 1        # new card present in cards_fts

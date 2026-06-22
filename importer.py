@@ -66,7 +66,7 @@ def normalize_number(value):
 
 
 def _stream_cards(download_url):
-    """Yield card dicts from the streamed, gzip-decoded Scryfall bulk data."""
+    """Return an iterator of card dicts from the streamed, gzip-decoded Scryfall bulk data."""
     response = requests.get(download_url, stream=True)
     response.raise_for_status()
     gzip_file = gzip.GzipFile(fileobj=response.raw)
@@ -83,7 +83,7 @@ def import_cards():
     existing = {row[0] for row in cur.execute("SELECT oracle_id FROM cards")}
     seen_oracle_ids = set()
     batch = 0
-    inserted = 0
+    processed = 0
 
     for card in _stream_cards(download_url):
         try:
@@ -119,6 +119,10 @@ def import_cards():
                         image_uri = ?, power = ?, toughness = ?
                     WHERE oracle_id = ?
                 """, (*values, oracle_id))
+                cur.execute("""
+                    UPDATE cards_fts SET name = ?, oracle_text = ?
+                    WHERE rowid = (SELECT rowid FROM cards WHERE oracle_id = ?)
+                """, (card.get("name"), card.get("oracle_text"), oracle_id))
             else:
                 cur.execute("""
                     INSERT INTO cards (
@@ -132,10 +136,10 @@ def import_cards():
                 )
 
             batch += 1
-            inserted += 1
+            processed += 1
             if batch >= BATCH_SIZE:
                 conn.commit()
-                print(f"Processed {inserted} cards...")
+                print(f"Processed {processed} cards...")
                 batch = 0
         except Exception as e:
             print("Skipping card, error:", e)
