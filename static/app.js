@@ -758,14 +758,14 @@ async function loadModalDecks(card) {
     </div>`;
 
   section.querySelectorAll('.modal-deck-link').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       const deckId = Number(btn.dataset.deckId);
       closeModal();
       document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
       document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
       document.getElementById('view-decks').classList.add('active');
       document.querySelector('.nav-btn[data-view="decks"]').classList.add('active');
-      loadDeckList();
+      await loadDeckList();
       selectDeck(deckId);
     });
   });
