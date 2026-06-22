@@ -70,7 +70,8 @@ _TYPE_RANK_SQL = """CASE
     WHEN {col} LIKE '%Artifact%'     THEN 4
     WHEN {col} LIKE '%Planeswalker%' THEN 5
     WHEN {col} LIKE '%Land%'         THEN 6
-    ELSE 7 END"""
+    WHEN {col} LIKE '%Battle%'       THEN 7
+    ELSE 8 END"""
 
 
 def _order_by(sort, direction, col_prefix=""):
