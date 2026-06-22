@@ -51,8 +51,8 @@ CREATE TABLE deck_card_tags (
     UNIQUE(deck_id, card_id, tag)
 );
 INSERT INTO schema_version VALUES (3);
-INSERT INTO cards (id, oracle_id, name, type_line) VALUES (1, 'bolt-uuid', 'Lightning Bolt', 'Instant');
-INSERT INTO cards (id, oracle_id, name, type_line) VALUES (2, 'forest-uuid', 'Forest', 'Basic Land');
+INSERT INTO cards (id, oracle_id, name, mana_cost, cmc, type_line) VALUES (1, 'bolt-uuid', 'Lightning Bolt', '{R}', 1, 'Instant');
+INSERT INTO cards (id, oracle_id, name, mana_cost, cmc, type_line) VALUES (2, 'forest-uuid', 'Forest', NULL, 0, 'Basic Land');
 INSERT INTO collection (card_id, quantity) VALUES (1, 4);
 INSERT INTO decks (id, name) VALUES (1, 'Test Deck');
 INSERT INTO deck_cards (deck_id, card_id, quantity) VALUES (1, 1, 4);
@@ -87,6 +87,10 @@ def client(db_path, monkeypatch):
 @pytest.fixture
 def seed_cards(db_path):
     conn = sqlite3.connect(str(db_path))
+    # Remove base stub cards so sort/filter tests see only the seeded set.
+    conn.execute("DELETE FROM deck_cards WHERE card_id IN (SELECT id FROM cards WHERE oracle_id IN ('bolt-uuid', 'forest-uuid'))")
+    conn.execute("DELETE FROM collection WHERE card_id IN (SELECT id FROM cards WHERE oracle_id IN ('bolt-uuid', 'forest-uuid'))")
+    conn.execute("DELETE FROM cards WHERE oracle_id IN ('bolt-uuid', 'forest-uuid')")
     rows = [
         # oracle_id, name, mana_cost, cmc, type_line, oracle_text, colors, ci, power, toughness
         ("bears", "Grizzly Bears", "{1}{G}", 2, "Creature — Bear", "", "G", "G", "2", "2"),

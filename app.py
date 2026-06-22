@@ -62,6 +62,37 @@ def _build_card_filters(colors, colorless, types, cmc_min, cmc_max, text, col=""
 
     return frags, params
 
+_TYPE_RANK_SQL = """CASE
+    WHEN {col} LIKE '%Creature%'     THEN 0
+    WHEN {col} LIKE '%Instant%'      THEN 1
+    WHEN {col} LIKE '%Sorcery%'      THEN 2
+    WHEN {col} LIKE '%Enchantment%'  THEN 3
+    WHEN {col} LIKE '%Artifact%'     THEN 4
+    WHEN {col} LIKE '%Planeswalker%' THEN 5
+    WHEN {col} LIKE '%Land%'         THEN 6
+    ELSE 7 END"""
+
+
+def _order_by(sort, direction, col_prefix=""):
+    """Return an ORDER BY clause body. Unknown sort -> name."""
+    d = "DESC" if direction == "desc" else "ASC"
+    name = f"{col_prefix}name COLLATE NOCASE"
+    if sort == "cmc":
+        return f"{col_prefix}cmc {d}, {name} ASC"
+    if sort == "type":
+        rank = _TYPE_RANK_SQL.format(col=f"{col_prefix}type_line")
+        return f"{rank} {d}, {name} ASC"
+    if sort in ("power", "toughness"):
+        c = f"{col_prefix}{sort}"
+        # numeric rows first; non-numeric/NULL last (regardless of direction)
+        return (
+            f"CASE WHEN {c} GLOB '[0-9]*' THEN 0 ELSE 1 END ASC, "
+            f"CASE WHEN {c} GLOB '[0-9]*' THEN CAST({c} AS REAL) ELSE NULL END {d}, "
+            f"{name} ASC"
+        )
+    return f"{name} {d}"
+
+
 IMAGE_CACHE_DIR.mkdir(exist_ok=True)
 
 
@@ -204,6 +235,8 @@ def search_cards(
     cmc_min: float | None = Query(None),
     cmc_max: float | None = Query(None),
     text: str = Query(""),
+    sort: str = Query("name"),
+    direction: str = Query("asc", alias="dir"),
 ):
     with get_db() as conn:
         cur = conn.cursor()
@@ -211,6 +244,7 @@ def search_cards(
             cfrags, cparams = _build_card_filters(colors, colorless, types, cmc_min, cmc_max, text, col="c.")
             where_c = "".join(f" AND {f}" for f in cfrags)
             try:
+                fts_order = "rank" if sort == "name" else _order_by(sort, direction, "c.")
                 cur.execute(f"""
                     SELECT {CARD_COLS_C}
                     FROM cards_fts f
@@ -218,7 +252,7 @@ def search_cards(
                     WHERE cards_fts MATCH ?
                       AND c.type_line NOT LIKE 'Token%'
                       {where_c}
-                    ORDER BY rank
+                    ORDER BY {fts_order}
                     LIMIT ? OFFSET ?
                 """, (q.strip() + "*", *cparams, limit, offset))
             except sqlite3.OperationalError:
@@ -230,7 +264,7 @@ def search_cards(
                     WHERE name LIKE ?
                       AND type_line NOT LIKE 'Token%'
                       {where_b}
-                    ORDER BY name
+                    ORDER BY {_order_by(sort, direction)}
                     LIMIT ? OFFSET ?
                 """, (f"%{q.strip()}%", *bparams, limit, offset))
         else:
@@ -241,7 +275,7 @@ def search_cards(
                 FROM cards
                 WHERE type_line NOT LIKE 'Token%'
                   {where_extra}
-                ORDER BY name
+                ORDER BY {_order_by(sort, direction)}
                 LIMIT ? OFFSET ?
             """, (*params, limit, offset))
         return [dict(r) for r in cur.fetchall()]
