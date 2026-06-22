@@ -1457,8 +1457,10 @@ async function selectDeck(id) {
   renderDeckList();
   try {
     deckState.deckCards = await API.getDeckCards(id);
-    const collTags = await API.listCollectionTags();
-    const deckTags = await API.listDeckTags(id);
+    const [collTags, deckTags] = await Promise.all([
+      API.listCollectionTags(),
+      API.listDeckTags(id),
+    ]);
     buildFilterControls(document.getElementById('deck-filter-controls'), {
       model: deckState.filter,
       facets: new Set(['colors', 'types', 'cmc', 'tags']),
@@ -1559,8 +1561,11 @@ function buildDeckCardTile(card) {
 function renderDeckText() {
   const el = document.getElementById('deck-text-view');
   el.innerHTML = '';
-  if (!deckState.deckCards.length) {
-    el.innerHTML = '<div class="deck-empty-msg">No cards yet — search to add some.</div>';
+  const filtered = applyFilters(deckState.deckCards, deckState.filter);
+  if (!filtered.length) {
+    el.innerHTML = deckState.deckCards.length
+      ? '<div class="deck-empty-msg">No cards match — adjust filters.</div>'
+      : '<div class="deck-empty-msg">No cards yet — search to add some.</div>';
     return;
   }
 
@@ -1576,7 +1581,7 @@ function renderDeckText() {
     Other:        [],
   };
 
-  for (const card of applyFilters(deckState.deckCards, deckState.filter)) {
+  for (const card of filtered) {
     if (card.is_commander) { groups.Commander.push(card); continue; }
     const t = card.type_line || '';
     if      (t.includes('Creature'))     groups.Creature.push(card);
