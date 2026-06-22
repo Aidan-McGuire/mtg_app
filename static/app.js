@@ -270,7 +270,7 @@ function modelToParams(model) {
 
 /**
  * Render a filter/sort control bar into `container`.
- * config: { model, facets:Set<'colors'|'types'|'cmc'|'tags'|'text'>,
+ * config: { model, facets:Set<'colors'|'types'|'cmc'|'tags'>,
  *           sortOptions:[{value,label}], tagOptions:[], onChange:fn }
  */
 function buildFilterControls(container, config) {
@@ -321,11 +321,17 @@ function buildFilterControls(container, config) {
     const grp = document.createElement('div');
     grp.className = 'filter-group';
     grp.innerHTML = '<span class="filter-group-label">Colors</span>';
+    // Declare clBtn before the loop so the loop's click handlers can reference it.
+    const clBtn = document.createElement('button');
+    clBtn.className = 'color-btn color-C' + (model.colorlessOnly ? ' active' : '');
+    clBtn.textContent = 'C';
+    clBtn.title = 'Colorless only';
     for (const letter of COLOR_LETTERS) {
       const b = document.createElement('button');
       b.className = 'color-btn color-' + letter +
         (model.colors.has(letter) ? ' active' : '');
       b.textContent = letter;
+      b.dataset.color = letter;
       b.addEventListener('click', () => {
         if (model.colors.has(letter)) model.colors.delete(letter);
         else { model.colors.add(letter); model.colorlessOnly = false; }
@@ -335,16 +341,12 @@ function buildFilterControls(container, config) {
       });
       grp.appendChild(b);
     }
-    const clBtn = document.createElement('button');
-    clBtn.className = 'color-btn color-C' + (model.colorlessOnly ? ' active' : '');
-    clBtn.textContent = 'C';
-    clBtn.title = 'Colorless only';
     clBtn.addEventListener('click', () => {
       model.colorlessOnly = !model.colorlessOnly;
       if (model.colorlessOnly) model.colors.clear();
       grp.querySelectorAll('.color-btn').forEach(x =>
         x.classList.toggle('active',
-          x === clBtn ? model.colorlessOnly : model.colors.has(x.textContent)));
+          x === clBtn ? model.colorlessOnly : model.colors.has(x.dataset.color)));
       refreshBadge(); onChange();
     });
     grp.appendChild(clBtn);
@@ -420,6 +422,7 @@ function buildFilterControls(container, config) {
   clearBtn.className = 'clear-filters-btn action-btn';
   clearBtn.textContent = 'Clear';
   clearBtn.addEventListener('click', () => {
+    // Text search is owned by the page's search box, so Clear preserves it.
     const keepText = model.text;
     Object.assign(model, makeFilterModel({ sort: model.sort, dir: model.dir, text: keepText }));
     buildFilterControls(container, config);  // re-render to reset control state
