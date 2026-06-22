@@ -956,6 +956,11 @@ function closeModal() {
 // ── Global keyboard handler ───────────────────────────────────────────────────
 
 document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    const openPanel = document.querySelector('.filter-panel:not(.hidden)');
+    if (openPanel) { openPanel.classList.add('hidden'); return; }
+  }
+
   const searchInput      = document.getElementById('search-input');
   const deckSearch       = document.getElementById('deck-search');
   const collectionSearch = document.getElementById('collection-search');
@@ -1012,6 +1017,13 @@ document.addEventListener('keydown', e => {
 
   if (!decksActive && document.activeElement !== searchInput) {
     handleGridKey(e);
+  }
+});
+
+// Close any open filter panel when clicking outside a filter bar.
+document.addEventListener('click', e => {
+  if (!e.target.closest('.filter-bar')) {
+    document.querySelectorAll('.filter-panel:not(.hidden)').forEach(p => p.classList.add('hidden'));
   }
 });
 
@@ -1213,7 +1225,8 @@ function renderCollectionGrid() {
   if (!filtered.length) {
     const msg = document.createElement('div');
     msg.className = 'grid-message';
-    msg.textContent = collectionState.query ? 'No matches.' : 'No cards in collection yet.';
+    msg.textContent = (collectionState.query || activeFilterCount(collectionState.filter))
+      ? 'No matches.' : 'No cards in collection yet.';
     grid.appendChild(msg);
     return;
   }
