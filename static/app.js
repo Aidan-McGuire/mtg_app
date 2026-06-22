@@ -1,8 +1,8 @@
 // ── API ───────────────────────────────────────────────────────────────────────
 
 const API = {
-  async searchCards(q = '', limit = 40, offset = 0) {
-    const p = new URLSearchParams({ q, limit, offset });
+  async searchCards(q = '', limit = 40, offset = 0, extra = {}) {
+    const p = new URLSearchParams({ q, limit, offset, ...extra });
     const r = await fetch(`/api/cards?${p}`);
     if (!r.ok) throw new Error('Search failed');
     return r.json();
@@ -156,6 +156,7 @@ const state = {
   loading:    false,
   hasMore:    true,
   modalCard:  null,
+  filter:     null,   // filter/sort model, initialized in init()
 };
 
 const LIMIT = 40;
@@ -574,17 +575,22 @@ function setGridMessage(msg) {
 
 let searchTimer = null;
 
+function reloadCards() {
+  state.offset = 0;
+  state.hasMore = true;
+  state.cards = [];
+  clearGrid();
+  loadCards();
+}
+
 function onSearchInput(e) {
   const q = e.target.value;
   clearTimeout(searchTimer);
   searchTimer = setTimeout(() => {
     if (q === state.query) return;
-    state.query  = q;
-    state.offset = 0;
-    state.hasMore = true;
-    state.cards  = [];
-    clearGrid();
-    loadCards();
+    state.query = q;
+    if (state.filter) state.filter.text = q;
+    reloadCards();
   }, 300);
 }
 
@@ -595,7 +601,7 @@ async function loadCards() {
   if (state.offset === 0) setGridMessage('Loading…');
 
   try {
-    const cards = await API.searchCards(state.query, LIMIT, state.offset);
+    const cards = await API.searchCards(state.query, LIMIT, state.offset, state.filter ? modelToParams(state.filter) : {});
     if (state.offset === 0) clearGrid();
 
     if (cards.length === 0 && state.offset === 0) {
@@ -1079,6 +1085,14 @@ async function init() {
   computeGrid(collectionGrid);
   new ResizeObserver(() => computeGrid(browserGrid)).observe(browserGrid);
   new ResizeObserver(() => computeGrid(collectionGrid)).observe(collectionGrid);
+
+  state.filter = makeFilterModel();
+  buildFilterControls(document.getElementById('browser-filter-controls'), {
+    model: state.filter,
+    facets: new Set(['colors', 'types', 'cmc']),
+    sortOptions: SORT_OPTIONS_BASE,
+    onChange: reloadCards,
+  });
 
   loadCards();
   loadDeckList();
