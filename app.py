@@ -326,6 +326,23 @@ async def get_printings(card_id: int):
     return printings
 
 
+@app.get("/api/cards/{card_id}/decks")
+def get_card_decks(card_id: int):
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT 1 FROM cards WHERE id = ?", (card_id,))
+        if not cur.fetchone():
+            raise HTTPException(404, "Card not found")
+        cur.execute("""
+            SELECT DISTINCT d.id, d.name
+            FROM deck_cards dc
+            JOIN decks d ON d.id = dc.deck_id
+            WHERE dc.card_id = ?
+            ORDER BY d.name
+        """, (card_id,))
+        return [dict(r) for r in cur.fetchall()]
+
+
 @app.get("/api/cards/{card_id}")
 def get_card(card_id: int):
     with get_db() as conn:
