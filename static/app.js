@@ -746,18 +746,26 @@ async function loadModalDecks(card) {
 
   if (!section.isConnected) return; // modal was closed
 
+  section.innerHTML = `<div id="modal-in-decks"></div>`;
+  renderInDecksList(decks);
+}
+
+function renderInDecksList(decks) {
+  const list = document.getElementById('modal-in-decks');
+  if (!list) return;
+
   if (!decks.length) {
-    section.innerHTML = '';            // hidden entirely when card is in no decks
+    list.innerHTML = '';   // hidden entirely when card is in no decks
     return;
   }
 
-  section.innerHTML = `
+  list.innerHTML = `
     <div class="modal-tags-label">In decks</div>
     <div class="modal-decks-list">
       ${decks.map(d => `<button class="modal-deck-link" data-deck-id="${d.id}">${esc(d.name)}</button>`).join('')}
     </div>`;
 
-  section.querySelectorAll('.modal-deck-link').forEach(btn => {
+  list.querySelectorAll('.modal-deck-link').forEach(btn => {
     btn.addEventListener('click', async () => {
       const deckId = Number(btn.dataset.deckId);
       closeModal();
