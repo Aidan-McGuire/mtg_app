@@ -1107,6 +1107,7 @@ const collectionState = {
   cards: [],   // full card objects with .quantity
   query: '',
   groupBy: 'none',   // 'none' | 'collection-tag'
+  filter: makeFilterModel(),
 };
 
 const collectionGroupCollapsed = new Set();
@@ -1181,6 +1182,14 @@ async function loadCollectionView() {
     state.collection = {};
     for (const r of rows) state.collection[r.id] = r.quantity;
     collectionState.cards = rows;
+    const tagOptions = await API.listCollectionTags();
+    buildFilterControls(document.getElementById('collection-filter-controls'), {
+      model: collectionState.filter,
+      facets: new Set(['colors', 'types', 'cmc', 'tags']),
+      sortOptions: [...SORT_OPTIONS_BASE, SORT_OPTION_QUANTITY],
+      tagOptions,
+      onChange: renderCollectionGrid,
+    });
     renderCollectionGrid();
   } catch (e) {
     console.error(e);
@@ -1192,15 +1201,13 @@ function renderCollectionGrid() {
   const countEl = document.getElementById('collection-count');
   grid.innerHTML = '';
 
-  const q = collectionState.query.toLowerCase();
-  const filtered = q
-    ? collectionState.cards.filter(c => c.name.toLowerCase().includes(q))
-    : collectionState.cards;
+  collectionState.filter.text = collectionState.query;   // name/text box feeds the model
+  const filtered = applyFilters(collectionState.cards, collectionState.filter);
+  const cmp = sortComparator(collectionState.filter);
 
-  const totalCopies  = filtered.reduce((s, c) => s + c.quantity, 0);
-  const uniqueCards  = filtered.length;
+  const totalCopies = filtered.reduce((s, c) => s + c.quantity, 0);
   countEl.textContent = filtered.length
-    ? `${totalCopies} card${totalCopies !== 1 ? 's' : ''} · ${uniqueCards} unique`
+    ? `${totalCopies} card${totalCopies !== 1 ? 's' : ''} · ${filtered.length} unique`
     : '';
 
   if (!filtered.length) {
@@ -1213,10 +1220,11 @@ function renderCollectionGrid() {
 
   if (collectionState.groupBy !== 'none') {
     const groups = groupCards(filtered, 'collection_tags');
+    for (const g of groups) g.cards.sort(cmp);
     renderGroupedGrid(grid, groups, buildCardTile, collectionGroupCollapsed);
   } else {
     const frag = document.createDocumentFragment();
-    for (const card of filtered) frag.appendChild(buildCardTile(card));
+    for (const card of [...filtered].sort(cmp)) frag.appendChild(buildCardTile(card));
     grid.appendChild(frag);
   }
 }
