@@ -736,28 +736,100 @@ async function loadModalDecks(card) {
   const section = document.getElementById('modal-decks-section');
   if (!section) return;
 
-  let decks;
+  let cardDecks = [];
+  let allDecks = [];
   try {
-    const r = await fetch(`/api/cards/${card.id}/decks`);
-    decks = r.ok ? await r.json() : [];
+    [cardDecks, allDecks] = await Promise.all([
+      fetch(`/api/cards/${card.id}/decks`).then(r => (r.ok ? r.json() : [])),
+      API.listDecks().catch(() => []),
+    ]);
   } catch {
-    decks = [];
+    cardDecks = [];
+    allDecks = [];
   }
 
   if (!section.isConnected) return; // modal was closed
 
+  section.innerHTML = `
+    <div class="modal-add-deck">
+      <div class="modal-tags-label">Add to deck</div>
+      <div class="modal-add-deck-row">
+        <input id="modal-add-deck-input" class="modal-add-deck-input"
+          list="modal-deck-suggestions" placeholder="Search decks…" autocomplete="off">
+        <datalist id="modal-deck-suggestions">
+          ${allDecks.map(d => `<option value="${esc(d.name)}">`).join('')}
+        </datalist>
+      </div>
+      <div id="modal-add-deck-note" class="modal-add-deck-note"></div>
+    </div>
+    <div id="modal-in-decks"></div>`;
+
+  renderInDecksList(cardDecks);
+
+  const input = document.getElementById('modal-add-deck-input');
+  const note = document.getElementById('modal-add-deck-note');
+  let noteTimer = null;
+
+  function showNote(msg, isError) {
+    note.textContent = msg;
+    note.classList.toggle('error', !!isError);
+    if (noteTimer) clearTimeout(noteTimer);
+    noteTimer = setTimeout(() => {
+      if (note.isConnected) { note.textContent = ''; note.classList.remove('error'); }
+    }, 2000);
+  }
+
+  input.addEventListener('keydown', async (e) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const value = input.value.trim();
+    if (!value) return;
+
+    const deck = allDecks.find(d => d.name.toLowerCase() === value.toLowerCase());
+    if (!deck) {
+      showNote(`No deck named "${value}"`, true);
+      return;
+    }
+
+    try {
+      await API.addCardToDeck(deck.id, card.id);
+    } catch {
+      showNote(`Could not add to ${deck.name}`, true);
+      return;
+    }
+
+    if (!input.isConnected) return; // modal closed during request
+    input.value = '';
+
+    let refreshed = [];
+    try {
+      const r = await fetch(`/api/cards/${card.id}/decks`);
+      refreshed = r.ok ? await r.json() : [];
+    } catch {
+      refreshed = [];
+    }
+    if (!section.isConnected) return;
+    renderInDecksList(refreshed);
+    showNote(`Added to ${deck.name}`, false);
+  });
+}
+
+function renderInDecksList(decks) {
+  const list = document.getElementById('modal-in-decks');
+  if (!list) return;
+
   if (!decks.length) {
-    section.innerHTML = '';            // hidden entirely when card is in no decks
+    list.innerHTML = '';   // hidden entirely when card is in no decks
     return;
   }
 
-  section.innerHTML = `
+  list.innerHTML = `
     <div class="modal-tags-label">In decks</div>
     <div class="modal-decks-list">
       ${decks.map(d => `<button class="modal-deck-link" data-deck-id="${d.id}">${esc(d.name)}</button>`).join('')}
     </div>`;
 
-  section.querySelectorAll('.modal-deck-link').forEach(btn => {
+  list.querySelectorAll('.modal-deck-link').forEach(btn => {
     btn.addEventListener('click', async () => {
       const deckId = Number(btn.dataset.deckId);
       closeModal();
@@ -1005,6 +1077,8 @@ document.addEventListener('keydown', e => {
 
   if (modalOpen) {
     if (e.key === 'Escape') closeModal();
+    // Don't fire card shortcuts while typing in a field (e.g. the deck/tag inputs).
+    if (e.target && e.target.matches && e.target.matches('input, textarea, select')) return;
     if ((e.key === '+' || e.key === '=') && state.modalCard) {
       e.preventDefault(); increment(state.modalCard.id);
     }
