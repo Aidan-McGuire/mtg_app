@@ -1077,6 +1077,8 @@ document.addEventListener('keydown', e => {
 
   if (modalOpen) {
     if (e.key === 'Escape') closeModal();
+    // Don't fire card shortcuts while typing in a field (e.g. the deck/tag inputs).
+    if (e.target && e.target.matches && e.target.matches('input, textarea, select')) return;
     if ((e.key === '+' || e.key === '=') && state.modalCard) {
       e.preventDefault(); increment(state.modalCard.id);
     }
