@@ -48,3 +48,14 @@ def test_filter_by_colors_subset_includes_colorless(client, seed_cards):
 def test_filter_colorless_only(client, seed_cards):
     r = client.get("/api/cards", params={"colorless": "1"})
     assert _names(r) == ["Steel Wall"]
+
+
+def test_filter_combined_with_query(client, seed_cards):
+    # q falls back to LIKE name-match (no FTS table in test DB); cmc filter also applies
+    r = client.get("/api/cards", params={"q": "Wise", "cmc_min": 4})
+    assert _names(r) == ["Wise Elephant"]
+
+
+def test_query_with_filter_excludes_nonmatching(client, seed_cards):
+    r = client.get("/api/cards", params={"q": "Grizzly", "types": "Sorcery"})
+    assert r.json() == []

@@ -33,7 +33,9 @@ def _build_card_filters(colors, colorless, types, cmc_min, cmc_max, text, col=""
     if colorless:
         frags.append(f"{col}color_identity = ''")
     elif colors:
-        wanted = [c for c in colors.upper().split(",") if c in COLOR_LETTERS]
+        wanted = list(dict.fromkeys(
+                c.strip() for c in colors.upper().split(",") if c.strip() in COLOR_LETTERS
+            ))
         if wanted:
             # subset: stripping every selected letter leaves nothing (colorless '' passes)
             expr = f"{col}color_identity"
