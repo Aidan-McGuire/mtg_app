@@ -223,7 +223,8 @@ function applyFilters(cards, model) {
     if (model.text) {
       const t = model.text.toLowerCase();
       if (!c.name.toLowerCase().includes(t) &&
-          !(c.oracle_text || '').toLowerCase().includes(t)) return false;
+          !(c.oracle_text || '').toLowerCase().includes(t) &&
+          !(c.type_line || '').toLowerCase().includes(t)) return false;
     }
     if (model.colorlessOnly) {
       if ((c.color_identity || '') !== '') return false;
