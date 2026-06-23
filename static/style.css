@@ -639,6 +639,24 @@ kbd {
   overflow-y: auto;
   padding: 12px;
 }
+.deck-content-search-input {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  box-sizing: border-box;
+  width: 100%;
+  margin-bottom: 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 13px;
+  padding: 8px 12px;
+  outline: none;
+  transition: border-color 0.12s;
+}
+.deck-content-search-input:focus { border-color: var(--accent); }
+.deck-content-search-input::placeholder { color: var(--muted); }
 
 .deck-empty-msg {
   padding: 40px;

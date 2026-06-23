@@ -1364,6 +1364,15 @@ document.getElementById('collection-search').addEventListener('keydown', e => {
   if (e.key === 'Escape') { e.target.blur(); collectionState.query = ''; renderCollectionGrid(); }
 });
 
+document.getElementById('deck-content-search').addEventListener('input', e => {
+  deckState.query = e.target.value;
+  renderDeckContent();
+});
+
+document.getElementById('deck-content-search').addEventListener('keydown', e => {
+  if (e.key === 'Escape') { e.target.blur(); deckState.query = ''; renderDeckContent(); }
+});
+
 document.getElementById('collection-group-by').addEventListener('change', e => {
   collectionState.groupBy = e.target.value;
   collectionGroupCollapsed.clear();
@@ -1538,6 +1547,7 @@ const deckState = {
   deckView:       'grid',
   groupBy:        'none',   // 'none' | 'collection-tag' | 'deck-tag'
   filter:         makeFilterModel(),
+  query:          '',       // deck content search box (name/text/type)
   searchResults:  [],
   searchFocusIdx: -1,
   addingCards:    new Set(), // card IDs with an in-flight add request
@@ -1580,6 +1590,9 @@ async function selectDeck(id) {
   deckState.currentDeckId = id;
   deckState.deckCards = [];
   deckState.filter = makeFilterModel();   // reset filters between decks
+  deckState.query = '';                   // reset content search between decks
+  const searchInput = document.getElementById('deck-content-search');
+  if (searchInput) searchInput.value = '';
   renderDeckList();
   try {
     deckState.deckCards = await API.getDeckCards(id);
@@ -1609,6 +1622,7 @@ function showDeckEditor() {
 // ── Deck editor rendering ─────────────────────────────────────────────────────
 
 function renderDeckContent() {
+  deckState.filter.text = deckState.query;   // content search box feeds the model
   const deck  = deckState.decks.find(d => d.id === deckState.currentDeckId);
   const total = deckState.deckCards.reduce((s, c) => s + c.quantity, 0);
   document.getElementById('deck-editor-name').textContent =
