@@ -1123,15 +1123,21 @@ document.addEventListener('keydown', e => {
     }
   }
 
+  // Everything below drives the Cards page: it reads `state.cards` and
+  // `#card-grid`. Running it on the Decks or Collection views opens/edits a
+  // card the user isn't even looking at — e.g. Enter in the deck add palette
+  // used to add the card AND open a detail modal for a Cards-page result.
+  const browserActive = !decksActive && !collectionViewActive();
+
   // Enter opens focused card (defaults to first card if none focused)
-  if (e.key === 'Enter' && state.cards.length > 0) {
+  if (browserActive && e.key === 'Enter' && state.cards.length > 0) {
     e.preventDefault();
     if (state.focusedIdx < 0) setFocused(0);
     const c = focusedCard();
     if (c) { openModal(c); return; }
   }
 
-  if (!decksActive && document.activeElement !== searchInput) {
+  if (browserActive && document.activeElement !== searchInput) {
     handleGridKey(e);
   }
 });
