@@ -10,12 +10,12 @@
   <div id="app">
     <nav id="nav">
       <span class="nav-title">MTG</span>
-      <button class="nav-btn active" data-view="browser">Cards</button>
-      <button class="nav-btn" data-view="collection">Collection</button>
+      <button class="nav-btn" data-view="browser">Cards</button>
+      <button class="nav-btn active" data-view="collection">Collection</button>
       <button class="nav-btn" data-view="decks">Decks</button>
     </nav>
 
-    <div id="view-browser" class="view active">
+    <div id="view-browser" class="view">
       <div class="search-bar">
         <input type="text" id="search-input"
           placeholder="Search cards…  (press / to focus)"
@@ -30,7 +30,7 @@
       <div id="card-grid" class="card-grid"></div>
     </div>
 
-    <div id="view-collection" class="view">
+    <div id="view-collection" class="view active">
       <div class="search-bar">
         <input type="text" id="collection-search"
           placeholder="Filter collection…  (press / to focus)"

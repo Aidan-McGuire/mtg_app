@@ -1246,7 +1246,8 @@ async function init() {
 
   loadCards();
   loadDeckList();
-  document.getElementById('search-input').focus();
+  loadCollectionView();
+  document.getElementById('collection-search').focus();
 }
 
 init();
