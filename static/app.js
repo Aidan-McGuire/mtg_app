@@ -1104,6 +1104,7 @@ document.addEventListener('keydown', e => {
     if (!document.getElementById('col-import-overlay').classList.contains('hidden')) {
       closeColImportModal(); return;
     }
+    if (deckSwitchPaletteOpen()) { closeDeckSwitchPalette(); return; }
     if (addPaletteOpen()) { closeAddPalette(); return; }
     searchInput.blur();
     deckSearch.blur();
@@ -1120,6 +1121,15 @@ document.addEventListener('keydown', e => {
       e.preventDefault(); collectionSearch.focus(); return;
     } else if (!decksActive && !collectionViewActive() && document.activeElement !== searchInput) {
       e.preventDefault(); searchInput.focus(); return;
+    }
+  }
+
+  // 'd' opens the deck-switcher palette
+  if (e.key === 'd' || e.key === 'D') {
+    const typingInField = !!document.activeElement &&
+      document.activeElement.matches('input, textarea');
+    if (decksActive && !typingInField) {
+      e.preventDefault(); openDeckSwitchPalette(); return;
     }
   }
 
@@ -2048,6 +2058,27 @@ document.getElementById('deck-switch-search').addEventListener('input', e => {
   renderDeckSwitchResults();
 });
 
+document.getElementById('deck-switch-search').addEventListener('keydown', e => {
+  const matches = filterDecks(deckState.decks, deckState.switchQuery);
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    deckState.switchFocusIdx = Math.min(deckState.switchFocusIdx + 1, matches.length - 1);
+    renderDeckSwitchResults();
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    deckState.switchFocusIdx = Math.max(deckState.switchFocusIdx - 1, -1);
+    renderDeckSwitchResults();
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    const idx = deckState.switchFocusIdx >= 0 ? deckState.switchFocusIdx : 0;
+    const deck = matches[idx];
+    if (deck) { selectDeck(deck.id); closeDeckSwitchPalette(); }
+  } else if (e.key === 'Escape') {
+    e.preventDefault();
+    closeDeckSwitchPalette();
+  }
+});
+
 document.getElementById('deck-rename-btn').addEventListener('click', async () => {
   const deck = deckState.decks.find(d => d.id === deckState.currentDeckId);
   if (!deck) return;
@@ -2195,4 +2226,13 @@ document.addEventListener('mousedown', e => {
   if (palette && palette.contains(e.target)) return;
   if (btn && btn.contains(e.target)) return;   // let the opener's own click through
   closeAddPalette();
+});
+
+document.addEventListener('mousedown', e => {
+  if (!deckSwitchPaletteOpen()) return;
+  const palette = document.getElementById('deck-switch-palette');
+  const btn     = document.getElementById('deck-switch-btn');
+  if (palette && palette.contains(e.target)) return;
+  if (btn && btn.contains(e.target)) return;   // let the opener's own click through
+  closeDeckSwitchPalette();
 });
