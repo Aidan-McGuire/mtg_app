@@ -1056,7 +1056,7 @@ function closeModal() {
   document.body.style.overflow = '';
   state.modalCard = null;
   if (document.getElementById('view-decks').classList.contains('active')) {
-    document.getElementById('deck-search').focus();
+    if (addPaletteOpen()) document.getElementById('deck-search').focus();
   } else if (collectionViewActive()) {
     document.getElementById('collection-search').focus();
   } else {
@@ -1104,15 +1104,18 @@ document.addEventListener('keydown', e => {
     if (!document.getElementById('col-import-overlay').classList.contains('hidden')) {
       closeColImportModal(); return;
     }
+    if (addPaletteOpen()) { closeAddPalette(); return; }
     searchInput.blur();
     deckSearch.blur();
     return;
   }
 
-  // '/' focuses the relevant search input
+  // '/' opens the add palette (decks) or focuses the relevant search input
   if (e.key === '/') {
-    if (decksActive && document.activeElement !== deckSearch) {
-      e.preventDefault(); deckSearch.focus(); return;
+    const typingInField = !!document.activeElement &&
+      document.activeElement.matches('input, textarea');
+    if (decksActive && !typingInField) {
+      e.preventDefault(); openAddPalette(); return;
     } else if (collectionViewActive() && document.activeElement !== collectionSearch) {
       e.preventDefault(); collectionSearch.focus(); return;
     } else if (!decksActive && !collectionViewActive() && document.activeElement !== searchInput) {
@@ -1148,6 +1151,7 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     document.getElementById(`view-${btn.dataset.view}`).classList.add('active');
     btn.classList.add('active');
+    if (btn.dataset.view !== 'decks')      closeAddPalette();
     if (btn.dataset.view === 'decks')      loadDeckList();
     if (btn.dataset.view === 'collection') loadCollectionView();
   });
@@ -1587,6 +1591,7 @@ function renderDeckList() {
 }
 
 async function selectDeck(id) {
+  closeAddPalette();                      // never carry the palette between decks
   deckState.currentDeckId = id;
   deckState.deckCards = [];
   deckState.filter = makeFilterModel();   // reset filters between decks
@@ -1823,6 +1828,35 @@ function parseAddQuery(raw) {
 }
 // ── end parseAddQuery ──
 
+// ── Add-card palette ──────────────────────────────────────────────────────────
+
+function addPaletteOpen() {
+  const p = document.getElementById('deck-add-palette');
+  return !!p && !p.classList.contains('hidden');
+}
+
+function openAddPalette() {
+  if (!deckState.currentDeckId) return;
+  const palette = document.getElementById('deck-add-palette');
+  const input   = document.getElementById('deck-search');
+  if (!palette || !input) return;
+  palette.classList.remove('hidden');
+  input.focus();
+  input.select();
+}
+
+function closeAddPalette() {
+  const palette = document.getElementById('deck-add-palette');
+  const input   = document.getElementById('deck-search');
+  const note    = document.getElementById('deck-add-note');
+  if (palette) palette.classList.add('hidden');
+  if (input) { input.blur(); input.value = ''; }
+  if (note) { note.textContent = ''; note.classList.remove('error'); }
+  deckState.searchResults  = [];
+  deckState.searchFocusIdx = -1;
+  renderDeckSearchResults();
+}
+
 // ── Deck search ───────────────────────────────────────────────────────────────
 
 let deckSearchTimer = null;
@@ -1844,6 +1878,7 @@ async function runDeckSearch(q) {
 
 function renderDeckSearchResults() {
   const el = document.getElementById('deck-search-results');
+  if (!el) return;
   el.innerHTML = '';
   for (let i = 0; i < deckState.searchResults.length; i++) {
     const card = deckState.searchResults[i];
@@ -2029,8 +2064,17 @@ document.getElementById('deck-search').addEventListener('keydown', e => {
     if (card) addCardToDeck(card.id, card);
   } else if (e.key === 'Escape') {
     e.preventDefault();
-    document.getElementById('deck-search').blur();
-    deckState.searchResults = [];
-    renderDeckSearchResults();
+    closeAddPalette();
   }
+});
+
+document.getElementById('deck-add-btn').addEventListener('click', openAddPalette);
+
+document.addEventListener('mousedown', e => {
+  if (!addPaletteOpen()) return;
+  const palette = document.getElementById('deck-add-palette');
+  const btn     = document.getElementById('deck-add-btn');
+  if (palette && palette.contains(e.target)) return;
+  if (btn && btn.contains(e.target)) return;   // let the opener's own click through
+  closeAddPalette();
 });
