@@ -53,5 +53,5 @@ A local Magic: The Gathering deckbuilding and collection management app. Runs as
 ```bash
 python main.py       # initialize the database
 python importer.py   # download and import cards from Scryfall
-uvicorn app:app --reload  # start the dev server (once app.py exists)
+uvicorn app:app --reload # start the dev server (once app.py exists)
 ```
