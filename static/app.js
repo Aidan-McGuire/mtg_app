@@ -1168,7 +1168,11 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
     document.getElementById(`view-${btn.dataset.view}`).classList.add('active');
     btn.classList.add('active');
     if (btn.dataset.view !== 'decks')      closeAddPalette();
-    if (btn.dataset.view === 'decks')      loadDeckList();
+    if (btn.dataset.view === 'decks') {
+      loadDeckList().then(() => {
+        if (!deckState.currentDeckId) openDeckSwitchPalette();
+      });
+    }
     if (btn.dataset.view === 'collection') loadCollectionView();
   });
 });
@@ -2101,9 +2105,10 @@ document.getElementById('deck-delete-btn').addEventListener('click', async () =>
     deckState.decks = deckState.decks.filter(d => d.id !== deck.id);
     deckState.currentDeckId = null;
     deckState.deckCards = [];
-    renderDeckList();
+    renderDeckSwitchResults();
     document.getElementById('deck-editor').classList.add('hidden');
     document.getElementById('deck-empty').classList.remove('hidden');
+    openDeckSwitchPalette();
   } catch (e) { alert('Failed to delete deck.'); }
 });
 
