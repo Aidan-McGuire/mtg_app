@@ -1167,10 +1167,11 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     document.getElementById(`view-${btn.dataset.view}`).classList.add('active');
     btn.classList.add('active');
-    if (btn.dataset.view !== 'decks')      closeAddPalette();
+    if (btn.dataset.view !== 'decks') { closeAddPalette(); closeDeckSwitchPalette(); }
     if (btn.dataset.view === 'decks') {
       loadDeckList().then(() => {
-        if (!deckState.currentDeckId) openDeckSwitchPalette();
+        const stillOnDecks = document.getElementById('view-decks').classList.contains('active');
+        if (stillOnDecks && !deckState.currentDeckId) openDeckSwitchPalette();
       });
     }
     if (btn.dataset.view === 'collection') loadCollectionView();
@@ -1901,6 +1902,7 @@ function addPaletteOpen() {
 
 function openAddPalette() {
   if (!deckState.currentDeckId) return;
+  closeDeckSwitchPalette();
   const palette = document.getElementById('deck-add-palette');
   const input   = document.getElementById('deck-search');
   if (!palette || !input) return;
