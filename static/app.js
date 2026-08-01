@@ -1563,6 +1563,14 @@ const deckState = {
   addingCards:    new Set(), // card IDs with an in-flight add request
 };
 
+// ── filterDecks ──
+function filterDecks(decks, query) {
+  const q = query.trim().toLowerCase();
+  if (!q) return decks;
+  return decks.filter(d => d.name.toLowerCase().includes(q));
+}
+// ── end filterDecks ──
+
 // ── Deck list ─────────────────────────────────────────────────────────────────
 
 async function loadDeckList() {
