@@ -52,8 +52,9 @@ Relevant facts that make bulk add cheap:
   (`app.py:588-590`). Adding N copies, to a new or existing card, is one call.
 - `API.addCardToDeck(deckId, cardId, quantity = 1)` already forwards the
   quantity (`static/app.js:57-62`); no wrapper change needed.
-- `showNote(msg, isError)` already exists for transient feedback
-  (`static/app.js:798`).
+- There is **no** reusable transient-note helper. `showNote` (`static/app.js:774`)
+  is a closure local to the modal's add-to-deck section and writes to
+  `#modal-add-deck-note`. The palette needs its own note element and timer.
 - The decklist importer parses entries with
   `^(\d+)x?\s+(.+?)(?:\s+\([A-Z0-9]{2,6}\)(?:\s+\d+.*)?)?$` (`app.py:145`) —
   i.e. a *leading* number, optional trailing `x`. The palette deliberately does
@@ -206,8 +207,9 @@ After a successful add, the palette **stays open** and resets for the next card:
 - clear the input value and `deckState.searchResults`, re-render results,
 - reset `deckState.searchFocusIdx = -1`,
 - refocus the input,
-- `showNote('Added 20× Swamp')` — without this, a cleared palette looks like
-  nothing happened.
+- `showAddNote('Added 20× Swamp')` — a palette-local note helper writing to a
+  `#deck-add-note` element; without this, a cleared palette looks like nothing
+  happened.
 
 Use the singular form (`Added Lightning Bolt`) when quantity is 1.
 
@@ -242,7 +244,8 @@ Backend is unchanged, so no pytest additions.
 - `parseAddQuery` is pure and DOM-free: test it with node (native ARM node at
   `/opt/homebrew`) over the cases `swamp` → 1, `x20 swamp` → 20, `X4 Bolt` → 4,
   `20 swamp` → 1 (name kept whole), `20x swamp` → 1 (name kept whole),
-  `x20` → 1 (no name to split), `x20 ` → empty name, `x0 swamp` → 1,
+  `x20` → 1 with name `x20` (no name to split; trailing space trims to the
+  same case), `x0 swamp` → 1, 
   `x9999 swamp` → 999, and `1996 World Champion` → 1 with the full name intact.
 - `node --check static/app.js` for syntax.
 - Manual click-through in the running app:
