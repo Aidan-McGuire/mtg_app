@@ -8,6 +8,13 @@ from decimal import Decimal
 DB_PATH = Path("mtg.db")
 BATCH_SIZE = 1000
 
+# Scryfall requires a descriptive User-Agent and an Accept header;
+# the default python-requests User-Agent is rejected with a 400.
+HEADERS = {
+    "User-Agent": "MTGApp/1.0",
+    "Accept": "application/json",
+}
+
 
 def get_connection():
     conn = sqlite3.connect(DB_PATH)
@@ -18,7 +25,7 @@ def get_connection():
 
 def get_bulk_download_url():
     print("Fetching Scryfall bulk metadata...")
-    r = requests.get("https://api.scryfall.com/bulk-data")
+    r = requests.get("https://api.scryfall.com/bulk-data", headers=HEADERS)
     r.raise_for_status()
     data = r.json()
 
@@ -67,7 +74,7 @@ def normalize_number(value):
 
 def _stream_cards(download_url):
     """Return an iterator of card dicts from the streamed, gzip-decoded Scryfall bulk data."""
-    response = requests.get(download_url, stream=True)
+    response = requests.get(download_url, stream=True, headers=HEADERS)
     response.raise_for_status()
     gzip_file = gzip.GzipFile(fileobj=response.raw)
     return ijson.items(gzip_file, "item")
