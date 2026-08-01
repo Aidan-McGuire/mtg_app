@@ -1805,6 +1805,24 @@ function syncDeckCount() {
   renderDeckList();
 }
 
+// ── parseAddQuery ──
+/**
+ * Splits a leading "xN " quantity off an add-card query.
+ *   "x20 swamp" -> { quantity: 20, name: "swamp" }
+ *   "swamp"     -> { quantity: 1,  name: "swamp" }
+ *   "20 swamp"  -> { quantity: 1,  name: "20 swamp" }  (bare number is not a quantity)
+ * The leading "x" is required so card names that start with digits
+ * ("1996 World Champion") are searched literally.
+ */
+function parseAddQuery(raw) {
+  const q = (raw || '').trim();
+  const m = /^x(\d+)\s+(.+)$/i.exec(q);
+  if (!m) return { quantity: 1, name: q };
+  const qty = Math.min(Math.max(parseInt(m[1], 10) || 1, 1), 999);
+  return { quantity: qty, name: m[2].trim() };
+}
+// ── end parseAddQuery ──
+
 // ── Deck search ───────────────────────────────────────────────────────────────
 
 let deckSearchTimer = null;
