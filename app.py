@@ -738,4 +738,20 @@ def remove_deck_card_tag(deck_id: int, card_id: int, tag: str):
 # Static files (frontend) — must be last
 # ---------------------------------------------------------------------------
 
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
+class RevalidatingStaticFiles(StaticFiles):
+    """StaticFiles that forces the browser to revalidate on every request.
+
+    Without this the frontend has no cache headers at all, so a browser may
+    reuse a stale app.js alongside a freshly-fetched index.html: the new markup
+    renders but its handlers were never registered, and controls silently do
+    nothing. "no-cache" means revalidate, not re-download — the ETag still
+    yields a 304 when the file is unchanged.
+    """
+
+    def file_response(self, *args, **kwargs):
+        response = super().file_response(*args, **kwargs)
+        response.headers["Cache-Control"] = "no-cache"
+        return response
+
+
+app.mount("/", RevalidatingStaticFiles(directory="static", html=True), name="static")
