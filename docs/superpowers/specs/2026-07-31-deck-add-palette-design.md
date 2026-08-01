@@ -10,7 +10,7 @@ give it a way to add many copies of one card in a single action.
 
 - **In:** removing `.deck-search-col`; a fixed-position `#deck-add-palette`
   hosting the existing `deck-search` input and results; `/` and a `+ Add` button
-  as openers; `Escape`/outside-click as closers; a `20x Swamp` quantity prefix
+  as openers; `Escape`/outside-click as closers; an `x20 Swamp` quantity prefix
   in the query; live "in deck" counts on result rows; post-add reset with a
   confirmation note; collapsing `addCardToDeck`'s two-path add into one POST.
 - **Out:** backend changes (the POST endpoint already accepts `quantity` and
@@ -55,8 +55,9 @@ Relevant facts that make bulk add cheap:
 - `showNote(msg, isError)` already exists for transient feedback
   (`static/app.js:798`).
 - The decklist importer parses entries with
-  `^(\d+)x?\s+(.+?)(?:\s+\([A-Z0-9]{2,6}\)(?:\s+\d+.*)?)?$` (`app.py:145`), so
-  `20 Swamp` and `20x Swamp` are already this app's quantity syntax.
+  `^(\d+)x?\s+(.+?)(?:\s+\([A-Z0-9]{2,6}\)(?:\s+\d+.*)?)?$` (`app.py:145`) —
+  i.e. a *leading* number, optional trailing `x`. The palette deliberately does
+  **not** reuse this form; see §4.
 
 ## Changes
 
@@ -138,34 +139,39 @@ Add a pure helper, kept free of DOM access so it is testable:
 
 ```js
 /**
- * Splits a leading quantity off an add-card query.
- * "20 swamp" / "20x swamp" -> { quantity: 20, name: "swamp" }
- * "swamp"                  -> { quantity: 1,  name: "swamp" }
+ * Splits a leading xN quantity off an add-card query.
+ * "x20 swamp" -> { quantity: 20, name: "swamp" }
+ * "swamp"     -> { quantity: 1,  name: "swamp" }
+ * "20 swamp"  -> { quantity: 1,  name: "20 swamp" }   // bare number is not a quantity
  */
 function parseAddQuery(raw) { ... }
 ```
 
 Rules:
 
-- Match `^(\d+)x?\s+(.+)$` on the trimmed query, mirroring `app.py:145`.
+- Match `^x(\d+)\s+(.+)$` on the trimmed query, case-insensitive on the `x`
+  (`X20 Swamp` works too).
+- The `x` **must** lead the string and **must** precede the digits. A bare
+  leading number is never a quantity.
 - No match → `{ quantity: 1, name: trimmed }`. **Singleton is the default**; a
-  normal add never requires typing a number.
+  normal add never requires typing a prefix.
 - A parsed quantity of `0` is treated as `1` (nothing else is meaningful).
 - Clamp the parsed quantity to a sane ceiling (999) so a typo cannot add
   thousands of copies.
 
-A card whose name begins with a number (e.g. `1996 World Champion`) is
-ambiguous under this rule — typing the full name parses as a quantity. This is
-accepted: the importer has the same ambiguity (`app.py:145`), the `×N` badge
-makes the misparse visible before committing, and searching any later word of
-the name (`world champion`) avoids it entirely.
+This diverges from the importer's `20x Swamp` form (`app.py:145`) by design.
+Requiring the leading `x` removes the ambiguity a bare leading number creates:
+card names that begin with digits (`1996 World Champion`, `60 Feet Tall`) are
+searched literally instead of being silently read as a count. The importer is
+parsing whole pasted decklists where a leading count is the established
+convention; the palette is parsing a free-text search box where it is not.
 
 Wiring:
 
 - `onDeckSearchInput` runs the search against `parseAddQuery(q).name`, so
-  `20 swamp` shows Swamp results live while typing.
-- An empty `name` (query is only digits, e.g. `20 `) clears results rather than
-  searching.
+  `x20 swamp` shows Swamp results live while typing.
+- An empty `name` (query is only a prefix, e.g. `x20 `) clears results rather
+  than searching.
 - The add path uses `parseAddQuery(...).quantity` as the POST quantity.
 - A `×N` badge renders next to the input whenever the parsed quantity is > 1, so
   the prefix is visibly registered before committing.
@@ -234,17 +240,20 @@ and `+` handling is untouched.
 Backend is unchanged, so no pytest additions.
 
 - `parseAddQuery` is pure and DOM-free: test it with node (native ARM node at
-  `/opt/homebrew`) over the cases `swamp`, `20 swamp`, `20x swamp`, `4X Bolt`,
-  `20`, `20 `, `0 swamp`, `9999 swamp`, and a name that itself starts with a
-  digit.
+  `/opt/homebrew`) over the cases `swamp` → 1, `x20 swamp` → 20, `X4 Bolt` → 4,
+  `20 swamp` → 1 (name kept whole), `20x swamp` → 1 (name kept whole),
+  `x20` → 1 (no name to split), `x20 ` → empty name, `x0 swamp` → 1,
+  `x9999 swamp` → 999, and `1996 World Champion` → 1 with the full name intact.
 - `node --check static/app.js` for syntax.
 - Manual click-through in the running app:
   - `/` opens the palette; `+ Add` opens the same palette; the deck is visible
     behind it.
   - Type a name, `↑↓`, `Enter` → card added, palette clears and stays open,
     note appears.
-  - `20 swamp` → `×20` badge shows, Swamp results appear while typing, Enter
+  - `x20 swamp` → `×20` badge shows, Swamp results appear while typing, Enter
     adds 20 in one call.
+  - `20 swamp` shows no badge and searches the literal string — a bare number
+    is not a quantity.
   - Adding a card already in the deck increases its quantity by the parsed
     amount rather than resetting it.
   - Result rows show `in deck: N` for cards already present.
