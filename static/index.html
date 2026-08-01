@@ -52,21 +52,14 @@
 
     <div id="view-decks" class="view">
       <div class="decks-layout">
-        <aside class="decks-sidebar">
-          <div class="decks-sidebar-hdr">
-            <span class="decks-label">Decks</span>
-            <div class="decks-sidebar-btns">
-              <button id="import-deck-btn" class="action-btn">↑ Import</button>
-              <button id="new-deck-btn" class="action-btn">+ New</button>
-            </div>
-          </div>
-          <div id="deck-list"></div>
-        </aside>
         <div class="deck-main">
-          <div id="deck-empty" class="deck-empty">Select a deck or create a new one</div>
+          <div id="deck-empty" class="deck-empty">No deck selected — press <kbd>d</kbd></div>
           <div id="deck-editor" class="deck-editor hidden">
             <div class="deck-editor-hdr">
-              <span id="deck-editor-name" class="deck-editor-name"></span>
+              <div class="deck-editor-title">
+                <span id="deck-editor-name" class="deck-editor-name"></span>
+                <button id="deck-switch-btn" class="action-btn" title="Switch deck  (d)">⇅ Switch</button>
+              </div>
               <div class="deck-editor-acts">
                 <button id="deck-add-btn" class="action-btn" title="Add cards  (/)">+ Add</button>
                 <button id="deck-rename-btn" class="action-btn">Rename</button>
@@ -108,6 +101,17 @@
     </div>
     <div id="deck-add-note" class="deck-add-note"></div>
     <div id="deck-search-results"></div>
+  </div>
+
+  <!-- Deck-switch palette (decks page) -->
+  <div id="deck-switch-palette" class="deck-switch-palette hidden">
+    <div class="deck-switch-actions">
+      <button id="deck-switch-new-btn" class="action-btn">+ New</button>
+      <button id="deck-switch-import-btn" class="action-btn">↑ Import</button>
+    </div>
+    <input id="deck-switch-search" class="deck-search-input"
+      placeholder="Switch deck…" autocomplete="off" spellcheck="false">
+    <div id="deck-switch-results"></div>
   </div>
 
   <!-- Card detail modal -->

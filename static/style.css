@@ -431,44 +431,6 @@ kbd {
   overflow: hidden;
 }
 
-/* ── Decks sidebar ─────────────────────────────────────────────────────────── */
-.decks-sidebar {
-  width: 220px;
-  flex-shrink: 0;
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.decks-sidebar-hdr {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-  gap: 8px;
-}
-.decks-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--muted);
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  flex: 1;
-}
-.decks-sidebar-btns {
-  display: flex;
-  gap: 4px;
-}
-
-#deck-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 6px;
-}
-
 .deck-list-empty {
   padding: 16px;
   color: var(--muted);
@@ -487,6 +449,7 @@ kbd {
 }
 .deck-list-item:hover  { background: var(--surface2); }
 .deck-list-item.active { background: var(--surface2); border-left: 2px solid var(--accent); padding-left: 8px; }
+.deck-list-item.focused { background: var(--surface2); }
 
 .deck-list-name {
   font-size: 13px;
@@ -542,6 +505,12 @@ kbd {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.deck-editor-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
 .deck-editor-acts {
   display: flex;
   align-items: center;
@@ -558,7 +527,7 @@ kbd {
 
 /* ── Deck search column ────────────────────────────────────────────────────── */
 /* ── Add-card palette ──────────────────────────────────────────────────────── */
-.deck-add-palette {
+.deck-add-palette, .deck-switch-palette {
   position: fixed;
   top: 110px;
   left: 50%;
@@ -622,6 +591,19 @@ kbd {
   flex: 1;
   overflow-y: auto;
   padding: 0 4px 8px;
+}
+
+.deck-switch-actions {
+  display: flex;
+  gap: 8px;
+  padding: 10px 10px 0;
+  flex-shrink: 0;
+}
+
+#deck-switch-results {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px;
 }
 
 .deck-search-row {

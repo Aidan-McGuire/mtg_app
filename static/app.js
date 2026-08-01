@@ -1561,6 +1561,8 @@ const deckState = {
   searchResults:  [],
   searchFocusIdx: -1,
   addingCards:    new Set(), // card IDs with an in-flight add request
+  switchQuery:    '',        // deck-switcher palette search box
+  switchFocusIdx: -1,
 };
 
 // ── filterDecks ──
@@ -1576,32 +1578,66 @@ function filterDecks(decks, query) {
 async function loadDeckList() {
   try {
     deckState.decks = await API.listDecks();
-    renderDeckList();
+    renderDeckSwitchResults();
   } catch (e) {
     console.error(e);
   }
 }
 
-function renderDeckList() {
-  const el = document.getElementById('deck-list');
+function deckSwitchPaletteOpen() {
+  const p = document.getElementById('deck-switch-palette');
+  return !!p && !p.classList.contains('hidden');
+}
+
+function openDeckSwitchPalette() {
+  closeAddPalette();
+  const palette = document.getElementById('deck-switch-palette');
+  const input   = document.getElementById('deck-switch-search');
+  if (!palette || !input) return;
+  palette.classList.remove('hidden');
+  input.value = deckState.switchQuery;
+  input.focus();
+  input.select();
+  renderDeckSwitchResults();
+}
+
+function closeDeckSwitchPalette() {
+  const palette = document.getElementById('deck-switch-palette');
+  const input   = document.getElementById('deck-switch-search');
+  if (palette) palette.classList.add('hidden');
+  if (input) { input.blur(); input.value = ''; }
+  deckState.switchQuery = '';
+  deckState.switchFocusIdx = -1;
+}
+
+function renderDeckSwitchResults() {
+  const el = document.getElementById('deck-switch-results');
+  if (!el) return;
   el.innerHTML = '';
   if (!deckState.decks.length) {
-    const msg = document.createElement('div');
-    msg.className = 'deck-list-empty';
-    msg.textContent = 'No decks yet.';
-    el.appendChild(msg);
+    el.innerHTML = '<div class="deck-list-empty">No decks yet.</div>';
     return;
   }
-  for (const deck of deckState.decks) {
+  const matches = filterDecks(deckState.decks, deckState.switchQuery);
+  if (!matches.length) {
+    el.innerHTML = '<div class="deck-list-empty">No matches.</div>';
+    return;
+  }
+  for (let i = 0; i < matches.length; i++) {
+    const deck = matches[i];
     const item = document.createElement('div');
-    item.className = 'deck-list-item' + (deck.id === deckState.currentDeckId ? ' active' : '');
+    item.className = 'deck-list-item'
+      + (deck.id === deckState.currentDeckId ? ' active' : '')
+      + (i === deckState.switchFocusIdx ? ' focused' : '');
     item.dataset.id = deck.id;
     item.innerHTML = `
       <span class="deck-list-name">${esc(deck.name)}</span>
       <span class="deck-list-count">${deck.card_count}</span>`;
-    item.addEventListener('click', () => selectDeck(deck.id));
+    item.addEventListener('click', () => { selectDeck(deck.id); closeDeckSwitchPalette(); });
     el.appendChild(item);
   }
+  const focusedEl = el.querySelector('.deck-list-item.focused');
+  if (focusedEl) focusedEl.scrollIntoView({ block: 'nearest' });
 }
 
 async function selectDeck(id) {
@@ -1612,7 +1648,7 @@ async function selectDeck(id) {
   deckState.query = '';                   // reset content search between decks
   const searchInput = document.getElementById('deck-content-search');
   if (searchInput) searchInput.value = '';
-  renderDeckList();
+  renderDeckSwitchResults();
   try {
     deckState.deckCards = await API.getDeckCards(id);
     const [collTags, deckTags] = await Promise.all([
@@ -1821,7 +1857,7 @@ async function toggleCommander(cardId) {
 function syncDeckCount() {
   const deck = deckState.decks.find(d => d.id === deckState.currentDeckId);
   if (deck) deck.card_count = deckState.deckCards.reduce((s, c) => s + c.quantity, 0);
-  renderDeckList();
+  renderDeckSwitchResults();
 }
 
 // ── parseAddQuery ──
@@ -1992,16 +2028,24 @@ function setDeckSearchFocus() {
 
 // ── Deck controls wiring ──────────────────────────────────────────────────────
 
-document.getElementById('new-deck-btn').addEventListener('click', async () => {
+document.getElementById('deck-switch-new-btn').addEventListener('click', async () => {
   const name = prompt('Deck name:');
   if (!name || !name.trim()) return;
   try {
     const deck = await API.createDeck(name.trim());
     deckState.decks.push({ ...deck, card_count: 0 });
     deckState.decks.sort((a, b) => a.name.localeCompare(b.name));
-    renderDeckList();
     selectDeck(deck.id);
+    closeDeckSwitchPalette();
   } catch (e) { alert('Failed to create deck.'); }
+});
+
+document.getElementById('deck-switch-btn').addEventListener('click', openDeckSwitchPalette);
+
+document.getElementById('deck-switch-search').addEventListener('input', e => {
+  deckState.switchQuery = e.target.value;
+  deckState.switchFocusIdx = -1;
+  renderDeckSwitchResults();
 });
 
 document.getElementById('deck-rename-btn').addEventListener('click', async () => {
@@ -2012,7 +2056,7 @@ document.getElementById('deck-rename-btn').addEventListener('click', async () =>
   try {
     await API.renameDeck(deck.id, name.trim());
     deck.name = name.trim();
-    renderDeckList();
+    renderDeckSwitchResults();
     renderDeckContent();
   } catch (e) { alert('Failed to rename deck.'); }
 });
@@ -2066,7 +2110,10 @@ function closeImportModal() {
   document.body.style.overflow = '';
 }
 
-document.getElementById('import-deck-btn').addEventListener('click', openImportModal);
+document.getElementById('deck-switch-import-btn').addEventListener('click', () => {
+  closeDeckSwitchPalette();
+  openImportModal();
+});
 document.getElementById('import-close').addEventListener('click', closeImportModal);
 document.getElementById('import-overlay').addEventListener('click', e => {
   if (e.target === document.getElementById('import-overlay')) closeImportModal();
@@ -2091,7 +2138,7 @@ document.getElementById('import-submit').addEventListener('click', async () => {
 
     deckState.decks.push({ ...deck, card_count: imported });
     deckState.decks.sort((a, b) => a.name.localeCompare(b.name));
-    renderDeckList();
+    renderDeckSwitchResults();
 
     if (not_found.length === 0) {
       closeImportModal();
