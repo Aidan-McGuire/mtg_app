@@ -1056,7 +1056,7 @@ function closeModal() {
   document.body.style.overflow = '';
   state.modalCard = null;
   if (document.getElementById('view-decks').classList.contains('active')) {
-    document.getElementById('deck-search').focus();
+    if (addPaletteOpen()) document.getElementById('deck-search').focus();
   } else if (collectionViewActive()) {
     document.getElementById('collection-search').focus();
   } else {
@@ -1104,15 +1104,18 @@ document.addEventListener('keydown', e => {
     if (!document.getElementById('col-import-overlay').classList.contains('hidden')) {
       closeColImportModal(); return;
     }
+    if (addPaletteOpen()) { closeAddPalette(); return; }
     searchInput.blur();
     deckSearch.blur();
     return;
   }
 
-  // '/' focuses the relevant search input
+  // '/' opens the add palette (decks) or focuses the relevant search input
   if (e.key === '/') {
-    if (decksActive && document.activeElement !== deckSearch) {
-      e.preventDefault(); deckSearch.focus(); return;
+    const typingInField = !!document.activeElement &&
+      document.activeElement.matches('input, textarea');
+    if (decksActive && !typingInField) {
+      e.preventDefault(); openAddPalette(); return;
     } else if (collectionViewActive() && document.activeElement !== collectionSearch) {
       e.preventDefault(); collectionSearch.focus(); return;
     } else if (!decksActive && !collectionViewActive() && document.activeElement !== searchInput) {
@@ -1148,6 +1151,7 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     document.getElementById(`view-${btn.dataset.view}`).classList.add('active');
     btn.classList.add('active');
+    if (btn.dataset.view !== 'decks')      closeAddPalette();
     if (btn.dataset.view === 'decks')      loadDeckList();
     if (btn.dataset.view === 'collection') loadCollectionView();
   });
@@ -1587,6 +1591,7 @@ function renderDeckList() {
 }
 
 async function selectDeck(id) {
+  closeAddPalette();                      // never carry the palette between decks
   deckState.currentDeckId = id;
   deckState.deckCards = [];
   deckState.filter = makeFilterModel();   // reset filters between decks
@@ -1805,14 +1810,96 @@ function syncDeckCount() {
   renderDeckList();
 }
 
+// ── parseAddQuery ──
+/**
+ * Splits a leading "xN " quantity off an add-card query.
+ *   "x20 swamp" -> { quantity: 20, name: "swamp" }
+ *   "swamp"     -> { quantity: 1,  name: "swamp" }
+ *   "20 swamp"  -> { quantity: 1,  name: "20 swamp" }  (bare number is not a quantity)
+ * The leading "x" is required so card names that start with digits
+ * ("1996 World Champion") are searched literally.
+ */
+function parseAddQuery(raw) {
+  const q = (raw || '').trim();
+  const m = /^x(\d+)\s+(.+)$/i.exec(q);
+  if (!m) return { quantity: 1, name: q };
+  const qty = Math.min(Math.max(parseInt(m[1], 10) || 1, 1), 999);
+  return { quantity: qty, name: m[2].trim() };
+}
+// ── end parseAddQuery ──
+
+// ── Add-card palette ──────────────────────────────────────────────────────────
+
+function addPaletteOpen() {
+  const p = document.getElementById('deck-add-palette');
+  return !!p && !p.classList.contains('hidden');
+}
+
+function openAddPalette() {
+  if (!deckState.currentDeckId) return;
+  const palette = document.getElementById('deck-add-palette');
+  const input   = document.getElementById('deck-search');
+  if (!palette || !input) return;
+  palette.classList.remove('hidden');
+  input.focus();
+  input.select();
+}
+
+function closeAddPalette() {
+  const palette = document.getElementById('deck-add-palette');
+  const input   = document.getElementById('deck-search');
+  const note    = document.getElementById('deck-add-note');
+  if (palette) palette.classList.add('hidden');
+  if (input) { input.blur(); input.value = ''; }
+  if (note) { note.textContent = ''; note.classList.remove('error'); }
+  deckState.searchResults  = [];
+  deckState.searchFocusIdx = -1;
+  renderDeckSearchResults();
+  updateQtyBadge();
+}
+
+let addNoteTimer = null;
+
+function showAddNote(msg, isError) {
+  const note = document.getElementById('deck-add-note');
+  if (!note) return;
+  note.textContent = msg;
+  note.classList.toggle('error', !!isError);
+  if (addNoteTimer) clearTimeout(addNoteTimer);
+  addNoteTimer = setTimeout(() => {
+    note.textContent = '';
+    note.classList.remove('error');
+  }, 2000);
+}
+
+function updateQtyBadge() {
+  const badge = document.getElementById('deck-add-qty');
+  const input = document.getElementById('deck-search');
+  if (!badge || !input) return;
+  const { quantity } = parseAddQuery(input.value);
+  badge.textContent = quantity > 1 ? `×${quantity}` : '';
+  badge.classList.toggle('hidden', quantity <= 1);
+}
+
+/** Clear the query after an add, leaving the palette open for the next card. */
+function resetPaletteQuery() {
+  const input = document.getElementById('deck-search');
+  if (input) { input.value = ''; input.focus(); }
+  deckState.searchResults  = [];
+  deckState.searchFocusIdx = -1;
+  renderDeckSearchResults();
+  updateQtyBadge();
+}
+
 // ── Deck search ───────────────────────────────────────────────────────────────
 
 let deckSearchTimer = null;
 
 function onDeckSearchInput(e) {
-  const q = e.target.value.trim();
+  const { name } = parseAddQuery(e.target.value);
+  updateQtyBadge();
   clearTimeout(deckSearchTimer);
-  deckSearchTimer = setTimeout(() => runDeckSearch(q), 250);
+  deckSearchTimer = setTimeout(() => runDeckSearch(name), 250);
 }
 
 async function runDeckSearch(q) {
@@ -1826,38 +1913,61 @@ async function runDeckSearch(q) {
 
 function renderDeckSearchResults() {
   const el = document.getElementById('deck-search-results');
+  if (!el) return;
   el.innerHTML = '';
   for (let i = 0; i < deckState.searchResults.length; i++) {
     const card = deckState.searchResults[i];
+    const inDeck = deckState.deckCards.find(c => c.id === card.id);
     const row = document.createElement('div');
     row.className = 'deck-search-row';
     row.dataset.idx = i;
     row.innerHTML = `
       <span class="dsearch-name">${esc(card.name)}</span>
       <span class="dsearch-type">${esc(card.type_line || '')}</span>
+      <span class="dsearch-indeck">${inDeck ? `in deck: ${inDeck.quantity}` : ''}</span>
       <button class="dsearch-add-btn" title="Add to deck">+</button>`;
-    row.querySelector('.dsearch-add-btn').addEventListener('click', e => { e.stopPropagation(); addCardToDeck(card.id, card); });
-    row.addEventListener('click', () => addCardToDeck(card.id, card));
+    row.querySelector('.dsearch-add-btn').addEventListener('click', e => { e.stopPropagation(); addFromPalette(card); });
+    row.addEventListener('click', () => addFromPalette(card));
     el.appendChild(row);
   }
 }
 
-async function addCardToDeck(cardId, cardData) {
-  if (!deckState.currentDeckId) return;
-  const existing = deckState.deckCards.find(c => c.id === cardId);
-  if (existing) {
-    incDeckCard(cardId);
-  } else {
-    if (deckState.addingCards.has(cardId)) return;
-    deckState.addingCards.add(cardId);
-    try {
-      const res = await API.addCardToDeck(deckState.currentDeckId, cardId);
+/**
+ * Adds `quantity` copies of a card to the current deck in one request.
+ * The backend upserts additively, so this works for new and existing cards
+ * alike. Returns true on success.
+ */
+async function addCardToDeck(cardId, cardData, quantity = 1) {
+  if (!deckState.currentDeckId) return false;
+  if (deckState.addingCards.has(cardId)) return false;
+  deckState.addingCards.add(cardId);
+  try {
+    const res = await API.addCardToDeck(deckState.currentDeckId, cardId, quantity);
+    const existing = deckState.deckCards.find(c => c.id === cardId);
+    if (existing) {
+      existing.quantity = res.quantity;
+    } else {
       deckState.deckCards.push({ ...cardData, quantity: res.quantity, is_commander: false, collection_tags: [], deck_tags: [] });
-      syncDeckCount();
-      renderDeckContent();
-    } catch (e) { console.error(e); }
-    finally { deckState.addingCards.delete(cardId); }
+    }
+    syncDeckCount();
+    renderDeckContent();
+    return true;
+  } catch (e) {
+    console.error(e);
+    return false;
+  } finally {
+    deckState.addingCards.delete(cardId);
   }
+}
+
+/** Add from the palette: reads the quantity prefix, notes the result, resets. */
+async function addFromPalette(card) {
+  const input = document.getElementById('deck-search');
+  const { quantity } = parseAddQuery(input ? input.value : '');
+  const ok = await addCardToDeck(card.id, card, quantity);
+  if (!ok) { showAddNote(`Could not add ${card.name}`, true); return; }
+  showAddNote(quantity > 1 ? `Added ${quantity}× ${card.name}` : `Added ${card.name}`);
+  resetPaletteQuery();
 }
 
 function setDeckSearchFocus() {
@@ -2008,11 +2118,20 @@ document.getElementById('deck-search').addEventListener('keydown', e => {
   } else if ((e.key === 'Enter' || e.key === '+') && deckState.searchFocusIdx >= 0) {
     e.preventDefault();
     const card = results[deckState.searchFocusIdx];
-    if (card) addCardToDeck(card.id, card);
+    if (card) addFromPalette(card);
   } else if (e.key === 'Escape') {
     e.preventDefault();
-    document.getElementById('deck-search').blur();
-    deckState.searchResults = [];
-    renderDeckSearchResults();
+    closeAddPalette();
   }
+});
+
+document.getElementById('deck-add-btn').addEventListener('click', openAddPalette);
+
+document.addEventListener('mousedown', e => {
+  if (!addPaletteOpen()) return;
+  const palette = document.getElementById('deck-add-palette');
+  const btn     = document.getElementById('deck-add-btn');
+  if (palette && palette.contains(e.target)) return;
+  if (btn && btn.contains(e.target)) return;   // let the opener's own click through
+  closeAddPalette();
 });

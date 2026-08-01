@@ -68,6 +68,7 @@
             <div class="deck-editor-hdr">
               <span id="deck-editor-name" class="deck-editor-name"></span>
               <div class="deck-editor-acts">
+                <button id="deck-add-btn" class="action-btn" title="Add cards  (/)">+ Add</button>
                 <button id="deck-rename-btn" class="action-btn">Rename</button>
                 <button id="deck-delete-btn" class="action-btn action-btn-danger">Delete</button>
                 <select id="deck-group-by" class="group-by-select">
@@ -83,12 +84,6 @@
               </div>
             </div>
             <div class="deck-editor-body">
-              <div class="deck-search-col">
-                <input id="deck-search" class="deck-search-input"
-                  placeholder="Search cards to add…  (/ to focus)"
-                  autocomplete="off" spellcheck="false">
-                <div id="deck-search-results"></div>
-              </div>
               <div class="deck-content-col">
                 <input id="deck-content-search" class="deck-content-search-input"
                   type="text" placeholder="Filter cards… (name, text, type)"
@@ -101,6 +96,18 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- Add-card palette (decks page) -->
+  <div id="deck-add-palette" class="deck-add-palette hidden">
+    <div class="deck-add-input-row">
+      <input id="deck-search" class="deck-search-input"
+        placeholder="Add cards…  (x20 Swamp for multiples)"
+        autocomplete="off" spellcheck="false">
+      <span id="deck-add-qty" class="deck-add-qty hidden"></span>
+    </div>
+    <div id="deck-add-note" class="deck-add-note"></div>
+    <div id="deck-search-results"></div>
   </div>
 
   <!-- Card detail modal -->

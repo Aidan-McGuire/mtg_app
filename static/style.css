@@ -557,17 +557,54 @@ kbd {
 }
 
 /* ── Deck search column ────────────────────────────────────────────────────── */
-.deck-search-col {
-  width: 260px;
-  flex-shrink: 0;
+/* ── Add-card palette ──────────────────────────────────────────────────────── */
+.deck-add-palette {
+  position: fixed;
+  top: 110px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 560px;
+  max-width: calc(100vw - 40px);
+  max-height: 60vh;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--border);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  z-index: 50;   /* above .filter-panel (20), below .modal-overlay (100) */
   overflow: hidden;
 }
 
+.deck-add-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  flex-shrink: 0;
+}
+
+.deck-add-qty {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.deck-add-note {
+  padding: 0 12px 8px;
+  font-size: 12px;
+  color: var(--muted);
+  min-height: 0;
+  flex-shrink: 0;
+}
+.deck-add-note:empty { display: none; }
+.deck-add-note.error { color: #e74c3c; }
+
 .deck-search-input {
-  margin: 10px;
+  flex: 1;
+  min-width: 0;
   background: var(--surface2);
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -612,8 +649,13 @@ kbd {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 80px;
-  display: none;
+  max-width: 160px;
+}
+.dsearch-indeck {
+  font-size: 11px;
+  color: var(--accent);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .dsearch-add-btn {
   background: none;
