@@ -651,6 +651,12 @@ kbd {
   text-overflow: ellipsis;
   max-width: 160px;
 }
+.dsearch-indeck {
+  font-size: 11px;
+  color: var(--accent);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
 .dsearch-add-btn {
   background: none;
   border: 1px solid var(--border);
