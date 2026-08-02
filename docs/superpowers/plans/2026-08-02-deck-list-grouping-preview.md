@@ -861,7 +861,10 @@ function handleDeckGridKey(e) {
       focusDeckTile(tiles[pos.i + cols]);
     } else {
       const next = groups[pos.g + 1];
-      if (next) focusDeckTile(next[Math.min(col, next.length - 1)]);
+      if (next) {
+        const nextCols = groupColumnCount(next);
+        focusDeckTile(next[Math.min(col, nextCols - 1)]);
+      }
     }
   } else if (e.key === 'ArrowUp') {
     if (pos.i - cols >= 0) {
