@@ -1775,7 +1775,9 @@ function renderDeckGrid() {
 function buildDeckCardTile(card) {
   const q = qty(card.id);
   const div = document.createElement('div');
-  div.className = 'deck-card-tile' + (card.is_commander ? ' is-commander' : '');
+  div.className = 'deck-card-tile'
+    + (card.is_commander ? ' is-commander' : '')
+    + (card.is_considering ? ' is-considering' : '');
   div.dataset.id = card.id;
 
   const imgHtml = card.image_uri
@@ -1783,6 +1785,11 @@ function buildDeckCardTile(card) {
     : `<div class="card-img-placeholder">${esc(card.name)}</div>`;
 
   const ownedBadgeHtml = q > 0 ? OWNED_BADGE_HTML : '';
+
+  // A commander can't be Considering, so the toggle is pointless on that tile.
+  const consideringBtnHtml = card.is_commander ? '' : `
+    <button class="deck-considering-btn${card.is_considering ? ' active' : ''}"
+            title="${card.is_considering ? 'Move back to deck' : 'Move to Considering'}">?</button>`;
 
   div.innerHTML = `
     <div class="deck-card-img-wrap" data-owned-wrap-for="${card.id}">${ownedBadgeHtml}${imgHtml}</div>
@@ -1792,8 +1799,11 @@ function buildDeckCardTile(card) {
         <button class="qty-btn" data-action="dec" title="−">−</button>
         <span class="qty-label owned">${card.quantity}</span>
         <button class="qty-btn" data-action="inc" title="+">+</button>
-        <button class="deck-cmd-btn${card.is_commander ? ' active' : ''}" title="Toggle commander">♛</button>
-        <button class="deck-remove-btn" title="Remove">×</button>
+        <div class="deck-actions">
+          ${consideringBtnHtml}
+          <button class="deck-cmd-btn${card.is_commander ? ' active' : ''}" title="Toggle commander">♛</button>
+          <button class="deck-remove-btn" title="Remove">×</button>
+        </div>
       </div>
       ${tagChipsHtml(card.collection_tags, 'collection-tag')}
       ${tagChipsHtml(card.deck_tags, 'deck-tag')}
@@ -1803,6 +1813,8 @@ function buildDeckCardTile(card) {
   div.querySelector('[data-action="dec"]').addEventListener('click', e => { e.stopPropagation(); decDeckCard(card.id); });
   div.querySelector('.deck-cmd-btn').addEventListener('click', e => { e.stopPropagation(); toggleCommander(card.id); });
   div.querySelector('.deck-remove-btn').addEventListener('click', e => { e.stopPropagation(); removeDeckCard(card.id); });
+  const consideringBtn = div.querySelector('.deck-considering-btn');
+  if (consideringBtn) consideringBtn.addEventListener('click', e => { e.stopPropagation(); toggleConsidering(card.id); });
   div.addEventListener('click', () => openModal(card, { deckId: deckState.currentDeckId }));
 
   return div;
@@ -1905,6 +1917,20 @@ async function toggleCommander(cardId) {
   try {
     const res = await API.updateDeckCard(deckState.currentDeckId, cardId, { is_commander: !card.is_commander });
     card.is_commander = res.is_commander;
+    card.is_considering = res.is_considering;
+    syncDeckCount();
+    renderDeckContent();
+  } catch (e) { console.error(e); }
+}
+
+async function toggleConsidering(cardId) {
+  const card = deckState.deckCards.find(c => c.id === cardId);
+  if (!card) return;
+  try {
+    const res = await API.updateDeckCard(deckState.currentDeckId, cardId, { is_considering: !card.is_considering });
+    card.is_commander = res.is_commander;
+    card.is_considering = res.is_considering;
+    syncDeckCount();
     renderDeckContent();
   } catch (e) { console.error(e); }
 }

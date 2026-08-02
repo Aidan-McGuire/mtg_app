@@ -729,6 +729,7 @@ kbd {
 }
 .deck-card-tile:hover     { border-color: var(--surface2); transform: translateY(-1px); }
 .deck-card-tile.is-commander { border-color: var(--accent); }
+.deck-card-tile.is-considering { border-style: dashed; opacity: 0.7; }
 
 .deck-card-img-wrap {
   width: 100%;
@@ -762,6 +763,13 @@ kbd {
   gap: 3px;
 }
 
+.deck-actions {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: auto;
+}
+
 .deck-cmd-btn {
   background: none;
   border: 1px solid var(--border);
@@ -775,10 +783,26 @@ kbd {
   justify-content: center;
   cursor: pointer;
   transition: color 0.1s, border-color 0.1s;
-  margin-left: auto;
 }
 .deck-cmd-btn:hover  { border-color: var(--accent); color: var(--accent); }
 .deck-cmd-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(200,155,60,0.1); }
+
+.deck-considering-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--muted);
+  font-size: 11px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color 0.1s, border-color 0.1s;
+}
+.deck-considering-btn:hover  { border-color: var(--text); color: var(--text); }
+.deck-considering-btn.active { border-color: var(--text); color: var(--text); background: rgba(255,255,255,0.08); }
 
 .deck-remove-btn {
   background: none;
