@@ -246,7 +246,7 @@ function tagChipsHtml(tags, type) {
   }</div>`;
 }
 
-function buildCardTile(card) {
+function buildCardTile(card, { showOwnedBadge = true } = {}) {
   const q = qty(card.id);
   const div = document.createElement('div');
   div.className = 'card-tile';
@@ -257,13 +257,14 @@ function buildCardTile(card) {
     ? `<img src="${API.imageUrl(card.image_uri)}" loading="lazy" alt="${esc(card.name)}">`
     : `<div class="card-img-placeholder">${esc(card.name)}</div>`;
 
-  const ownedBadgeHtml = q > 0 ? `<div class="card-owned-badge" title="Owned">✓</div>` : '';
+  const ownedBadgeHtml = (showOwnedBadge && q > 0) ? `<div class="card-owned-badge" title="Owned">✓</div>` : '';
+  const ownedWrapAttr = showOwnedBadge ? ` data-owned-wrap-for="${card.id}"` : '';
 
   const meta = [card.mana_cost, card.cmc != null ? `${card.cmc} CMC` : null]
     .filter(Boolean).join(' · ');
 
   div.innerHTML = `
-    <div class="card-img-wrap" data-owned-wrap-for="${card.id}">${ownedBadgeHtml}${imgHtml}</div>
+    <div class="card-img-wrap"${ownedWrapAttr}>${ownedBadgeHtml}${imgHtml}</div>
     <div class="card-info">
       <div class="card-name">${esc(card.name)}</div>
       <div class="card-meta">${esc(meta)}</div>
@@ -937,10 +938,10 @@ function renderCollectionGrid() {
 
   if (collectionState.groupBy !== 'none') {
     const groups = groupCards(filtered, 'collection_tags');
-    renderGroupedGrid(grid, groups, buildCardTile, collectionGroupCollapsed);
+    renderGroupedGrid(grid, groups, card => buildCardTile(card, { showOwnedBadge: false }), collectionGroupCollapsed);
   } else {
     const frag = document.createDocumentFragment();
-    for (const card of filtered) frag.appendChild(buildCardTile(card));
+    for (const card of filtered) frag.appendChild(buildCardTile(card, { showOwnedBadge: false }));
     grid.appendChild(frag);
   }
 }
@@ -1226,6 +1227,7 @@ function renderDeckGrid() {
 }
 
 function buildDeckCardTile(card) {
+  const q = qty(card.id);
   const div = document.createElement('div');
   div.className = 'deck-card-tile' + (card.is_commander ? ' is-commander' : '');
   div.dataset.id = card.id;
@@ -1234,8 +1236,10 @@ function buildDeckCardTile(card) {
     ? `<img src="${API.imageUrl(card.image_uri)}" loading="lazy" alt="${esc(card.name)}">`
     : `<div class="card-img-placeholder">${esc(card.name)}</div>`;
 
+  const ownedBadgeHtml = q > 0 ? `<div class="card-owned-badge" title="Owned">✓</div>` : '';
+
   div.innerHTML = `
-    <div class="deck-card-img-wrap">${imgHtml}</div>
+    <div class="deck-card-img-wrap" data-owned-wrap-for="${card.id}">${ownedBadgeHtml}${imgHtml}</div>
     <div class="deck-card-info">
       <div class="deck-card-name">${esc(card.name)}</div>
       <div class="deck-card-row">

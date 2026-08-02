@@ -693,6 +693,7 @@ kbd {
   background: var(--surface2);
   overflow: hidden;
   flex-shrink: 0;
+  position: relative;
 }
 .deck-card-img-wrap img {
   width: 100%;
