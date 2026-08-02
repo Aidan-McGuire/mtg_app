@@ -1330,6 +1330,39 @@ function groupCards(cards, tagField) {
   return groups;
 }
 
+// ── groupCardsByType ──
+const DECK_TYPE_GROUP_ORDER = [
+  'Creature', 'Instant', 'Sorcery', 'Enchantment',
+  'Artifact', 'Planeswalker', 'Land', 'Other',
+];
+
+/**
+ * Groups an array of (non-Considering) deck cards by card type, with the
+ * commander split into its own leading group. Fixed order, not alphabetical.
+ */
+function groupCardsByType(cards) {
+  const buckets = { Commander: [] };
+  for (const label of DECK_TYPE_GROUP_ORDER) buckets[label] = [];
+  for (const card of cards) {
+    if (card.is_commander) { buckets.Commander.push(card); continue; }
+    const t = card.type_line || '';
+    if      (t.includes('Creature'))     buckets.Creature.push(card);
+    else if (t.includes('Instant'))      buckets.Instant.push(card);
+    else if (t.includes('Sorcery'))      buckets.Sorcery.push(card);
+    else if (t.includes('Enchantment'))  buckets.Enchantment.push(card);
+    else if (t.includes('Artifact'))     buckets.Artifact.push(card);
+    else if (t.includes('Planeswalker')) buckets.Planeswalker.push(card);
+    else if (t.includes('Land'))         buckets.Land.push(card);
+    else                                 buckets.Other.push(card);
+  }
+  const groups = [];
+  for (const label of ['Commander', ...DECK_TYPE_GROUP_ORDER]) {
+    if (buckets[label].length) groups.push({ label, cards: buckets[label] });
+  }
+  return groups;
+}
+// ── end groupCardsByType ──
+
 function renderGroupSection(container, group, buildTileFn, collapsedState) {
   const section = document.createElement('div');
   section.className = 'group-section';
@@ -1614,7 +1647,7 @@ const deckState = {
   currentDeckId:  null,
   deckCards:      [],
   deckView:       'grid',
-  groupBy:        'none',   // 'none' | 'collection-tag' | 'deck-tag'
+  groupBy:        'none',   // 'none' | 'type' | 'collection-tag' | 'deck-tag'
   filter:         makeFilterModel(),
   query:          '',       // deck content search box (name/text/type)
   searchResults:  [],
@@ -1769,8 +1802,9 @@ function renderDeckGrid() {
   const consideringCards = filtered.filter(c => c.is_considering);
 
   if (deckState.groupBy !== 'none') {
-    const tagField = deckState.groupBy === 'deck-tag' ? 'deck_tags' : 'collection_tags';
-    const groups = groupCards(mainCards, tagField);
+    const groups = deckState.groupBy === 'type'
+      ? groupCardsByType(mainCards)
+      : groupCards(mainCards, deckState.groupBy === 'deck-tag' ? 'deck_tags' : 'collection_tags');
     for (const g of groups) g.cards.sort(cmp);
     if (consideringCards.length) {
       groups.push({ label: 'Considering', cards: [...consideringCards].sort(cmp) });
