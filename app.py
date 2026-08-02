@@ -213,7 +213,7 @@ async def proxy_image(url: str = Query(...)):
     dest = cache_path_for(url)
     if not dest.exists():
         async with httpx.AsyncClient() as client:
-            r = await client.get(url, timeout=10)
+            r = await client.get(url, timeout=10, headers={"User-Agent": "MTGApp/1.0"})
             if r.status_code != 200:
                 raise HTTPException(502, "Failed to fetch image from Scryfall")
             dest.write_bytes(r.content)
