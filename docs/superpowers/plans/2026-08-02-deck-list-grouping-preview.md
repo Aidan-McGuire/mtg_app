@@ -6,11 +6,11 @@
 
 **Architecture:** Entirely frontend (`static/index.html`, `static/style.css`, `static/app.js`) — no backend or schema changes; all fields used (`is_commander`, `is_considering`, `type_line`, `collection_tags`, `deck_tags`) already exist on the deck-card objects the API returns. Grouping and preview-panel state extend the existing `deckState` object. Grid and Text view keep separate rendering functions but share the same grouping helpers (`groupCards`, new `groupCardsByType`) and the same group-section/collapse UI (`renderGroupSection`/`renderGroupedGrid`).
 
-**Tech Stack:** Vanilla JS, no build step, no frontend test runner.
+**Tech Stack:** Vanilla JS, no build step. Frontend tests are plain Node scripts under `tests/js/` (sentinel-extraction pattern, see Global Constraints) — no DOM/jsdom harness.
 
 ## Global Constraints
 
-- No JS test runner exists in this repo — every task's verification is manual, in a running browser, using `uvicorn app:app --reload` (per the existing convention documented in `docs/superpowers/specs/2026-08-01-deck-considering-category-design.md`).
+- Frontend unit tests are plain Node scripts under `tests/js/` that extract a sentinel-delimited, self-contained function out of `static/app.js` via string slicing + `new Function(...)` (see `tests/js/filter-decks.test.mjs` for the pattern). There is no DOM/jsdom harness — this only covers pure functions with no external dependencies (no `document`, no other `app.js` functions/globals). Run them with plain `node tests/js/<file>.test.mjs` (native ARM node is first on `PATH`). Everything else — DOM wiring, rendering, keyboard/hover behavior — is verified manually in a running browser via `uvicorn app:app --reload`, per the convention documented in `docs/superpowers/plans/2026-08-01-deck-switcher-palette.md`.
 - No backend changes — do not touch `app.py`, `main.py`, or the DB schema.
 - Match existing code style in the touched files: 2-space indent, semicolons, `esc()` for all HTML-interpolated text, `API.imageUrl()` for all card images.
 - Follow the approved design spec at `docs/superpowers/specs/2026-08-02-deck-list-grouping-preview-design.md` exactly — it is the source of truth for behavior if this plan and the spec ever disagree.
@@ -24,15 +24,19 @@
 - Modify: `static/app.js:1617` (`deckState.groupBy` comment)
 - Modify: `static/app.js:1771-1778` (`renderDeckGrid`'s grouped branch)
 - Modify: `static/index.html:67-71` (`#deck-group-by` options)
+- Test: `tests/js/group-cards-by-type.test.mjs` (new — mirrors `tests/js/filter-decks.test.mjs`)
 
 **Interfaces:**
 - Produces: `groupCardsByType(cards: Card[]) -> {label: string, cards: Card[]}[]`, same return shape as the existing `groupCards(cards, tagField)`, consumable by `renderGroupedGrid`/`renderGroupSection`. Group order is fixed: `Commander` (if a commander is present) first, then `Creature, Instant, Sorcery, Enchantment, Artifact, Planeswalker, Land, Other` (only non-empty groups included) — no alphabetical sort, unlike `groupCards`.
 
-- [ ] **Step 1: Add `groupCardsByType`**
+- [ ] **Step 1: Add `groupCardsByType`, sentinel-wrapped for the Node test**
+
+`groupCardsByType` takes no DOM/global dependencies beyond its own parameter, so — per this repo's `tests/js/` convention (see `tests/js/filter-decks.test.mjs`) — it's wrapped in sentinel comments so a plain Node script can extract and unit-test it without a browser.
 
 In `static/app.js`, immediately after the closing `}` of `groupCards` (currently ending at line 1331, right before `function renderGroupSection`), insert:
 
 ```js
+// ── groupCardsByType ──
 const DECK_TYPE_GROUP_ORDER = [
   'Creature', 'Instant', 'Sorcery', 'Enchantment',
   'Artifact', 'Planeswalker', 'Land', 'Other',
@@ -63,9 +67,89 @@ function groupCardsByType(cards) {
   }
   return groups;
 }
+// ── end groupCardsByType ──
 ```
 
-- [ ] **Step 2: Update the `deckState.groupBy` type comment**
+- [ ] **Step 2: Write the automated test**
+
+Create `tests/js/group-cards-by-type.test.mjs`:
+
+```js
+// Tests groupCardsByType by extracting it from static/app.js (a plain browser
+// script with no exports) between its sentinel comments.
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+import assert from 'node:assert/strict';
+
+const here = dirname(fileURLToPath(import.meta.url));
+const src = readFileSync(join(here, '..', '..', 'static', 'app.js'), 'utf8');
+
+const START = '// ── groupCardsByType ──';
+const END = '// ── end groupCardsByType ──';
+const from = src.indexOf(START);
+const to = src.indexOf(END);
+assert.ok(from !== -1 && to > from, 'groupCardsByType sentinel comments not found in static/app.js');
+
+const groupCardsByType = new Function(`${src.slice(from, to)}; return groupCardsByType;`)();
+
+const commander  = { id: 'c', name: 'Atraxa',  is_commander: true,  type_line: 'Legendary Creature — Phyrexian Angel' };
+const creature    = { id: 'r', name: 'Bear',    is_commander: false, type_line: 'Creature — Bear' };
+const instant     = { id: 'i', name: 'Bolt',    is_commander: false, type_line: 'Instant' };
+const artifact    = { id: 'a', name: 'Signet',  is_commander: false, type_line: 'Artifact' };
+const noTypeLine  = { id: 'n', name: 'Mystery', is_commander: false, type_line: '' };
+
+let failed = 0;
+function check(label, actual, expected) {
+  try {
+    assert.deepEqual(actual, expected);
+    console.log(`  ok  ${label}`);
+  } catch {
+    failed++;
+    console.error(`  FAIL ${label} -> ${JSON.stringify(actual)}, expected ${JSON.stringify(expected)}`);
+  }
+}
+
+check(
+  'commander gets its own leading group, others bucket by type',
+  groupCardsByType([creature, commander, instant, artifact])
+    .map(g => ({ label: g.label, ids: g.cards.map(c => c.id) })),
+  [
+    { label: 'Commander', ids: ['c'] },
+    { label: 'Creature',  ids: ['r'] },
+    { label: 'Instant',   ids: ['i'] },
+    { label: 'Artifact',  ids: ['a'] },
+  ]
+);
+
+check(
+  'empty type groups are omitted',
+  groupCardsByType([creature]).map(g => g.label),
+  ['Creature']
+);
+
+check(
+  'no commander in the list means no Commander group',
+  groupCardsByType([creature, instant]).map(g => g.label),
+  ['Creature', 'Instant']
+);
+
+check(
+  'missing/blank type_line falls into Other',
+  groupCardsByType([noTypeLine]).map(g => g.label),
+  ['Other']
+);
+
+console.log(failed ? `\n${failed} failing` : `\nall 4 checks passing`);
+process.exit(failed ? 1 : 0);
+```
+
+- [ ] **Step 3: Run the test, verify it passes**
+
+Run: `node tests/js/group-cards-by-type.test.mjs`
+Expected: four `ok` lines, then `all 4 checks passing`, exit code 0.
+
+- [ ] **Step 4: Update the `deckState.groupBy` type comment**
 
 In `static/app.js:1617`, change:
 
@@ -79,7 +163,7 @@ to:
   groupBy:        'none',   // 'none' | 'type' | 'collection-tag' | 'deck-tag'
 ```
 
-- [ ] **Step 3: Wire `'type'` into `renderDeckGrid`'s grouped branch**
+- [ ] **Step 5: Wire `'type'` into `renderDeckGrid`'s grouped branch**
 
 In `static/app.js`, inside `renderDeckGrid`, replace:
 
@@ -102,7 +186,7 @@ with:
 
 (The rest of the `if` block — the `consideringCards` push and `renderGroupedGrid` call — is unchanged.)
 
-- [ ] **Step 4: Add the "Card type" option to the dropdown**
+- [ ] **Step 6: Add the "Card type" option to the dropdown**
 
 In `static/index.html:67-71`, replace:
 
@@ -125,18 +209,18 @@ with:
                 </select>
 ```
 
-- [ ] **Step 5: Manual verification**
+- [ ] **Step 7: Manual verification**
 
-Run `uvicorn app:app --reload` from `/Users/mcg/projects/mtg_app`, open `http://localhost:8000`, go to the Decks view, and select (or create) a deck that has a commander and at least one Creature, one Instant, and one Land.
+Run `uvicorn app:app --reload` from the repo root, open `http://localhost:8000`, go to the Decks view, and select (or create) a deck that has a commander and at least one Creature, one Instant, and one Land.
 
 - Grid view, set Group-by to "Card type": confirm a "Commander" group appears first with just the commander, followed by "Creature", "Instant", "Land" groups (only groups with cards render), each with correct card counts in the header.
 - Confirm "Collection tag" and "Deck tag" still work exactly as before (unchanged).
 - Confirm "Group: None" still shows the flat, ungrouped grid with the commander pinned first (unchanged).
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
-git add static/app.js static/index.html
+git add static/app.js static/index.html tests/js/group-cards-by-type.test.mjs
 git commit -m "feat: add Card type grouping option to deck Grid view"
 ```
 
