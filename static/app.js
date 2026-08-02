@@ -2030,7 +2030,7 @@ function deckNavGroups(container) {
 
 function findTileIndex(groups, cardId) {
   for (let g = 0; g < groups.length; g++) {
-    const i = groups[g].findIndex(el => el.dataset.id === cardId);
+    const i = groups[g].findIndex(el => el.dataset.id === String(cardId));
     if (i >= 0) return { g, i };
   }
   return null;
@@ -2038,7 +2038,8 @@ function findTileIndex(groups, cardId) {
 
 function focusDeckTile(el) {
   if (!el) return;
-  setDeckFocus(el.dataset.id, el);
+  const card = deckState.deckCards.find(c => String(c.id) === el.dataset.id);
+  setDeckFocus(card ? card.id : el.dataset.id, el);
   el.scrollIntoView({ block: 'nearest' });
 }
 
