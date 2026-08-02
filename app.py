@@ -466,7 +466,7 @@ def list_decks():
         cur = conn.cursor()
         cur.execute("""
             SELECT d.id, d.name, d.created_at,
-                   COALESCE(SUM(dc.quantity), 0) AS card_count
+                   COALESCE(SUM(CASE WHEN dc.is_considering THEN 0 ELSE dc.quantity END), 0) AS card_count
             FROM decks d
             LEFT JOIN deck_cards dc ON dc.deck_id = d.id
             GROUP BY d.id
@@ -514,7 +514,7 @@ def get_deck_cards(deck_id: int):
         if not cur.fetchone():
             raise HTTPException(404, "Deck not found")
         cur.execute(f"""
-            SELECT {CARD_COLS_C}, dc.quantity, dc.is_commander
+            SELECT {CARD_COLS_C}, dc.quantity, dc.is_commander, dc.is_considering
             FROM deck_cards dc
             JOIN cards c ON c.id = dc.card_id
             WHERE dc.deck_id = ?
@@ -522,6 +522,8 @@ def get_deck_cards(deck_id: int):
         """, (deck_id,))
         rows = [dict(r) for r in cur.fetchall()]
         for row in rows:
+            row["is_commander"] = bool(row["is_commander"])
+            row["is_considering"] = bool(row["is_considering"])
             row["collection_tags"] = fetch_collection_tags(cur, row["id"])
             row["deck_tags"] = fetch_deck_tags(cur, deck_id, row["id"])
         return rows
@@ -572,6 +574,7 @@ class DeckCardAdd(BaseModel):
 class DeckCardUpdate(BaseModel):
     quantity: int | None = None
     is_commander: bool | None = None
+    is_considering: bool | None = None
 
 
 @app.post("/api/decks/{deck_id}/cards", status_code=201)
@@ -589,9 +592,11 @@ def add_card_to_deck(deck_id: int, body: DeckCardAdd):
             ON CONFLICT(deck_id, card_id) DO UPDATE SET quantity = quantity + excluded.quantity
         """, (deck_id, body.card_id, body.quantity))
         conn.commit()
-        cur.execute("SELECT quantity, is_commander FROM deck_cards WHERE deck_id = ? AND card_id = ?",
+        cur.execute("SELECT quantity, is_commander, is_considering FROM deck_cards WHERE deck_id = ? AND card_id = ?",
                     (deck_id, body.card_id))
         row = dict(cur.fetchone())
+        row["is_commander"] = bool(row["is_commander"])
+        row["is_considering"] = bool(row["is_considering"])
     return {"deck_id": deck_id, "card_id": body.card_id, **row}
 
 
@@ -599,19 +604,30 @@ def add_card_to_deck(deck_id: int, body: DeckCardAdd):
 def update_deck_card(deck_id: int, card_id: int, body: DeckCardUpdate):
     with get_db() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT quantity, is_commander FROM deck_cards WHERE deck_id = ? AND card_id = ?",
+        cur.execute("SELECT quantity, is_commander, is_considering FROM deck_cards WHERE deck_id = ? AND card_id = ?",
                     (deck_id, card_id))
         row = cur.fetchone()
         if not row:
             raise HTTPException(404, "Card not in deck")
         new_qty = body.quantity if body.quantity is not None else row["quantity"]
         new_cmd = int(body.is_commander) if body.is_commander is not None else row["is_commander"]
+        new_considering = int(body.is_considering) if body.is_considering is not None else row["is_considering"]
+        # Commander and Considering are mutually exclusive. Whichever flag was
+        # just explicitly set true wins over the other; is_commander wins if
+        # a single request sets both true.
+        if body.is_commander:
+            new_considering = 0
+        elif body.is_considering:
+            new_cmd = 0
         cur.execute("""
-            UPDATE deck_cards SET quantity = ?, is_commander = ?
+            UPDATE deck_cards SET quantity = ?, is_commander = ?, is_considering = ?
             WHERE deck_id = ? AND card_id = ?
-        """, (new_qty, new_cmd, deck_id, card_id))
+        """, (new_qty, new_cmd, new_considering, deck_id, card_id))
         conn.commit()
-    return {"deck_id": deck_id, "card_id": card_id, "quantity": new_qty, "is_commander": bool(new_cmd)}
+    return {
+        "deck_id": deck_id, "card_id": card_id, "quantity": new_qty,
+        "is_commander": bool(new_cmd), "is_considering": bool(new_considering),
+    }
 
 
 @app.delete("/api/decks/{deck_id}/cards/{card_id}", status_code=204)
