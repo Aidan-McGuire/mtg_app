@@ -545,6 +545,59 @@ kbd {
   gap: 0;
 }
 
+.deck-preview-panel {
+  flex: 0 0 260px;
+  overflow-y: auto;
+  padding: 12px;
+  border-right: 1px solid var(--border);
+}
+
+.deck-preview-empty {
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+  padding: 24px 8px;
+}
+
+.deck-preview-img img {
+  width: 100%;
+  border-radius: 10px;
+  display: block;
+  margin-bottom: 12px;
+}
+.deck-preview-img-placeholder {
+  width: 100%;
+  aspect-ratio: 488 / 680;
+  background: var(--surface2);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+.deck-preview-name {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 6px;
+}
+.deck-preview-mana { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+.deck-preview-type {
+  font-size: 13px;
+  color: var(--accent);
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.deck-preview-oracle {
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-line;
+}
+
 /* ── Deck search column ────────────────────────────────────────────────────── */
 /* ── Add-card palette ──────────────────────────────────────────────────────── */
 .deck-add-palette, .deck-switch-palette {

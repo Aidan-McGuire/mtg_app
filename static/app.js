@@ -1655,6 +1655,8 @@ const deckState = {
   addingCards:    new Set(), // card IDs with an in-flight add request
   switchQuery:    '',        // deck-switcher palette search box
   switchFocusIdx: -1,
+  focusedCardId:     null,   // live keyboard/hover focus for the preview panel
+  lastFocusedCardId: null,   // sticky — survives mouseleave, cleared only on deck switch
 };
 
 // ── filterDecks ──
@@ -1738,6 +1740,8 @@ async function selectDeck(id) {
   deckState.deckCards = [];
   deckState.filter = makeFilterModel();   // reset filters between decks
   deckState.query = '';                   // reset content search between decks
+  deckState.focusedCardId = null;         // reset preview-panel focus between decks
+  deckState.lastFocusedCardId = null;
   resetDeckGroupCollapsed();              // Considering starts collapsed for every freshly loaded deck
   const searchInput = document.getElementById('deck-content-search');
   if (searchInput) searchInput.value = '';
@@ -1769,6 +1773,44 @@ function showDeckEditor() {
 
 // ── Deck editor rendering ─────────────────────────────────────────────────────
 
+function resolvePreviewCard() {
+  const visible = applyFilters(deckState.deckCards, deckState.filter);
+  if (!visible.length) return null;
+  const byId = id => visible.find(c => c.id === id);
+
+  if (deckState.focusedCardId) {
+    const c = byId(deckState.focusedCardId);
+    if (c) return c;
+  }
+  const commander = visible.find(c => c.is_commander);
+  if (commander) return commander;
+  if (deckState.lastFocusedCardId) {
+    const c = byId(deckState.lastFocusedCardId);
+    if (c) return c;
+  }
+  const cmp = sortComparator(deckState.filter);
+  return [...visible].sort(cmp)[0];
+}
+
+function renderDeckPreviewPanel() {
+  const el = document.getElementById('deck-preview-panel');
+  if (!el) return;
+  const card = resolvePreviewCard();
+  if (!card) {
+    el.innerHTML = '<div class="deck-preview-empty">Hover or focus a card to preview it here.</div>';
+    return;
+  }
+  const imgHtml = card.image_uri
+    ? `<img src="${API.imageUrl(card.image_uri)}" alt="${esc(card.name)}">`
+    : `<div class="deck-preview-img-placeholder">${esc(card.name)}</div>`;
+  el.innerHTML = `
+    <div class="deck-preview-img">${imgHtml}</div>
+    <div class="deck-preview-name">${esc(card.name)}</div>
+    <div class="deck-preview-mana">${esc(card.mana_cost || '—')}</div>
+    <div class="deck-preview-type">${esc(card.type_line || '')}</div>
+    <div class="deck-preview-oracle">${esc(card.oracle_text || '')}</div>`;
+}
+
 function renderDeckContent() {
   deckState.filter.text = deckState.query;   // content search box feeds the model
   const deck  = deckState.decks.find(d => d.id === deckState.currentDeckId);
@@ -1787,6 +1829,7 @@ function renderDeckContent() {
     document.getElementById('deck-text-view').classList.remove('hidden');
     document.getElementById('deck-grid-view').classList.add('hidden');
   }
+  renderDeckPreviewPanel();
 }
 
 function renderDeckGrid() {
