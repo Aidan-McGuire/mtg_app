@@ -904,9 +904,9 @@ kbd {
   transition: background 0.1s;
 }
 /* tagChipsHtml() wraps its chips in a `.tag-chips-row` block built for a
-   below-content layout (Grid tile, modal); here it needs to disappear
-   from the box model so its `.tag-chip` children become ordinary inline
-   flex items of `.deck-text-row` instead. */
+   below-content layout (Grid tile); here it needs to disappear from the
+   box model so its `.tag-chip` children become ordinary inline flex
+   items of `.deck-text-row` instead. */
 .deck-text-row .tag-chips-row {
   display: contents;
 }

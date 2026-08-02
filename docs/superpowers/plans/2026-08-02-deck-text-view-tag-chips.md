@@ -25,7 +25,7 @@
 
 **Interfaces:** None — reuses the existing `tagChipsHtml(tags, type)` (`static/app.js:528-533`) unchanged; no new functions, classes, or call sites elsewhere.
 
-- [ ] **Step 1: Append deck-tag chips to the row markup**
+- [x] **Step 1: Append deck-tag chips to the row markup**
 
 In `static/app.js`, inside `buildDeckTextRow`, replace:
 
@@ -48,7 +48,7 @@ with:
 
 (`tagChipsHtml` already returns `''` when `card.deck_tags` is empty/undefined, so untagged cards get no extra markup.)
 
-- [ ] **Step 2: Make the chips lay out inline on the row, and let the row wrap if needed**
+- [x] **Step 2: Make the chips lay out inline on the row, and let the row wrap if needed**
 
 In `static/style.css`, replace:
 
@@ -78,9 +78,9 @@ with:
   transition: background 0.1s;
 }
 /* tagChipsHtml() wraps its chips in a `.tag-chips-row` block built for a
-   below-content layout (Grid tile, modal); here it needs to disappear
-   from the box model so its `.tag-chip` children become ordinary inline
-   flex items of `.deck-text-row` instead. */
+   below-content layout (Grid tile); here it needs to disappear from the
+   box model so its `.tag-chip` children become ordinary inline flex
+   items of `.deck-text-row` instead. */
 .deck-text-row .tag-chips-row {
   display: contents;
 }
@@ -88,7 +88,7 @@ with:
 
 (Only `flex-wrap: wrap;` is added to `.deck-text-row`, and the new `.deck-text-row .tag-chips-row` rule is added after it. The `:hover`/`.focused` rules immediately following are untouched.)
 
-- [ ] **Step 3: Manual verification**
+- [x] **Step 3: Manual verification**
 
 Run `uvicorn app:app --reload` from the repo root, open `http://localhost:8000`, open a deck in Text view.
 
@@ -98,7 +98,7 @@ Run `uvicorn app:app --reload` from the repo root, open `http://localhost:8000`,
 - Confirm collection tags still do NOT appear on Text view (out of scope, unchanged).
 - Confirm Grid view and the modal's tag chips are visually unaffected (the CSS change is scoped to `.deck-text-row .tag-chips-row` only).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add static/app.js static/style.css
