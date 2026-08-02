@@ -1172,7 +1172,6 @@ kbd {
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--accent);
-  flex: 1;
 }
 .group-header-count {
   font-size: 11px;
@@ -1182,6 +1181,7 @@ kbd {
   font-size: 10px;
   color: var(--muted);
   transition: transform 0.15s;
+  margin-left: auto;
 }
 .group-header.collapsed .group-header-chevron { transform: rotate(-90deg); }
 
