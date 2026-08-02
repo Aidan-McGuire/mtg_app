@@ -1295,7 +1295,12 @@ const collectionState = {
 };
 
 const collectionGroupCollapsed = new Set();
-const deckGroupCollapsed = new Set();
+const deckGroupCollapsed = new Set(['Considering']);
+
+function resetDeckGroupCollapsed() {
+  deckGroupCollapsed.clear();
+  deckGroupCollapsed.add('Considering');
+}
 
 /**
  * Groups an array of card objects by a tag field.
@@ -1325,38 +1330,40 @@ function groupCards(cards, tagField) {
   return groups;
 }
 
+function renderGroupSection(container, group, buildTileFn, collapsedState) {
+  const section = document.createElement('div');
+  section.className = 'group-section';
+
+  const isCollapsed = collapsedState.has(group.label);
+  const header = document.createElement('div');
+  header.className = 'group-header' + (isCollapsed ? ' collapsed' : '');
+  header.innerHTML = `
+    <span class="group-header-label">${esc(group.label)}</span>
+    <span class="group-header-count">${group.cards.length}</span>
+    <span class="group-header-chevron">▾</span>`;
+  header.addEventListener('click', () => {
+    if (collapsedState.has(group.label)) {
+      collapsedState.delete(group.label);
+    } else {
+      collapsedState.add(group.label);
+    }
+    header.classList.toggle('collapsed');
+    body.classList.toggle('collapsed');
+  });
+
+  const body = document.createElement('div');
+  body.className = 'group-body' + (isCollapsed ? ' collapsed' : '');
+
+  for (const card of group.cards) body.appendChild(buildTileFn(card));
+
+  section.appendChild(header);
+  section.appendChild(body);
+  container.appendChild(section);
+}
+
 function renderGroupedGrid(container, groups, buildTileFn, collapsedState) {
   container.innerHTML = '';
-  for (const group of groups) {
-    const section = document.createElement('div');
-    section.className = 'group-section';
-
-    const isCollapsed = collapsedState.has(group.label);
-    const header = document.createElement('div');
-    header.className = 'group-header' + (isCollapsed ? ' collapsed' : '');
-    header.innerHTML = `
-      <span class="group-header-label">${esc(group.label)}</span>
-      <span class="group-header-count">${group.cards.length}</span>
-      <span class="group-header-chevron">▾</span>`;
-    header.addEventListener('click', () => {
-      if (collapsedState.has(group.label)) {
-        collapsedState.delete(group.label);
-      } else {
-        collapsedState.add(group.label);
-      }
-      header.classList.toggle('collapsed');
-      body.classList.toggle('collapsed');
-    });
-
-    const body = document.createElement('div');
-    body.className = 'group-body' + (isCollapsed ? ' collapsed' : '');
-
-    for (const card of group.cards) body.appendChild(buildTileFn(card));
-
-    section.appendChild(header);
-    section.appendChild(body);
-    container.appendChild(section);
-  }
+  for (const group of groups) renderGroupSection(container, group, buildTileFn, collapsedState);
 }
 
 async function loadCollectionView() {
@@ -1698,6 +1705,7 @@ async function selectDeck(id) {
   deckState.deckCards = [];
   deckState.filter = makeFilterModel();   // reset filters between decks
   deckState.query = '';                   // reset content search between decks
+  resetDeckGroupCollapsed();              // Considering starts collapsed for every freshly loaded deck
   const searchInput = document.getElementById('deck-content-search');
   if (searchInput) searchInput.value = '';
   renderDeckSwitchResults();
@@ -1731,7 +1739,9 @@ function showDeckEditor() {
 function renderDeckContent() {
   deckState.filter.text = deckState.query;   // content search box feeds the model
   const deck  = deckState.decks.find(d => d.id === deckState.currentDeckId);
-  const total = deckState.deckCards.reduce((s, c) => s + c.quantity, 0);
+  const total = deckState.deckCards
+    .filter(c => !c.is_considering)
+    .reduce((s, c) => s + c.quantity, 0);
   document.getElementById('deck-editor-name').textContent =
     deck ? `${deck.name} (${total})` : `(${total})`;
 
@@ -1755,13 +1765,19 @@ function renderDeckGrid() {
     return;
   }
   const cmp = sortComparator(deckState.filter);
+  const mainCards = filtered.filter(c => !c.is_considering);
+  const consideringCards = filtered.filter(c => c.is_considering);
+
   if (deckState.groupBy !== 'none') {
     const tagField = deckState.groupBy === 'deck-tag' ? 'deck_tags' : 'collection_tags';
-    const groups = groupCards(filtered, tagField);
+    const groups = groupCards(mainCards, tagField);
     for (const g of groups) g.cards.sort(cmp);
+    if (consideringCards.length) {
+      groups.push({ label: 'Considering', cards: [...consideringCards].sort(cmp) });
+    }
     renderGroupedGrid(el, groups, buildDeckCardTile, deckGroupCollapsed);
   } else {
-    const sorted = [...filtered].sort((a, b) => {
+    const sorted = [...mainCards].sort((a, b) => {
       if (a.is_commander && !b.is_commander) return -1;   // commander pinned first
       if (!a.is_commander && b.is_commander) return 1;
       return cmp(a, b);
@@ -1769,13 +1785,29 @@ function renderDeckGrid() {
     const frag = document.createDocumentFragment();
     for (const card of sorted) frag.appendChild(buildDeckCardTile(card));
     el.appendChild(frag);
+    if (consideringCards.length) {
+      renderGroupSection(
+        el,
+        { label: 'Considering', cards: [...consideringCards].sort(cmp) },
+        buildDeckCardTile,
+        deckGroupCollapsed
+      );
+      // Full grid width for this single trailing section — it sits below the
+      // flat card grid, not alongside it as another narrow column. Scoped to
+      // this ungrouped-branch section only; the grouped-by-tag branch above
+      // intentionally keeps all sections (including its own Considering
+      // group) as narrow columns and must not get this class.
+      el.lastElementChild.classList.add('group-section-full');
+    }
   }
 }
 
 function buildDeckCardTile(card) {
   const q = qty(card.id);
   const div = document.createElement('div');
-  div.className = 'deck-card-tile' + (card.is_commander ? ' is-commander' : '');
+  div.className = 'deck-card-tile'
+    + (card.is_commander ? ' is-commander' : '')
+    + (card.is_considering ? ' is-considering' : '');
   div.dataset.id = card.id;
 
   const imgHtml = card.image_uri
@@ -1783,6 +1815,11 @@ function buildDeckCardTile(card) {
     : `<div class="card-img-placeholder">${esc(card.name)}</div>`;
 
   const ownedBadgeHtml = q > 0 ? OWNED_BADGE_HTML : '';
+
+  // A commander can't be Considering, so the toggle is pointless on that tile.
+  const consideringBtnHtml = card.is_commander ? '' : `
+    <button class="deck-considering-btn${card.is_considering ? ' active' : ''}"
+            title="${card.is_considering ? 'Move back to deck' : 'Move to Considering'}">?</button>`;
 
   div.innerHTML = `
     <div class="deck-card-img-wrap" data-owned-wrap-for="${card.id}">${ownedBadgeHtml}${imgHtml}</div>
@@ -1792,8 +1829,11 @@ function buildDeckCardTile(card) {
         <button class="qty-btn" data-action="dec" title="−">−</button>
         <span class="qty-label owned">${card.quantity}</span>
         <button class="qty-btn" data-action="inc" title="+">+</button>
-        <button class="deck-cmd-btn${card.is_commander ? ' active' : ''}" title="Toggle commander">♛</button>
-        <button class="deck-remove-btn" title="Remove">×</button>
+        <div class="deck-actions">
+          ${consideringBtnHtml}
+          <button class="deck-cmd-btn${card.is_commander ? ' active' : ''}" title="Toggle commander">♛</button>
+          <button class="deck-remove-btn" title="Remove">×</button>
+        </div>
       </div>
       ${tagChipsHtml(card.collection_tags, 'collection-tag')}
       ${tagChipsHtml(card.deck_tags, 'deck-tag')}
@@ -1803,6 +1843,8 @@ function buildDeckCardTile(card) {
   div.querySelector('[data-action="dec"]').addEventListener('click', e => { e.stopPropagation(); decDeckCard(card.id); });
   div.querySelector('.deck-cmd-btn').addEventListener('click', e => { e.stopPropagation(); toggleCommander(card.id); });
   div.querySelector('.deck-remove-btn').addEventListener('click', e => { e.stopPropagation(); removeDeckCard(card.id); });
+  const consideringBtn = div.querySelector('.deck-considering-btn');
+  if (consideringBtn) consideringBtn.addEventListener('click', e => { e.stopPropagation(); toggleConsidering(card.id); });
   div.addEventListener('click', () => openModal(card, { deckId: deckState.currentDeckId }));
 
   return div;
@@ -1829,10 +1871,12 @@ function renderDeckText() {
     Planeswalker: [],
     Land:         [],
     Other:        [],
+    Considering:  [],
   };
 
   for (const card of filtered) {
     if (card.is_commander) { groups.Commander.push(card); continue; }
+    if (card.is_considering) { groups.Considering.push(card); continue; }
     const t = card.type_line || '';
     if      (t.includes('Creature'))     groups.Creature.push(card);
     else if (t.includes('Instant'))      groups.Instant.push(card);
@@ -1905,13 +1949,31 @@ async function toggleCommander(cardId) {
   try {
     const res = await API.updateDeckCard(deckState.currentDeckId, cardId, { is_commander: !card.is_commander });
     card.is_commander = res.is_commander;
+    card.is_considering = res.is_considering;
+    syncDeckCount();
+    renderDeckContent();
+  } catch (e) { console.error(e); }
+}
+
+async function toggleConsidering(cardId) {
+  const card = deckState.deckCards.find(c => c.id === cardId);
+  if (!card) return;
+  try {
+    const res = await API.updateDeckCard(deckState.currentDeckId, cardId, { is_considering: !card.is_considering });
+    card.is_commander = res.is_commander;
+    card.is_considering = res.is_considering;
+    syncDeckCount();
     renderDeckContent();
   } catch (e) { console.error(e); }
 }
 
 function syncDeckCount() {
   const deck = deckState.decks.find(d => d.id === deckState.currentDeckId);
-  if (deck) deck.card_count = deckState.deckCards.reduce((s, c) => s + c.quantity, 0);
+  if (deck) {
+    deck.card_count = deckState.deckCards
+      .filter(c => !c.is_considering)
+      .reduce((s, c) => s + c.quantity, 0);
+  }
   renderDeckSwitchResults();
 }
 
@@ -2165,7 +2227,7 @@ document.querySelectorAll('.vtoggle-btn').forEach(btn => {
 
 document.getElementById('deck-group-by').addEventListener('change', e => {
   deckState.groupBy = e.target.value;
-  deckGroupCollapsed.clear();
+  resetDeckGroupCollapsed();
   renderDeckContent();
 });
 

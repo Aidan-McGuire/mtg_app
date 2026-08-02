@@ -115,6 +115,10 @@ def migrate_database():
         cur.execute("ALTER TABLE cards ADD COLUMN toughness TEXT;")
         cur.execute("UPDATE schema_version SET version = 3;")
 
+    if version < 4:
+        cur.execute("ALTER TABLE deck_cards ADD COLUMN is_considering INTEGER NOT NULL DEFAULT 0;")
+        cur.execute("UPDATE schema_version SET version = 4;")
+
     conn.commit()
     conn.close()
 

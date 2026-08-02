@@ -35,6 +35,7 @@ CREATE TABLE deck_cards (
     card_id INTEGER NOT NULL REFERENCES cards(id),
     quantity INTEGER NOT NULL DEFAULT 1,
     is_commander INTEGER NOT NULL DEFAULT 0,
+    is_considering INTEGER NOT NULL DEFAULT 0,
     UNIQUE(deck_id, card_id)
 );
 CREATE TABLE collection_tags (
@@ -50,7 +51,7 @@ CREATE TABLE deck_card_tags (
     tag TEXT NOT NULL,
     UNIQUE(deck_id, card_id, tag)
 );
-INSERT INTO schema_version VALUES (3);
+INSERT INTO schema_version VALUES (4);
 INSERT INTO cards (id, oracle_id, name, mana_cost, cmc, type_line) VALUES (1, 'bolt-uuid', 'Lightning Bolt', '{R}', 1, 'Instant');
 INSERT INTO cards (id, oracle_id, name, mana_cost, cmc, type_line) VALUES (2, 'forest-uuid', 'Forest', NULL, 0, 'Basic Land');
 INSERT INTO collection (card_id, quantity) VALUES (1, 4);
