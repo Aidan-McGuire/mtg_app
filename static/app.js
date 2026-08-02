@@ -1379,13 +1379,15 @@ function groupCardsByType(cards) {
  * Expanded groups first (in their original order), then collapsed groups
  * (in their original order) — "minimized categories go to the bottom."
  */
+// ── sortGroupsByCollapsed ──
 function sortGroupsByCollapsed(groups, collapsedState) {
   const expanded  = groups.filter(g => !collapsedState.has(g.label));
   const collapsed = groups.filter(g => collapsedState.has(g.label));
   return [...expanded, ...collapsed];
 }
+// ── end sortGroupsByCollapsed ──
 
-function renderGroupSection(container, group, buildTileFn, collapsedState, allGroups) {
+function renderGroupSection(container, group, buildTileFn, collapsedState, allGroups = [group]) {
   const section = document.createElement('div');
   section.className = 'group-section';
   section.dataset.label = group.label;
@@ -1410,10 +1412,12 @@ function renderGroupSection(container, group, buildTileFn, collapsedState, allGr
     const idx = ordered.findIndex(g => g.label === group.label);
     const nextLabel = ordered[idx + 1]?.label;
     const nextEl = nextLabel
-      ? container.querySelector(`.group-section[data-label="${CSS.escape(nextLabel)}"]`)
+      ? container.querySelector(`:scope > .group-section[data-label="${CSS.escape(nextLabel)}"]`)
       : null;
-    if (nextEl) container.insertBefore(section, nextEl);
-    else container.appendChild(section);
+    if (section.nextElementSibling !== nextEl) {
+      if (nextEl) container.insertBefore(section, nextEl);
+      else container.appendChild(section);
+    }
   });
 
   const body = document.createElement('div');
@@ -1894,8 +1898,7 @@ function renderDeckGrid() {
         el,
         { label: 'Considering', cards: [...consideringCards].sort(cmp) },
         buildDeckCardTile,
-        deckGroupCollapsed,
-        [{ label: 'Considering' }]
+        deckGroupCollapsed
       );
       // Full grid width for this single trailing section — it sits below the
       // flat card grid, not alongside it as another narrow column. Scoped to
@@ -2016,8 +2019,7 @@ function renderDeckText() {
         el,
         { label: 'Considering', cards: [...consideringCards].sort(cmp) },
         buildDeckTextRow,
-        deckGroupCollapsed,
-        [{ label: 'Considering' }]
+        deckGroupCollapsed
       );
     }
   }
