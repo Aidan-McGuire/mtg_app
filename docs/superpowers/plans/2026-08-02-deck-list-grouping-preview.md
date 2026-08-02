@@ -1,6 +1,6 @@
 # Deck list grouping + focused-card preview panel Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Unify grouping (type / collection tag / deck tag) across the deck page's Grid and Text views, and add a persistent left-side card-preview panel driven by keyboard focus or mouse hover, in both views.
 
@@ -29,7 +29,7 @@
 **Interfaces:**
 - Produces: `groupCardsByType(cards: Card[]) -> {label: string, cards: Card[]}[]`, same return shape as the existing `groupCards(cards, tagField)`, consumable by `renderGroupedGrid`/`renderGroupSection`. Group order is fixed: `Commander` (if a commander is present) first, then `Creature, Instant, Sorcery, Enchantment, Artifact, Planeswalker, Land, Other` (only non-empty groups included) — no alphabetical sort, unlike `groupCards`.
 
-- [ ] **Step 1: Add `groupCardsByType`, sentinel-wrapped for the Node test**
+- [x] **Step 1: Add `groupCardsByType`, sentinel-wrapped for the Node test**
 
 `groupCardsByType` takes no DOM/global dependencies beyond its own parameter, so — per this repo's `tests/js/` convention (see `tests/js/filter-decks.test.mjs`) — it's wrapped in sentinel comments so a plain Node script can extract and unit-test it without a browser.
 
@@ -70,7 +70,7 @@ function groupCardsByType(cards) {
 // ── end groupCardsByType ──
 ```
 
-- [ ] **Step 2: Write the automated test**
+- [x] **Step 2: Write the automated test**
 
 Create `tests/js/group-cards-by-type.test.mjs`:
 
@@ -144,12 +144,12 @@ console.log(failed ? `\n${failed} failing` : `\nall 4 checks passing`);
 process.exit(failed ? 1 : 0);
 ```
 
-- [ ] **Step 3: Run the test, verify it passes**
+- [x] **Step 3: Run the test, verify it passes**
 
 Run: `node tests/js/group-cards-by-type.test.mjs`
 Expected: four `ok` lines, then `all 4 checks passing`, exit code 0.
 
-- [ ] **Step 4: Update the `deckState.groupBy` type comment**
+- [x] **Step 4: Update the `deckState.groupBy` type comment**
 
 In `static/app.js:1617`, change:
 
@@ -163,7 +163,7 @@ to:
   groupBy:        'none',   // 'none' | 'type' | 'collection-tag' | 'deck-tag'
 ```
 
-- [ ] **Step 5: Wire `'type'` into `renderDeckGrid`'s grouped branch**
+- [x] **Step 5: Wire `'type'` into `renderDeckGrid`'s grouped branch**
 
 In `static/app.js`, inside `renderDeckGrid`, replace:
 
@@ -186,7 +186,7 @@ with:
 
 (The rest of the `if` block — the `consideringCards` push and `renderGroupedGrid` call — is unchanged.)
 
-- [ ] **Step 6: Add the "Card type" option to the dropdown**
+- [x] **Step 6: Add the "Card type" option to the dropdown**
 
 In `static/index.html:67-71`, replace:
 
@@ -209,7 +209,7 @@ with:
                 </select>
 ```
 
-- [ ] **Step 7: Manual verification**
+- [x] **Step 7: Manual verification**
 
 Run `uvicorn app:app --reload` from the repo root, open `http://localhost:8000`, go to the Decks view, and select (or create) a deck that has a commander and at least one Creature, one Instant, and one Land.
 
@@ -217,7 +217,7 @@ Run `uvicorn app:app --reload` from the repo root, open `http://localhost:8000`,
 - Confirm "Collection tag" and "Deck tag" still work exactly as before (unchanged).
 - Confirm "Group: None" still shows the flat, ungrouped grid with the commander pinned first (unchanged).
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add static/app.js static/index.html tests/js/group-cards-by-type.test.mjs
@@ -238,7 +238,7 @@ git commit -m "feat: add Card type grouping option to deck Grid view"
 
 **Note on behavior change (intentional, per design spec):** text view currently always groups by card type (ignoring Group-by), sorts each group alphabetically (ignoring the sort dropdown), and has no collapse control. After this task, text view uses the *same* group headers/collapse UI as Grid view, respects the Group-by dropdown (None/Card type/Collection tag/Deck tag), and sorts using the same `cmp` (current sort-dropdown selection) Grid view already uses. Group header counts become "distinct cards in group" (matching Grid view today) rather than the old "total quantity in group."
 
-- [ ] **Step 1: Replace `renderDeckText`**
+- [x] **Step 1: Replace `renderDeckText`**
 
 In `static/app.js`, replace the entire existing `renderDeckText` function (currently `static/app.js:1853-1910`, from `function renderDeckText() {` through its closing `}`) with:
 
@@ -300,7 +300,7 @@ function renderDeckText() {
 }
 ```
 
-- [ ] **Step 2: Update text-view CSS**
+- [x] **Step 2: Update text-view CSS**
 
 In `static/style.css`, replace the entire `/* ── Deck text view ── */` block (currently lines 824-857, from `.deck-text-view {` through `.deck-text-mana { ... }`) with:
 
@@ -319,6 +319,9 @@ In `static/style.css`, replace the entire `/* ── Deck text view ── */` b
   display: flex;
   flex-direction: column;
   gap: 2px;
+}
+#deck-text-view .group-body.collapsed {
+  display: none;
 }
 
 .deck-text-row {
@@ -339,7 +342,7 @@ In `static/style.css`, replace the entire `/* ── Deck text view ── */` b
 
 (This drops the now-unused `.deck-text-section` and `.deck-text-group` rules — nothing creates those classes anymore.)
 
-- [ ] **Step 3: Manual verification**
+- [x] **Step 3: Manual verification**
 
 With the dev server running and the same test deck from Task 1's verification:
 
@@ -349,7 +352,7 @@ With the dev server running and the same test deck from Task 1's verification:
 - Set Group-by to "None": confirm a flat, ungrouped row list with no header, commander pinned first; if any card is in Considering, confirm it still appears in its own collapsed-by-default "Considering" section below the flat list.
 - Click any row: confirm it still opens the card detail modal.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add static/app.js static/style.css
@@ -371,7 +374,7 @@ git commit -m "feat: make deck Text view respect Group-by, share Grid view's gro
 - Consumes: `deckState.deckCards`, `deckState.filter`, `applyFilters`, `sortComparator` (all existing); `esc`, `API.imageUrl` (existing).
 - Produces: `resolvePreviewCard() -> Card | null` and `renderDeckPreviewPanel() -> void`, both used as-is by Task 4 (hover) and Tasks 5/6 (keyboard nav) — those tasks call `renderDeckPreviewPanel()` after changing `deckState.focusedCardId`, they do not reimplement card resolution.
 
-- [ ] **Step 1: Add the panel container to the HTML**
+- [x] **Step 1: Add the panel container to the HTML**
 
 In `static/index.html`, replace:
 
@@ -392,7 +395,7 @@ with:
 
 (Leave the rest of the `.deck-content-col` block and its closing `</div></div>` untouched.)
 
-- [ ] **Step 2: Add panel CSS**
+- [x] **Step 2: Add panel CSS**
 
 In `static/style.css`, immediately after the existing `.deck-editor-body { ... }` block (currently lines 541-546), insert:
 
@@ -451,7 +454,7 @@ In `static/style.css`, immediately after the existing `.deck-editor-body { ... }
 }
 ```
 
-- [ ] **Step 3: Add `focusedCardId`/`lastFocusedCardId` to `deckState`**
+- [x] **Step 3: Add `focusedCardId`/`lastFocusedCardId` to `deckState`**
 
 In `static/app.js`, inside the `deckState` object (currently lines 1612-1625), replace:
 
@@ -471,7 +474,7 @@ with:
 };
 ```
 
-- [ ] **Step 4: Reset focus state when switching decks**
+- [x] **Step 4: Reset focus state when switching decks**
 
 In `static/app.js`, inside `selectDeck`, replace:
 
@@ -491,7 +494,7 @@ with:
   resetDeckGroupCollapsed();              // Considering starts collapsed for every freshly loaded deck
 ```
 
-- [ ] **Step 5: Add `resolvePreviewCard` and `renderDeckPreviewPanel`**
+- [x] **Step 5: Add `resolvePreviewCard` and `renderDeckPreviewPanel`**
 
 In `static/app.js`, immediately before `function renderDeckContent() {` (currently line 1739), insert:
 
@@ -535,7 +538,7 @@ function renderDeckPreviewPanel() {
 }
 ```
 
-- [ ] **Step 6: Call the panel renderer from `renderDeckContent`**
+- [x] **Step 6: Call the panel renderer from `renderDeckContent`**
 
 In `static/app.js`, inside `renderDeckContent`, replace:
 
@@ -568,7 +571,7 @@ with:
 }
 ```
 
-- [ ] **Step 7: Manual verification**
+- [x] **Step 7: Manual verification**
 
 With the dev server running:
 
@@ -578,7 +581,7 @@ With the dev server running:
 - Change the sort-order dropdown (e.g. name → CMC) with no commander set and nothing focused: confirm the panel's fallback card updates to match the new top-of-sort card.
 - Resize the browser narrow: confirm the panel doesn't overlap or break the content column layout (it's fine if it just stays a fixed 260px column).
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add static/index.html static/style.css static/app.js
@@ -597,7 +600,7 @@ git commit -m "feat: add persistent deck card-preview panel with commander/fallb
 - Consumes: `renderDeckPreviewPanel` (Task 3).
 - Produces: `setDeckFocus(cardId: number, el: HTMLElement) -> void` — the single place that updates `deckState.focusedCardId`/`lastFocusedCardId`, moves the `.focused` class, and re-renders the panel. Tasks 5 and 6 call this directly instead of duplicating its logic.
 
-- [ ] **Step 1: Add `setDeckFocus`**
+- [x] **Step 1: Add `setDeckFocus`**
 
 In `static/app.js`, immediately before `function buildDeckCardTile(card) {` (currently `static/app.js:1805`), insert:
 
@@ -612,7 +615,7 @@ function setDeckFocus(cardId, el) {
 }
 ```
 
-- [ ] **Step 2: Hover on Grid tiles**
+- [x] **Step 2: Hover on Grid tiles**
 
 In `static/app.js`, inside `buildDeckCardTile`, find the block of `addEventListener` calls right before `return div;` and add one more line:
 
@@ -631,7 +634,7 @@ In `static/app.js`, inside `buildDeckCardTile`, find the block of `addEventListe
 
 (Only the new `mouseenter` line is added; every other line here is unchanged, shown for exact placement.)
 
-- [ ] **Step 3: Hover on Text rows**
+- [x] **Step 3: Hover on Text rows**
 
 In `static/app.js`, inside `buildDeckTextRow` (from Task 2), replace:
 
@@ -648,7 +651,7 @@ with:
   return row;
 ```
 
-- [ ] **Step 4: `.focused` styles**
+- [x] **Step 4: `.focused` styles**
 
 In `static/style.css`, immediately after `.deck-card-tile.is-considering { border-style: dashed; opacity: 0.7; }` (currently line 732), insert:
 
@@ -662,7 +665,7 @@ In the `.deck-text-row` rules added in Task 2, add one more line right after `.d
 .deck-text-row.focused { background: var(--surface2); box-shadow: inset 2px 0 0 var(--accent); }
 ```
 
-- [ ] **Step 5: Manual verification**
+- [x] **Step 5: Manual verification**
 
 With the dev server running and a deck open:
 
@@ -671,7 +674,7 @@ With the dev server running and a deck open:
 - Move the mouse entirely off the deck area (e.g. onto the header): confirm the panel keeps showing the last-hovered card rather than reverting to the commander/default.
 - Click a tile/row while hovering a different one: confirm the modal opens for the *clicked* card, not the hovered one.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add static/app.js static/style.css
@@ -690,7 +693,7 @@ git commit -m "feat: update deck preview panel on card hover in both views"
 - Consumes: `setDeckFocus` (Task 4), `deckState.focusedCardId`, `deckState.deckView`, `deckSwitchPaletteOpen`, `addPaletteOpen` (all existing/prior tasks).
 - Produces: `deckNavGroups(container: HTMLElement) -> HTMLElement[][]`, `findTileIndex(groups, cardId: number) -> {g: number, i: number} | null` (coerces `cardId` to a string only internally, to compare against `dataset.id`), `focusDeckTile(el: HTMLElement) -> void` (resolves the real numeric `card.id` from `deckState.deckCards` before calling `setDeckFocus` — never passes the raw string `el.dataset.id` through) — all three are reused as-is by Task 6's grid nav.
 
-- [ ] **Step 1: Add shared nav helpers and the list-nav handler**
+- [x] **Step 1: Add shared nav helpers and the list-nav handler**
 
 In `static/app.js`, immediately before `// ── Deck card mutations ──` (currently `static/app.js:1912`), insert:
 
@@ -758,7 +761,7 @@ function handleDeckListKey(e) {
 }
 ```
 
-- [ ] **Step 2: Wire it into the global keydown handler**
+- [x] **Step 2: Wire it into the global keydown handler**
 
 In `static/app.js`, inside the global `document.addEventListener('keydown', e => { ... })` handler, find:
 
@@ -789,7 +792,7 @@ and insert immediately after it (before the `// Everything below drives the Card
   }
 ```
 
-- [ ] **Step 3: Manual verification**
+- [x] **Step 3: Manual verification**
 
 With the dev server running, a deck open, Text view active, Group-by set to "Card type" (so there are multiple groups):
 
@@ -801,7 +804,7 @@ With the dev server running, a deck open, Text view active, Group-by set to "Car
 - Confirm the preview panel updates on every focus change, matching the newly focused row, and the row gets the `.focused` highlight.
 - Focus the "Filter cards…" search box and press arrow keys: confirm nothing happens to the deck list's focus (typing-in-field guard works).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add static/app.js
@@ -819,7 +822,7 @@ git commit -m "feat: add arrow-key focus navigation to deck Text view"
 **Interfaces:**
 - Consumes: `deckNavGroups`, `findTileIndex`, `focusDeckTile` (Task 5).
 
-- [ ] **Step 1: Add `groupColumnCount` and `handleDeckGridKey`**
+- [x] **Step 1: Add `groupColumnCount` and `handleDeckGridKey`**
 
 In `static/app.js`, immediately after `handleDeckListKey`'s closing `}` (added in Task 5), insert:
 
@@ -881,7 +884,7 @@ function handleDeckGridKey(e) {
 }
 ```
 
-- [ ] **Step 2: Extend the keydown wiring to cover Grid view**
+- [x] **Step 2: Extend the keydown wiring to cover Grid view**
 
 In `static/app.js`, replace the block added in Task 5's Step 2:
 
@@ -915,7 +918,7 @@ with:
   }
 ```
 
-- [ ] **Step 3: Manual verification**
+- [x] **Step 3: Manual verification**
 
 With the dev server running, a deck open, Grid view active, Group-by "Card type" (so multiple groups, and at least one group with more cards than fit in one row — resize the browser narrower if needed to force wrapping):
 
@@ -926,7 +929,7 @@ With the dev server running, a deck open, Grid view active, Group-by "Card type"
 - Set Group-by to "None": confirm arrow-key movement behaves like a single continuous grid (matches the Cards page's existing model).
 - Switch to Text view then back to Grid: confirm focus/preview panel state is preserved across the switch (per Task 3).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add static/app.js
