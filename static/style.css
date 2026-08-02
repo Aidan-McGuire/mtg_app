@@ -837,6 +837,8 @@ kbd {
   gap: 2px;
 }
 
+#deck-text-view .group-body.collapsed { display: none; }
+
 .deck-text-row {
   display: flex;
   align-items: baseline;
