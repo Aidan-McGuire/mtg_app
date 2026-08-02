@@ -1739,7 +1739,9 @@ function showDeckEditor() {
 function renderDeckContent() {
   deckState.filter.text = deckState.query;   // content search box feeds the model
   const deck  = deckState.decks.find(d => d.id === deckState.currentDeckId);
-  const total = deckState.deckCards.reduce((s, c) => s + c.quantity, 0);
+  const total = deckState.deckCards
+    .filter(c => !c.is_considering)
+    .reduce((s, c) => s + c.quantity, 0);
   document.getElementById('deck-editor-name').textContent =
     deck ? `${deck.name} (${total})` : `(${total})`;
 
@@ -1863,10 +1865,12 @@ function renderDeckText() {
     Planeswalker: [],
     Land:         [],
     Other:        [],
+    Considering:  [],
   };
 
   for (const card of filtered) {
     if (card.is_commander) { groups.Commander.push(card); continue; }
+    if (card.is_considering) { groups.Considering.push(card); continue; }
     const t = card.type_line || '';
     if      (t.includes('Creature'))     groups.Creature.push(card);
     else if (t.includes('Instant'))      groups.Instant.push(card);
@@ -1959,7 +1963,11 @@ async function toggleConsidering(cardId) {
 
 function syncDeckCount() {
   const deck = deckState.decks.find(d => d.id === deckState.currentDeckId);
-  if (deck) deck.card_count = deckState.deckCards.reduce((s, c) => s + c.quantity, 0);
+  if (deck) {
+    deck.card_count = deckState.deckCards
+      .filter(c => !c.is_considering)
+      .reduce((s, c) => s + c.quantity, 0);
+  }
   renderDeckSwitchResults();
 }
 
