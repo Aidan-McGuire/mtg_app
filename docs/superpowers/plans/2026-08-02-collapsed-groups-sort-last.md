@@ -28,7 +28,7 @@
 - `renderGroupSection(container, group, buildTileFn, collapsedState, allGroups)` — gains a required 5th parameter, `allGroups`: the full ordered list of `{label, cards}` group objects this section belongs to (used only to compute where to reinsert the section on toggle). Every existing call site must pass it.
 - `renderGroupedGrid(container, groups, buildTileFn, collapsedState)` — signature unchanged; internally now sorts `groups` collapsed-last before building, and passes the *original* (not sorted) `groups` array through to each `renderGroupSection` call as `allGroups`, so `allGroups` always reflects true group order regardless of current collapse state.
 
-- [ ] **Step 1: Add `sortGroupsByCollapsed` and update `renderGroupSection`/`renderGroupedGrid`**
+- [x] **Step 1: Add `sortGroupsByCollapsed` and update `renderGroupSection`/`renderGroupedGrid`**
 
 In `static/app.js`, replace:
 
@@ -133,7 +133,7 @@ function renderGroupedGrid(container, groups, buildTileFn, collapsedState) {
 
 Note `renderGroupedGrid` passes the *original* `groups` (not `ordered`) as `allGroups` to each call — `allGroups` must always reflect true group order so `sortGroupsByCollapsed` inside the click handler computes correctly regardless of how many toggles have happened since the last full render.
 
-- [ ] **Step 2: Update the deck Grid ungrouped branch's standalone call**
+- [x] **Step 2: Update the deck Grid ungrouped branch's standalone call**
 
 In `static/app.js`, inside `renderDeckGrid`'s ungrouped (`else`) branch, replace:
 
@@ -160,7 +160,7 @@ with:
 
 (A single-element `allGroups` list — there's nothing else to sort this section against, so toggling it is always a no-op reposition, same as it visually already is today.)
 
-- [ ] **Step 3: Update the deck Text ungrouped branch's standalone call**
+- [x] **Step 3: Update the deck Text ungrouped branch's standalone call**
 
 In `static/app.js`, inside `renderDeckText`'s ungrouped (`else`) branch, replace:
 
@@ -185,12 +185,12 @@ with:
       );
 ```
 
-- [ ] **Step 4: Syntax check**
+- [x] **Step 4: Syntax check**
 
 Run: `node --check static/app.js`
 Expected: no output, exit code 0.
 
-- [ ] **Step 5: Manual verification**
+- [x] **Step 5: Manual verification**
 
 Run `uvicorn app:app --reload` from the repo root, open `http://localhost:8000`.
 
@@ -207,7 +207,7 @@ Run `uvicorn app:app --reload` from the repo root, open `http://localhost:8000`.
 
 *Ungrouped Considering-only case* — in either deck view with Group-by "None" and at least one Considering card: confirm collapsing/expanding the trailing Considering section still works exactly as before (it's the only section, so nothing to reorder against).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add static/app.js
