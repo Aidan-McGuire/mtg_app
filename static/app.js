@@ -213,6 +213,19 @@ function refreshQtyInDOM(cardId) {
     el.textContent = q;
     el.className = 'qty-label' + (q > 0 ? ' owned' : '');
   });
+  // Add/remove the owned badge on every rendered tile for this card
+  document.querySelectorAll(`[data-owned-wrap-for="${cardId}"]`).forEach(wrap => {
+    let badge = wrap.querySelector('.card-owned-badge');
+    if (q > 0 && !badge) {
+      badge = document.createElement('div');
+      badge.className = 'card-owned-badge';
+      badge.title = 'Owned';
+      badge.textContent = '✓';
+      wrap.prepend(badge);
+    } else if (q === 0 && badge) {
+      badge.remove();
+    }
+  });
 }
 
 // ── Grid rendering ────────────────────────────────────────────────────────────
@@ -244,11 +257,13 @@ function buildCardTile(card) {
     ? `<img src="${API.imageUrl(card.image_uri)}" loading="lazy" alt="${esc(card.name)}">`
     : `<div class="card-img-placeholder">${esc(card.name)}</div>`;
 
+  const ownedBadgeHtml = q > 0 ? `<div class="card-owned-badge" title="Owned">✓</div>` : '';
+
   const meta = [card.mana_cost, card.cmc != null ? `${card.cmc} CMC` : null]
     .filter(Boolean).join(' · ');
 
   div.innerHTML = `
-    <div class="card-img-wrap">${imgHtml}</div>
+    <div class="card-img-wrap" data-owned-wrap-for="${card.id}">${ownedBadgeHtml}${imgHtml}</div>
     <div class="card-info">
       <div class="card-name">${esc(card.name)}</div>
       <div class="card-meta">${esc(meta)}</div>
