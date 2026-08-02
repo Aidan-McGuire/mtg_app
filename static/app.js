@@ -1884,6 +1884,18 @@ function buildDeckCardTile(card) {
   return div;
 }
 
+function buildDeckTextRow(card) {
+  const row = document.createElement('div');
+  row.className = 'deck-text-row';
+  row.dataset.id = card.id;
+  row.innerHTML = `
+    <span class="deck-text-qty">${card.quantity}x</span>
+    <span class="deck-text-name">${esc(card.name)}</span>
+    <span class="deck-text-mana">${esc(card.mana_cost || '')}</span>`;
+  row.addEventListener('click', () => openModal(card, { deckId: deckState.currentDeckId }));
+  return row;
+}
+
 function renderDeckText() {
   const el = document.getElementById('deck-text-view');
   el.innerHTML = '';
@@ -1895,51 +1907,36 @@ function renderDeckText() {
     return;
   }
 
-  const groups = {
-    Commander:    [],
-    Creature:     [],
-    Instant:      [],
-    Sorcery:      [],
-    Enchantment:  [],
-    Artifact:     [],
-    Planeswalker: [],
-    Land:         [],
-    Other:        [],
-    Considering:  [],
-  };
+  const cmp = sortComparator(deckState.filter);
+  const mainCards = filtered.filter(c => !c.is_considering);
+  const consideringCards = filtered.filter(c => c.is_considering);
 
-  for (const card of filtered) {
-    if (card.is_commander) { groups.Commander.push(card); continue; }
-    if (card.is_considering) { groups.Considering.push(card); continue; }
-    const t = card.type_line || '';
-    if      (t.includes('Creature'))     groups.Creature.push(card);
-    else if (t.includes('Instant'))      groups.Instant.push(card);
-    else if (t.includes('Sorcery'))      groups.Sorcery.push(card);
-    else if (t.includes('Enchantment'))  groups.Enchantment.push(card);
-    else if (t.includes('Artifact'))     groups.Artifact.push(card);
-    else if (t.includes('Planeswalker')) groups.Planeswalker.push(card);
-    else if (t.includes('Land'))         groups.Land.push(card);
-    else                                 groups.Other.push(card);
-  }
-
-  for (const [groupName, cards] of Object.entries(groups)) {
-    if (!cards.length) continue;
-    cards.sort((a, b) => a.name.localeCompare(b.name));
-    const count = cards.reduce((s, c) => s + c.quantity, 0);
-    const section = document.createElement('div');
-    section.className = 'deck-text-section';
-    section.innerHTML = `<div class="deck-text-group">${esc(groupName)} (${count})</div>`;
-    for (const card of cards) {
-      const row = document.createElement('div');
-      row.className = 'deck-text-row';
-      row.innerHTML = `
-        <span class="deck-text-qty">${card.quantity}x</span>
-        <span class="deck-text-name">${esc(card.name)}</span>
-        <span class="deck-text-mana">${esc(card.mana_cost || '')}</span>`;
-      row.addEventListener('click', () => openModal(card, { deckId: deckState.currentDeckId }));
-      section.appendChild(row);
+  if (deckState.groupBy !== 'none') {
+    const groups = deckState.groupBy === 'type'
+      ? groupCardsByType(mainCards)
+      : groupCards(mainCards, deckState.groupBy === 'deck-tag' ? 'deck_tags' : 'collection_tags');
+    for (const g of groups) g.cards.sort(cmp);
+    if (consideringCards.length) {
+      groups.push({ label: 'Considering', cards: [...consideringCards].sort(cmp) });
     }
-    el.appendChild(section);
+    renderGroupedGrid(el, groups, buildDeckTextRow, deckGroupCollapsed);
+  } else {
+    const sorted = [...mainCards].sort((a, b) => {
+      if (a.is_commander && !b.is_commander) return -1;   // commander pinned first
+      if (!a.is_commander && b.is_commander) return 1;
+      return cmp(a, b);
+    });
+    const frag = document.createDocumentFragment();
+    for (const card of sorted) frag.appendChild(buildDeckTextRow(card));
+    el.appendChild(frag);
+    if (consideringCards.length) {
+      renderGroupSection(
+        el,
+        { label: 'Considering', cards: [...consideringCards].sort(cmp) },
+        buildDeckTextRow,
+        deckGroupCollapsed
+      );
+    }
   }
 }
 
