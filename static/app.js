@@ -1172,8 +1172,8 @@ document.addEventListener('keydown', e => {
     const typingInField = !!document.activeElement &&
       document.activeElement.matches('input, textarea, select');
     const isArrow = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key);
-    if (!typingInField && isArrow && deckState.deckView === 'text') {
-      handleDeckListKey(e);
+    if (!typingInField && isArrow) {
+      if (deckState.deckView === 'grid') handleDeckGridKey(e); else handleDeckListKey(e);
       return;
     }
   }
@@ -2060,6 +2060,59 @@ function handleDeckListKey(e) {
     const nextG = pos.g + (e.key === 'ArrowRight' ? 1 : -1);
     if (nextG < 0 || nextG >= groups.length) return;   // clamp — no wrap past the ends
     focusDeckTile(groups[nextG][0]);
+  }
+}
+
+/** Column count for one group's tiles, measured from actual layout (same
+ *  technique as the Cards page's `columnCount()`), since a group's own
+ *  `.group-body` can wrap to a different column count than another group's. */
+function groupColumnCount(tiles) {
+  if (tiles.length < 2) return 1;
+  const top0 = tiles[0].getBoundingClientRect().top;
+  let n = 0;
+  for (const t of tiles) {
+    if (t.getBoundingClientRect().top !== top0) break;
+    n++;
+  }
+  return Math.max(1, n);
+}
+
+function handleDeckGridKey(e) {
+  const groups = deckNavGroups(document.getElementById('deck-grid-view'));
+  if (!groups.length) return;
+  const isArrow = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key);
+  if (!isArrow) return;
+  e.preventDefault();
+
+  const pos = deckState.focusedCardId && findTileIndex(groups, deckState.focusedCardId);
+  if (!pos) { focusDeckTile(groups[0][0]); return; }
+
+  const tiles = groups[pos.g];
+  const cols  = groupColumnCount(tiles);
+  const col   = pos.i % cols;
+
+  if (e.key === 'ArrowRight') {
+    if (pos.i + 1 < tiles.length) focusDeckTile(tiles[pos.i + 1]);
+  } else if (e.key === 'ArrowLeft') {
+    if (pos.i - 1 >= 0) focusDeckTile(tiles[pos.i - 1]);
+  } else if (e.key === 'ArrowDown') {
+    if (pos.i + cols < tiles.length) {
+      focusDeckTile(tiles[pos.i + cols]);
+    } else {
+      const next = groups[pos.g + 1];
+      if (next) focusDeckTile(next[Math.min(col, next.length - 1)]);
+    }
+  } else if (e.key === 'ArrowUp') {
+    if (pos.i - cols >= 0) {
+      focusDeckTile(tiles[pos.i - cols]);
+    } else {
+      const prev = groups[pos.g - 1];
+      if (prev) {
+        const prevCols = groupColumnCount(prev);
+        const lastRowStart = prev.length - (prev.length % prevCols || prevCols);
+        focusDeckTile(prev[Math.min(lastRowStart + col, prev.length - 1)]);
+      }
+    }
   }
 }
 
