@@ -1295,7 +1295,12 @@ const collectionState = {
 };
 
 const collectionGroupCollapsed = new Set();
-const deckGroupCollapsed = new Set();
+const deckGroupCollapsed = new Set(['Considering']);
+
+function resetDeckGroupCollapsed() {
+  deckGroupCollapsed.clear();
+  deckGroupCollapsed.add('Considering');
+}
 
 /**
  * Groups an array of card objects by a tag field.
@@ -1325,38 +1330,40 @@ function groupCards(cards, tagField) {
   return groups;
 }
 
+function renderGroupSection(container, group, buildTileFn, collapsedState) {
+  const section = document.createElement('div');
+  section.className = 'group-section';
+
+  const isCollapsed = collapsedState.has(group.label);
+  const header = document.createElement('div');
+  header.className = 'group-header' + (isCollapsed ? ' collapsed' : '');
+  header.innerHTML = `
+    <span class="group-header-label">${esc(group.label)}</span>
+    <span class="group-header-count">${group.cards.length}</span>
+    <span class="group-header-chevron">▾</span>`;
+  header.addEventListener('click', () => {
+    if (collapsedState.has(group.label)) {
+      collapsedState.delete(group.label);
+    } else {
+      collapsedState.add(group.label);
+    }
+    header.classList.toggle('collapsed');
+    body.classList.toggle('collapsed');
+  });
+
+  const body = document.createElement('div');
+  body.className = 'group-body' + (isCollapsed ? ' collapsed' : '');
+
+  for (const card of group.cards) body.appendChild(buildTileFn(card));
+
+  section.appendChild(header);
+  section.appendChild(body);
+  container.appendChild(section);
+}
+
 function renderGroupedGrid(container, groups, buildTileFn, collapsedState) {
   container.innerHTML = '';
-  for (const group of groups) {
-    const section = document.createElement('div');
-    section.className = 'group-section';
-
-    const isCollapsed = collapsedState.has(group.label);
-    const header = document.createElement('div');
-    header.className = 'group-header' + (isCollapsed ? ' collapsed' : '');
-    header.innerHTML = `
-      <span class="group-header-label">${esc(group.label)}</span>
-      <span class="group-header-count">${group.cards.length}</span>
-      <span class="group-header-chevron">▾</span>`;
-    header.addEventListener('click', () => {
-      if (collapsedState.has(group.label)) {
-        collapsedState.delete(group.label);
-      } else {
-        collapsedState.add(group.label);
-      }
-      header.classList.toggle('collapsed');
-      body.classList.toggle('collapsed');
-    });
-
-    const body = document.createElement('div');
-    body.className = 'group-body' + (isCollapsed ? ' collapsed' : '');
-
-    for (const card of group.cards) body.appendChild(buildTileFn(card));
-
-    section.appendChild(header);
-    section.appendChild(body);
-    container.appendChild(section);
-  }
+  for (const group of groups) renderGroupSection(container, group, buildTileFn, collapsedState);
 }
 
 async function loadCollectionView() {
@@ -1698,6 +1705,7 @@ async function selectDeck(id) {
   deckState.deckCards = [];
   deckState.filter = makeFilterModel();   // reset filters between decks
   deckState.query = '';                   // reset content search between decks
+  resetDeckGroupCollapsed();              // Considering starts collapsed for every freshly loaded deck
   const searchInput = document.getElementById('deck-content-search');
   if (searchInput) searchInput.value = '';
   renderDeckSwitchResults();
@@ -1755,13 +1763,19 @@ function renderDeckGrid() {
     return;
   }
   const cmp = sortComparator(deckState.filter);
+  const mainCards = filtered.filter(c => !c.is_considering);
+  const consideringCards = filtered.filter(c => c.is_considering);
+
   if (deckState.groupBy !== 'none') {
     const tagField = deckState.groupBy === 'deck-tag' ? 'deck_tags' : 'collection_tags';
-    const groups = groupCards(filtered, tagField);
+    const groups = groupCards(mainCards, tagField);
     for (const g of groups) g.cards.sort(cmp);
+    if (consideringCards.length) {
+      groups.push({ label: 'Considering', cards: [...consideringCards].sort(cmp) });
+    }
     renderGroupedGrid(el, groups, buildDeckCardTile, deckGroupCollapsed);
   } else {
-    const sorted = [...filtered].sort((a, b) => {
+    const sorted = [...mainCards].sort((a, b) => {
       if (a.is_commander && !b.is_commander) return -1;   // commander pinned first
       if (!a.is_commander && b.is_commander) return 1;
       return cmp(a, b);
@@ -1769,6 +1783,14 @@ function renderDeckGrid() {
     const frag = document.createDocumentFragment();
     for (const card of sorted) frag.appendChild(buildDeckCardTile(card));
     el.appendChild(frag);
+    if (consideringCards.length) {
+      renderGroupSection(
+        el,
+        { label: 'Considering', cards: [...consideringCards].sort(cmp) },
+        buildDeckCardTile,
+        deckGroupCollapsed
+      );
+    }
   }
 }
 
@@ -2191,7 +2213,7 @@ document.querySelectorAll('.vtoggle-btn').forEach(btn => {
 
 document.getElementById('deck-group-by').addEventListener('change', e => {
   deckState.groupBy = e.target.value;
-  deckGroupCollapsed.clear();
+  resetDeckGroupCollapsed();
   renderDeckContent();
 });
 
