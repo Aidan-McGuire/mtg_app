@@ -760,13 +760,14 @@ kbd {
 .deck-card-row {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 3px;
 }
 
 .deck-actions {
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
   margin-left: auto;
 }
 
@@ -775,9 +776,9 @@ kbd {
   border: 1px solid var(--border);
   border-radius: 3px;
   color: var(--muted);
-  font-size: 11px;
-  width: 20px;
-  height: 20px;
+  font-size: 10px;
+  width: 18px;
+  height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -792,9 +793,9 @@ kbd {
   border: 1px solid var(--border);
   border-radius: 3px;
   color: var(--muted);
-  font-size: 11px;
-  width: 20px;
-  height: 20px;
+  font-size: 10px;
+  width: 18px;
+  height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -809,9 +810,9 @@ kbd {
   border: 1px solid var(--border);
   border-radius: 3px;
   color: var(--muted);
-  font-size: 13px;
-  width: 20px;
-  height: 20px;
+  font-size: 12px;
+  width: 18px;
+  height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1092,6 +1093,12 @@ kbd {
 
 /* ── Group sections ────────────────────────────────────────────────────────── */
 .group-section { margin-bottom: 20px; }
+
+/* Used only for the single trailing Considering section appended below the
+   flat (ungrouped) deck grid, so it spans the full grid width instead of
+   being auto-placed into one ~140px column. Do NOT apply to grouped-by-tag
+   sections (Deck or Collection) — those intentionally render as columns. */
+.group-section-full { grid-column: 1 / -1; }
 
 .group-header {
   display: flex;
