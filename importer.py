@@ -1,7 +1,7 @@
 import sqlite3
 import requests
-import ijson
 import gzip
+import json
 from pathlib import Path
 from decimal import Decimal
 
@@ -31,7 +31,7 @@ def get_bulk_download_url():
 
     for item in data["data"]:
         if item["type"] == "default_cards":
-            return item["download_uri"]
+            return item["jsonl_download_uri"]
 
     raise RuntimeError("default_cards bulk data not found.")
 
@@ -73,11 +73,16 @@ def normalize_number(value):
 
 
 def _stream_cards(download_url):
-    """Return an iterator of card dicts from the streamed, gzip-decoded Scryfall bulk data."""
+    """Return an iterator of card dicts from the streamed, gzip-decoded Scryfall bulk
+    data. The file is JSONL (one complete JSON object per line), not a single
+    top-level JSON array."""
     response = requests.get(download_url, stream=True, headers=HEADERS)
     response.raise_for_status()
     gzip_file = gzip.GzipFile(fileobj=response.raw)
-    return ijson.items(gzip_file, "item")
+    for line in gzip_file:
+        line = line.strip()
+        if line:
+            yield json.loads(line)
 
 
 def import_cards():

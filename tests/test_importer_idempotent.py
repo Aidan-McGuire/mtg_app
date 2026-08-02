@@ -1,3 +1,6 @@
+import gzip
+import io
+import json
 import sqlite3
 import importer
 
@@ -117,6 +120,62 @@ def test_fts_updated_on_reimport(tmp_path, monkeypatch):
     assert total_fts == 1       # still only one FTS row
     assert old_fts == 0         # stale text gone
     assert new_fts == 1         # updated text searchable
+
+
+class _FakeResponse:
+    """Minimal stand-in for requests.Response, used to test real HTTP-facing
+    importer functions without hitting the network."""
+    def __init__(self, json_body=None, raw=None):
+        self._json_body = json_body
+        self.raw = raw
+
+    def raise_for_status(self):
+        pass
+
+    def json(self):
+        return self._json_body
+
+
+def test_get_bulk_download_url_uses_jsonl_field(monkeypatch):
+    """Scryfall's /bulk-data response for 'default_cards' now only provides
+    jsonl_download_uri (no download_uri) -- this is the real shape returned
+    by the live API as of 2026-08-01."""
+    api_response = {
+        "data": [
+            {"type": "oracle_cards", "jsonl_download_uri": "https://data.scryfall.io/oracle.jsonl.gz"},
+            {
+                "type": "default_cards",
+                "jsonl_download_uri": "https://data.scryfall.io/default-cards/default-cards-20260801211246.jsonl.gz",
+            },
+        ]
+    }
+    monkeypatch.setattr(
+        importer.requests, "get",
+        lambda url, headers=None: _FakeResponse(json_body=api_response),
+    )
+    result = importer.get_bulk_download_url()
+    assert result == "https://data.scryfall.io/default-cards/default-cards-20260801211246.jsonl.gz"
+
+
+def test_stream_cards_parses_jsonl_gzip_format(monkeypatch):
+    """The bulk file is JSONL (one complete JSON object per line), gzip-compressed --
+    not a single top-level JSON array. Verified against the real file's format."""
+    cards = [
+        {"oracle_id": "forest-uuid", "name": "Forest", "type_line": "Basic Land — Forest"},
+        {"oracle_id": "bolt-uuid", "name": "Lightning Bolt", "type_line": "Instant"},
+    ]
+    jsonl_bytes = "\n".join(json.dumps(c) for c in cards).encode("utf-8")
+    gz_buffer = io.BytesIO()
+    with gzip.GzipFile(fileobj=gz_buffer, mode="wb") as gz:
+        gz.write(jsonl_bytes)
+    gz_buffer.seek(0)
+
+    monkeypatch.setattr(
+        importer.requests, "get",
+        lambda url, stream=None, headers=None: _FakeResponse(raw=gz_buffer),
+    )
+    result = list(importer._stream_cards("https://fake-url/default-cards.jsonl.gz"))
+    assert result == cards
 
 
 def test_new_card_inserted_on_second_import(tmp_path, monkeypatch):
