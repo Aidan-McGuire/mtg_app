@@ -65,19 +65,38 @@ without re-querying the whole tile structure.
 
 ### Scope
 
-`buildCardTile()` is shared by both the Cards grid and the Collection grid
-(`renderCollectionGrid` → `renderGroupedGrid`/tile building all go through
-it), so the badge naturally appears on both. That's acceptable per the
-"everywhere card tiles appear" decision — even though every Collection
-tile is owned by definition, consistency is preferred over adding a
-branch to suppress it there.
+**Revised after initial implementation and live review:** the badge shows
+on the Cards page grid and on Deck view tiles. It does **not** show on the
+Collection page grid — every tile there is owned by definition, so the
+badge would be on 100% of tiles and convey nothing.
+
+`buildCardTile()` is shared by the Cards grid and the Collection grid.
+Give it an options parameter, `buildCardTile(card, { showOwnedBadge = true } = {})`:
+- Cards grid (`appendCards`) calls it with the default (badge on).
+- Collection grid (`renderCollectionGrid`, both the grouped and ungrouped
+  branches) calls it with `{ showOwnedBadge: false }`.
+- When `showOwnedBadge` is false, both the badge markup *and* the
+  `data-owned-wrap-for` attribute are omitted — not just the badge. If the
+  attribute were left on Collection tiles, `refreshQtyInDOM` would insert a
+  badge into a Collection tile the next time any card's quantity changes
+  while the Collection page happens to be rendered, silently reintroducing
+  the badge there.
+
+Deck view tiles (`buildDeckCardTile`) get their own, independent badge:
+the badge reflects **collection ownership** (`qty(card.id) > 0`), not the
+deck's own copy count (`card.quantity`, the number of copies of that card
+in this deck — a different field, always shown in the deck tile's own qty
+row regardless of collection ownership). Add the same
+`data-owned-wrap-for="${card.id}"` attribute to `.deck-card-img-wrap`;
+because `refreshQtyInDOM` already queries by this attribute name
+document-wide, no change to `refreshQtyInDOM` itself is needed — deck
+tiles are picked up automatically the same way Cards-grid tiles are.
 
 Out of scope:
 - The card detail modal (`openModal`, app.js:695) is built by separate
-  markup, not `buildCardTile`, and already has an explicit "owned" text
-  label next to its qty stepper. No change needed there.
-- Deck-view tiles (`buildDeckCardTile`) are a distinct tile type for
-  cards within a deck context — not part of this change.
+  markup, not `buildCardTile`/`buildDeckCardTile`, and already has an
+  explicit "owned" text label next to its qty stepper. No change needed
+  there.
 
 ## Testing
 
@@ -85,11 +104,14 @@ This is a frontend-only visual change with no new API endpoints or schema
 changes, so no new automated backend tests apply (existing suite in
 `tests/` covers API/DB behavior only). Verification is manual in the
 browser:
-- An owned card shows the checkmark badge on its image; an unowned card
-  does not.
-- Incrementing a card's quantity from 0 → 1 makes the badge appear live
-  on any currently-rendered tile for that card, without needing to
-  reload/re-search.
+- An owned card shows the checkmark badge on its image on the Cards page;
+  an unowned card does not.
+- Incrementing a card's quantity from 0 → 1 makes the badge appear live on
+  any currently-rendered tile for that card (Cards grid or Deck view),
+  without needing to reload/re-search.
 - Decrementing a card's quantity to 0 makes the badge disappear live.
-- Badge renders correctly on both the Cards page grid and the Collection
-  page grid.
+- The Collection page grid shows no badges at all (every tile is owned,
+  so the badge would be redundant there).
+- In Deck view, a card owned in the collection shows the badge regardless
+  of how many copies are in the deck; a card in the deck that isn't owned
+  in the collection shows no badge.

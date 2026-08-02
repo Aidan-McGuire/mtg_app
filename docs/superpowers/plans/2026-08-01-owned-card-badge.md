@@ -2,19 +2,28 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Show a checkmark badge on the card image of any card that's owned (quantity > 0), on both the Cards page grid and Collection page grid, updating live on increment/decrement.
+**Goal:** Show a checkmark badge on the card image of any card that's owned (quantity > 0 in the collection). Shown on the Cards page grid and on Deck view tiles; NOT shown on the Collection page grid (every tile there is owned by definition, so it'd be redundant). Updates live on increment/decrement.
 
-**Architecture:** Frontend-only change to the shared `buildCardTile()` tile renderer and its live-update sibling `refreshQtyInDOM()` in `static/app.js`, plus new CSS in `static/style.css`. No backend, API, or schema changes.
+**Architecture:** Frontend-only change to the shared `buildCardTile()` tile renderer, `buildDeckCardTile()`, and their live-update sibling `refreshQtyInDOM()` in `static/app.js`, plus new CSS in `static/style.css`. No backend, API, or schema changes.
 
 **Tech Stack:** Vanilla JS, plain CSS. No JS test runner exists in this repo — verification is manual in the browser (see spec at `docs/superpowers/specs/2026-08-01-owned-card-badge-design.md`).
 
 ## Global Constraints
 
 - Badge is a checkmark ("✓"), not a quantity count.
-- Badge appears wherever `buildCardTile()` renders a tile (Cards grid and Collection grid) — do not special-case it away on the Collection grid.
-- Do not modify the modal (`openModal`, app.js:695) or deck tiles (`buildDeckCardTile`) — out of scope per spec.
+- Badge appears on the Cards grid and on Deck view tiles. Badge does NOT appear on the Collection grid — `buildCardTile(card, { showOwnedBadge: false })` suppresses both the badge markup and the `data-owned-wrap-for` attribute there, so live updates never re-add it.
+- On deck tiles, the badge reflects collection ownership (`qty(card.id) > 0`), which is independent of the deck's own per-card quantity (`card.quantity`, shown separately in the deck tile's qty row).
+- Do not modify the modal (`openModal`, app.js:695) — out of scope per spec.
 - Reuse the existing gold `var(--accent)` color already associated with "owned" state (`.qty-label.owned`, `.qty-btn:hover`) rather than introducing a new color.
 - Badge element must be entirely omitted from markup when quantity is 0 (not just hidden via CSS) — matches how `tagChipsHtml()` already conditionally omits markup in the same function.
+
+## Revision Note (post-Task-1)
+
+Task 1 (below) shipped the badge on both the Cards grid and the Collection
+grid, with no deck-tile support — that was the originally approved scope.
+After live testing, the requirement changed: no badge on Collection,
+badge added to Deck view instead. Task 2 carries that revision. Task 1's
+text is left as-executed, for history.
 
 ---
 
@@ -188,4 +197,171 @@ If any check fails, fix the code before proceeding — there is no automated tes
 ```bash
 git add static/app.js static/style.css
 git commit -m "feat: show owned badge on card tiles"
+```
+
+---
+
+### Task 2: Move the badge from Collection to Deck view
+
+**Files:**
+- Modify: `static/app.js` — `buildCardTile()`, its two Collection-grid call sites, and `buildDeckCardTile()`
+- Modify: `static/style.css` — `.deck-card-img-wrap` rule
+
+**Interfaces:**
+- Consumes: `qty(cardId)` (unchanged), the `data-owned-wrap-for` attribute and `.card-owned-badge` CSS class from Task 1 (unchanged — reused as-is), `refreshQtyInDOM()` (unchanged — no edits needed; it already queries `[data-owned-wrap-for="cardId"]` document-wide, so once deck tiles carry that attribute they're picked up automatically).
+- Produces: `buildCardTile(card, { showOwnedBadge = true } = {})` — an options parameter callers can pass to suppress the badge.
+
+- [ ] **Step 1: Add the `showOwnedBadge` option to `buildCardTile()`**
+
+Find `buildCardTile()` (as left by Task 1):
+
+```js
+function buildCardTile(card) {
+  const q = qty(card.id);
+  const div = document.createElement('div');
+  div.className = 'card-tile';
+  div.dataset.id = card.id;
+  div.tabIndex = -1;
+
+  const imgHtml = card.image_uri
+    ? `<img src="${API.imageUrl(card.image_uri)}" loading="lazy" alt="${esc(card.name)}">`
+    : `<div class="card-img-placeholder">${esc(card.name)}</div>`;
+
+  const ownedBadgeHtml = q > 0 ? `<div class="card-owned-badge" title="Owned">✓</div>` : '';
+
+  const meta = [card.mana_cost, card.cmc != null ? `${card.cmc} CMC` : null]
+    .filter(Boolean).join(' · ');
+
+  div.innerHTML = `
+    <div class="card-img-wrap" data-owned-wrap-for="${card.id}">${ownedBadgeHtml}${imgHtml}</div>
+    <div class="card-info">
+```
+
+Change the signature and the `card-img-wrap` line so the badge markup and the tracking attribute are both conditional on `showOwnedBadge`:
+
+```js
+function buildCardTile(card, { showOwnedBadge = true } = {}) {
+  const q = qty(card.id);
+  const div = document.createElement('div');
+  div.className = 'card-tile';
+  div.dataset.id = card.id;
+  div.tabIndex = -1;
+
+  const imgHtml = card.image_uri
+    ? `<img src="${API.imageUrl(card.image_uri)}" loading="lazy" alt="${esc(card.name)}">`
+    : `<div class="card-img-placeholder">${esc(card.name)}</div>`;
+
+  const ownedBadgeHtml = (showOwnedBadge && q > 0) ? `<div class="card-owned-badge" title="Owned">✓</div>` : '';
+  const ownedWrapAttr = showOwnedBadge ? ` data-owned-wrap-for="${card.id}"` : '';
+
+  const meta = [card.mana_cost, card.cmc != null ? `${card.cmc} CMC` : null]
+    .filter(Boolean).join(' · ');
+
+  div.innerHTML = `
+    <div class="card-img-wrap"${ownedWrapAttr}>${ownedBadgeHtml}${imgHtml}</div>
+    <div class="card-info">
+```
+
+Leave the rest of the function unchanged. Leave the Cards-grid call site (`appendCards`, calls `buildCardTile(card)` with no second argument) unchanged — it gets the default `showOwnedBadge: true`.
+
+- [ ] **Step 2: Suppress the badge on both Collection-grid call sites**
+
+There are two places `buildCardTile` is invoked for the Collection grid, in `renderCollectionGrid()`:
+
+```js
+  if (collectionState.groupBy !== 'none') {
+    const groups = groupCards(filtered, 'collection_tags');
+    renderGroupedGrid(grid, groups, buildCardTile, collectionGroupCollapsed);
+  } else {
+    const frag = document.createDocumentFragment();
+    for (const card of filtered) frag.appendChild(buildCardTile(card));
+    grid.appendChild(frag);
+  }
+```
+
+Change both to pass `{ showOwnedBadge: false }`. `renderGroupedGrid` calls its `buildTileFn` argument as `buildTileFn(card)` (one argument), so the grouped branch needs a wrapping arrow function:
+
+```js
+  if (collectionState.groupBy !== 'none') {
+    const groups = groupCards(filtered, 'collection_tags');
+    renderGroupedGrid(grid, groups, card => buildCardTile(card, { showOwnedBadge: false }), collectionGroupCollapsed);
+  } else {
+    const frag = document.createDocumentFragment();
+    for (const card of filtered) frag.appendChild(buildCardTile(card, { showOwnedBadge: false }));
+    grid.appendChild(frag);
+  }
+```
+
+- [ ] **Step 3: Add the badge to `buildDeckCardTile()`**
+
+Currently:
+
+```js
+function buildDeckCardTile(card) {
+  const div = document.createElement('div');
+  div.className = 'deck-card-tile' + (card.is_commander ? ' is-commander' : '');
+  div.dataset.id = card.id;
+
+  const imgHtml = card.image_uri
+    ? `<img src="${API.imageUrl(card.image_uri)}" loading="lazy" alt="${esc(card.name)}">`
+    : `<div class="card-img-placeholder">${esc(card.name)}</div>`;
+
+  div.innerHTML = `
+    <div class="deck-card-img-wrap">${imgHtml}</div>
+    <div class="deck-card-info">
+```
+
+Change it to compute collection quantity and add the same badge markup and tracking attribute used on the Cards grid:
+
+```js
+function buildDeckCardTile(card) {
+  const q = qty(card.id);
+  const div = document.createElement('div');
+  div.className = 'deck-card-tile' + (card.is_commander ? ' is-commander' : '');
+  div.dataset.id = card.id;
+
+  const imgHtml = card.image_uri
+    ? `<img src="${API.imageUrl(card.image_uri)}" loading="lazy" alt="${esc(card.name)}">`
+    : `<div class="card-img-placeholder">${esc(card.name)}</div>`;
+
+  const ownedBadgeHtml = q > 0 ? `<div class="card-owned-badge" title="Owned">✓</div>` : '';
+
+  div.innerHTML = `
+    <div class="deck-card-img-wrap" data-owned-wrap-for="${card.id}">${ownedBadgeHtml}${imgHtml}</div>
+    <div class="deck-card-info">
+```
+
+Leave the rest of the function (the `deck-card-info` block, event listeners, return) unchanged. Do NOT touch `card.quantity` or the tile's own `qty-label` — that field is the deck's copy count, a separate concept from collection ownership, and stays as-is.
+
+Do not modify `refreshQtyInDOM()` — it already does `document.querySelectorAll('[data-owned-wrap-for="${cardId}"]')` across the whole document, so it will find and update these new deck-tile wraps with no changes.
+
+- [ ] **Step 4: Add `position: relative` to `.deck-card-img-wrap`**
+
+Open `static/style.css`, find:
+
+```css
+.deck-card-img-wrap {
+```
+
+Add `position: relative;` to that rule's declaration block (same reasoning as Task 1's change to `.card-img-wrap`: the badge is `position: absolute` and needs a positioned ancestor to anchor to).
+
+- [ ] **Step 5: Manually verify in the browser**
+
+Run: `uvicorn app:app --reload` (from the project root; make sure the DB has imported card data — run `python importer.py` first if `mtg.db` is freshly initialized and empty)
+
+Then in a browser:
+1. Cards page: confirm badges still show/hide correctly on owned/unowned cards (regression check for Task 1 behavior, now gated by the new parameter).
+2. Collection page: confirm NO tile shows a badge, even though every tile there has quantity > 0.
+3. Open (or create) a deck and add a card you own (quantity > 0 in the collection) — confirm its deck tile shows the badge.
+4. Add a card to the deck that you do NOT own (quantity 0 in the collection) — confirm its deck tile shows no badge, even though its deck quantity (copies in the deck) is 1 or more.
+5. From the Cards or Collection page, increment a card that's also currently in the open deck — confirm the badge appears live on its deck tile too, without navigating away and back.
+6. Open the card detail modal from a deck tile — confirm it's unchanged (no badge), matching Task 1's modal exclusion.
+
+If any check fails, fix the code before proceeding — there is no automated test to fall back on for this change.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add static/app.js static/style.css
+git commit -m "feat: move owned badge from Collection grid to Deck view"
 ```
