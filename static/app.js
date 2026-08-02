@@ -1375,9 +1375,20 @@ function groupCardsByType(cards) {
 }
 // ── end groupCardsByType ──
 
-function renderGroupSection(container, group, buildTileFn, collapsedState) {
+/**
+ * Expanded groups first (in their original order), then collapsed groups
+ * (in their original order) — "minimized categories go to the bottom."
+ */
+function sortGroupsByCollapsed(groups, collapsedState) {
+  const expanded  = groups.filter(g => !collapsedState.has(g.label));
+  const collapsed = groups.filter(g => collapsedState.has(g.label));
+  return [...expanded, ...collapsed];
+}
+
+function renderGroupSection(container, group, buildTileFn, collapsedState, allGroups) {
   const section = document.createElement('div');
   section.className = 'group-section';
+  section.dataset.label = group.label;
 
   const isCollapsed = collapsedState.has(group.label);
   const header = document.createElement('div');
@@ -1394,6 +1405,15 @@ function renderGroupSection(container, group, buildTileFn, collapsedState) {
     }
     header.classList.toggle('collapsed');
     body.classList.toggle('collapsed');
+
+    const ordered = sortGroupsByCollapsed(allGroups, collapsedState);
+    const idx = ordered.findIndex(g => g.label === group.label);
+    const nextLabel = ordered[idx + 1]?.label;
+    const nextEl = nextLabel
+      ? container.querySelector(`.group-section[data-label="${CSS.escape(nextLabel)}"]`)
+      : null;
+    if (nextEl) container.insertBefore(section, nextEl);
+    else container.appendChild(section);
   });
 
   const body = document.createElement('div');
@@ -1408,7 +1428,8 @@ function renderGroupSection(container, group, buildTileFn, collapsedState) {
 
 function renderGroupedGrid(container, groups, buildTileFn, collapsedState) {
   container.innerHTML = '';
-  for (const group of groups) renderGroupSection(container, group, buildTileFn, collapsedState);
+  const ordered = sortGroupsByCollapsed(groups, collapsedState);
+  for (const group of ordered) renderGroupSection(container, group, buildTileFn, collapsedState, groups);
 }
 
 async function loadCollectionView() {
@@ -1873,7 +1894,8 @@ function renderDeckGrid() {
         el,
         { label: 'Considering', cards: [...consideringCards].sort(cmp) },
         buildDeckCardTile,
-        deckGroupCollapsed
+        deckGroupCollapsed,
+        [{ label: 'Considering' }]
       );
       // Full grid width for this single trailing section — it sits below the
       // flat card grid, not alongside it as another narrow column. Scoped to
@@ -1994,7 +2016,8 @@ function renderDeckText() {
         el,
         { label: 'Considering', cards: [...consideringCards].sort(cmp) },
         buildDeckTextRow,
-        deckGroupCollapsed
+        deckGroupCollapsed,
+        [{ label: 'Considering' }]
       );
     }
   }
