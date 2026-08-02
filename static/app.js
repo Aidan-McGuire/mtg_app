@@ -1879,6 +1879,15 @@ function renderDeckGrid() {
   }
 }
 
+function setDeckFocus(cardId, el) {
+  deckState.focusedCardId = cardId;
+  deckState.lastFocusedCardId = cardId;
+  document.querySelectorAll('.deck-card-tile.focused, .deck-text-row.focused')
+    .forEach(node => node.classList.remove('focused'));
+  if (el) el.classList.add('focused');
+  renderDeckPreviewPanel();
+}
+
 function buildDeckCardTile(card) {
   const q = qty(card.id);
   const div = document.createElement('div');
@@ -1922,6 +1931,7 @@ function buildDeckCardTile(card) {
   div.querySelector('.deck-remove-btn').addEventListener('click', e => { e.stopPropagation(); removeDeckCard(card.id); });
   const consideringBtn = div.querySelector('.deck-considering-btn');
   if (consideringBtn) consideringBtn.addEventListener('click', e => { e.stopPropagation(); toggleConsidering(card.id); });
+  div.addEventListener('mouseenter', () => setDeckFocus(card.id, div));
   div.addEventListener('click', () => openModal(card, { deckId: deckState.currentDeckId }));
 
   return div;
@@ -1935,6 +1945,7 @@ function buildDeckTextRow(card) {
     <span class="deck-text-qty">${card.quantity}x</span>
     <span class="deck-text-name">${esc(card.name)}</span>
     <span class="deck-text-mana">${esc(card.mana_cost || '')}</span>`;
+  row.addEventListener('mouseenter', () => setDeckFocus(card.id, row));
   row.addEventListener('click', () => openModal(card, { deckId: deckState.currentDeckId }));
   return row;
 }
