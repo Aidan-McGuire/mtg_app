@@ -1668,7 +1668,6 @@ const deckState = {
   switchQuery:    '',        // deck-switcher palette search box
   switchFocusIdx: -1,
   focusedCardId:     null,   // live keyboard/hover focus for the preview panel
-  lastFocusedCardId: null,   // sticky — survives mouseleave, cleared only on deck switch
 };
 
 // ── filterDecks ──
@@ -1753,7 +1752,6 @@ async function selectDeck(id) {
   deckState.filter = makeFilterModel();   // reset filters between decks
   deckState.query = '';                   // reset content search between decks
   deckState.focusedCardId = null;         // reset preview-panel focus between decks
-  deckState.lastFocusedCardId = null;
   resetDeckGroupCollapsed();              // Considering starts collapsed for every freshly loaded deck
   const searchInput = document.getElementById('deck-content-search');
   if (searchInput) searchInput.value = '';
@@ -1796,10 +1794,6 @@ function resolvePreviewCard() {
   }
   const commander = visible.find(c => c.is_commander);
   if (commander) return commander;
-  if (deckState.lastFocusedCardId) {
-    const c = byId(deckState.lastFocusedCardId);
-    if (c) return c;
-  }
   const cmp = sortComparator(deckState.filter);
   return [...visible].sort(cmp)[0];
 }
@@ -1893,7 +1887,6 @@ function renderDeckGrid() {
 
 function setDeckFocus(cardId, el) {
   deckState.focusedCardId = cardId;
-  deckState.lastFocusedCardId = cardId;
   document.querySelectorAll('.deck-card-tile.focused, .deck-text-row.focused')
     .forEach(node => node.classList.remove('focused'));
   if (el) el.classList.add('focused');
@@ -1905,7 +1898,8 @@ function buildDeckCardTile(card) {
   const div = document.createElement('div');
   div.className = 'deck-card-tile'
     + (card.is_commander ? ' is-commander' : '')
-    + (card.is_considering ? ' is-considering' : '');
+    + (card.is_considering ? ' is-considering' : '')
+    + (card.id === deckState.focusedCardId ? ' focused' : '');
   div.dataset.id = card.id;
 
   const imgHtml = card.image_uri
@@ -1951,7 +1945,7 @@ function buildDeckCardTile(card) {
 
 function buildDeckTextRow(card) {
   const row = document.createElement('div');
-  row.className = 'deck-text-row';
+  row.className = 'deck-text-row' + (card.id === deckState.focusedCardId ? ' focused' : '');
   row.dataset.id = card.id;
   row.innerHTML = `
     <span class="deck-text-qty">${card.quantity}x</span>

@@ -85,9 +85,7 @@ each time it's called:
 1. `deckState.focusedCardId`, if that card is still present in the
    current filtered card set.
 2. The deck's commander, if present.
-3. `deckState.lastFocusedCardId` (sticky — see below), if still present
-   in the current filtered set.
-4. The first card in the current sort order (post-filter, post-group
+3. The first card in the current sort order (post-filter, post-group
    flattening), or nothing if the deck view is empty.
 
 It's called after every render of Grid or Text view, and on every focus
@@ -95,18 +93,19 @@ change described below.
 
 ## Focus & hover model
 
-New `deckState` fields: `focusedCardId` (the live keyboard/hover focus,
-cleared when nothing is focused) and `lastFocusedCardId` (sticky — set
-whenever `focusedCardId` is set, never cleared by mouseleave, only
-overwritten by the next focus). Both reset to `null` in `selectDeck` when
-switching decks.
+New `deckState` field: `focusedCardId` (the live keyboard/hover focus).
+There is no `mouseleave` handler that clears it, so it stays set to the
+last-interacted card until the next focus change — a separate sticky
+field to track "last focused" would be redundant, since `focusedCardId`
+itself already never gets cleared by hovering away. It resets to `null`
+in `selectDeck` when switching decks.
 
 **Mouse:** `mouseenter` on a `.deck-card-tile` (Grid) or `.deck-text-row`
-(Text) sets `focusedCardId` (and `lastFocusedCardId`) to that card and
-re-renders the preview panel. There is no `mouseleave` handler that clears
-focus — moving the mouse off a card leaves the panel showing what it was
-showing, per the priority order above (which naturally falls through
-`lastFocusedCardId`).
+(Text) sets `focusedCardId` to that card and re-renders the preview
+panel. There is no `mouseleave` handler that clears focus — moving the
+mouse off a card leaves the panel showing what it was showing, per the
+priority order above (`focusedCardId` still points at the last-hovered
+card).
 
 **Keyboard**, active only while a deck is open, the deck editor has
 implicit focus (mirrors the Cards-page guard already in place — no active
@@ -129,7 +128,7 @@ text input/modal), Grid or Text view is showing:
   continuous grid, matching the Cards-page model exactly.
 - Every focus change: add `.focused` to the newly focused tile/row
   (removing it from the previous one), `scrollIntoView({block:'nearest'})`,
-  update `focusedCardId`/`lastFocusedCardId`, re-render the preview panel.
+  update `focusedCardId`, re-render the preview panel.
 
 **Click is unchanged** — clicking a tile or row still calls
 `openModal(card, ...)` directly, independent of focus/hover state.
