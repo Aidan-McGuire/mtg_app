@@ -494,17 +494,24 @@ function refreshQtyInDOM(cardId) {
   });
   // Add/remove the owned badge on every rendered tile for this card
   document.querySelectorAll(`[data-owned-wrap-for="${cardId}"]`).forEach(wrap => {
-    let badge = wrap.querySelector('.card-owned-badge');
+    const badge = wrap.querySelector('.card-owned-badge');
     if (q > 0 && !badge) {
-      badge = document.createElement('div');
-      badge.className = 'card-owned-badge';
-      badge.title = 'Owned';
-      badge.textContent = '✓';
-      wrap.prepend(badge);
+      wrap.prepend(createOwnedBadgeEl());
     } else if (q === 0 && badge) {
       badge.remove();
     }
   });
+}
+
+// Re-sync qty labels and owned badges on every card tile currently in the DOM.
+// Needed after an operation (e.g. bulk collection import) that changes many
+// cards' quantities at once without going through increment()/decrement(),
+// so refreshQtyInDOM never got called for the individual affected cards.
+function refreshAllRenderedTiles() {
+  const ids = new Set();
+  document.querySelectorAll('[data-qty-for]').forEach(el => ids.add(el.dataset.qtyFor));
+  document.querySelectorAll('[data-owned-wrap-for]').forEach(el => ids.add(el.dataset.ownedWrapFor));
+  ids.forEach(id => refreshQtyInDOM(id));
 }
 
 // ── Grid rendering ────────────────────────────────────────────────────────────
@@ -525,6 +532,16 @@ function tagChipsHtml(tags, type) {
   }</div>`;
 }
 
+// Single source of truth for the owned-badge markup, used by buildCardTile,
+// buildDeckCardTile, and refreshQtyInDOM's live-update path.
+const OWNED_BADGE_HTML = '<div class="card-owned-badge" role="img" aria-label="Owned">✓</div>';
+
+function createOwnedBadgeEl() {
+  const tmp = document.createElement('div');
+  tmp.innerHTML = OWNED_BADGE_HTML;
+  return tmp.firstElementChild;
+}
+
 function buildCardTile(card, { showOwnedBadge = true } = {}) {
   const q = qty(card.id);
   const div = document.createElement('div');
@@ -536,7 +553,7 @@ function buildCardTile(card, { showOwnedBadge = true } = {}) {
     ? `<img src="${API.imageUrl(card.image_uri)}" loading="lazy" alt="${esc(card.name)}">`
     : `<div class="card-img-placeholder">${esc(card.name)}</div>`;
 
-  const ownedBadgeHtml = (showOwnedBadge && q > 0) ? `<div class="card-owned-badge" title="Owned">✓</div>` : '';
+  const ownedBadgeHtml = (showOwnedBadge && q > 0) ? OWNED_BADGE_HTML : '';
   const ownedWrapAttr = showOwnedBadge ? ` data-owned-wrap-for="${card.id}"` : '';
 
   const meta = [card.mana_cost, card.cmc != null ? `${card.cmc} CMC` : null]
@@ -1557,6 +1574,9 @@ document.getElementById('col-import-submit').addEventListener('click', async () 
 
     // Refresh collection grid before showing result — imported cards should appear even on partial success
     await loadCollectionView();
+    // Bulk import changes many cards' quantities at once, bypassing increment()/decrement() —
+    // sync any already-rendered Cards/Deck tiles (qty labels, owned badges) for the new quantities.
+    refreshAllRenderedTiles();
 
     if (not_found.length === 0) {
       closeColImportModal();
@@ -1762,7 +1782,7 @@ function buildDeckCardTile(card) {
     ? `<img src="${API.imageUrl(card.image_uri)}" loading="lazy" alt="${esc(card.name)}">`
     : `<div class="card-img-placeholder">${esc(card.name)}</div>`;
 
-  const ownedBadgeHtml = q > 0 ? `<div class="card-owned-badge" title="Owned">✓</div>` : '';
+  const ownedBadgeHtml = q > 0 ? OWNED_BADGE_HTML : '';
 
   div.innerHTML = `
     <div class="deck-card-img-wrap" data-owned-wrap-for="${card.id}">${ownedBadgeHtml}${imgHtml}</div>

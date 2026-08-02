@@ -220,6 +220,7 @@ kbd {
 }
 .qty-label.owned { color: var(--accent); font-weight: 700; }
 
+/* Shared by .card-img-wrap (Cards grid) and .deck-card-img-wrap (Deck view) */
 .card-owned-badge {
   position: absolute;
   top: 6px;
