@@ -595,7 +595,7 @@ git commit -m "feat: add persistent deck card-preview panel with commander/fallb
 
 **Interfaces:**
 - Consumes: `renderDeckPreviewPanel` (Task 3).
-- Produces: `setDeckFocus(cardId: string, el: HTMLElement) -> void` — the single place that updates `deckState.focusedCardId`/`lastFocusedCardId`, moves the `.focused` class, and re-renders the panel. Tasks 5 and 6 call this directly instead of duplicating its logic.
+- Produces: `setDeckFocus(cardId: number, el: HTMLElement) -> void` — the single place that updates `deckState.focusedCardId`/`lastFocusedCardId`, moves the `.focused` class, and re-renders the panel. Tasks 5 and 6 call this directly instead of duplicating its logic.
 
 - [ ] **Step 1: Add `setDeckFocus`**
 
@@ -688,7 +688,7 @@ git commit -m "feat: update deck preview panel on card hover in both views"
 
 **Interfaces:**
 - Consumes: `setDeckFocus` (Task 4), `deckState.focusedCardId`, `deckState.deckView`, `deckSwitchPaletteOpen`, `addPaletteOpen` (all existing/prior tasks).
-- Produces: `deckNavGroups(container: HTMLElement) -> HTMLElement[][]`, `findTileIndex(groups, cardId: string) -> {g: number, i: number} | null`, `focusDeckTile(el: HTMLElement) -> void` — all three are reused as-is by Task 6's grid nav.
+- Produces: `deckNavGroups(container: HTMLElement) -> HTMLElement[][]`, `findTileIndex(groups, cardId: number) -> {g: number, i: number} | null` (coerces `cardId` to a string only internally, to compare against `dataset.id`), `focusDeckTile(el: HTMLElement) -> void` (resolves the real numeric `card.id` from `deckState.deckCards` before calling `setDeckFocus` — never passes the raw string `el.dataset.id` through) — all three are reused as-is by Task 6's grid nav.
 
 - [ ] **Step 1: Add shared nav helpers and the list-nav handler**
 
@@ -719,7 +719,9 @@ function deckNavGroups(container) {
 
 function findTileIndex(groups, cardId) {
   for (let g = 0; g < groups.length; g++) {
-    const i = groups[g].findIndex(el => el.dataset.id === cardId);
+    // dataset.id is always a string; cardId (deckState.focusedCardId) is
+    // numeric, sourced from card.id — coerce for the comparison.
+    const i = groups[g].findIndex(el => el.dataset.id === String(cardId));
     if (i >= 0) return { g, i };
   }
   return null;
@@ -727,7 +729,11 @@ function findTileIndex(groups, cardId) {
 
 function focusDeckTile(el) {
   if (!el) return;
-  setDeckFocus(el.dataset.id, el);
+  // Resolve the real numeric card.id (not the string dataset.id) so
+  // deckState.focusedCardId stays numeric, matching resolvePreviewCard's
+  // strict `c.id === id` lookup and the mouseenter handlers' numeric id.
+  const card = deckState.deckCards.find(c => String(c.id) === el.dataset.id);
+  setDeckFocus(card ? card.id : el.dataset.id, el);
   el.scrollIntoView({ block: 'nearest' });
 }
 
