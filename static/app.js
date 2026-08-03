@@ -274,6 +274,8 @@ function activeFilterCount(model) {
   if (model.colorlessOnly || model.colors.size) n++;
   if (model.types.size) n++;
   if (model.cmcMin != null || model.cmcMax != null) n++;
+  if (model.powerMin != null || model.powerMax != null) n++;
+  if (model.toughnessMin != null || model.toughnessMax != null) n++;
   if (model.tags.size) n++;
   return n;
 }
@@ -286,9 +288,34 @@ function modelToParams(model) {
   if (model.types.size) p.types = [...model.types].join(',');
   if (model.cmcMin != null) p.cmc_min = model.cmcMin;
   if (model.cmcMax != null) p.cmc_max = model.cmcMax;
+  if (model.powerMin != null) p.power_min = model.powerMin;
+  if (model.powerMax != null) p.power_max = model.powerMax;
+  if (model.toughnessMin != null) p.toughness_min = model.toughnessMin;
+  if (model.toughnessMax != null) p.toughness_max = model.toughnessMax;
   if (model.sort) p.sort = model.sort;
   if (model.dir) p.dir = model.dir;
   return p;
+}
+
+function appendRangeFilterGroup(panel, label, model, minKey, maxKey, refreshBadge, onChange) {
+  const grp = document.createElement('div');
+  grp.className = 'filter-group';
+  grp.innerHTML = `<span class="filter-group-label">${label}</span>`;
+  const mk = (key, ph) => {
+    const inp = document.createElement('input');
+    inp.type = 'number'; inp.min = '0'; inp.className = 'cmc-input';
+    inp.placeholder = ph;
+    if (model[key] != null) inp.value = model[key];
+    inp.addEventListener('input', () => {
+      model[key] = inp.value === '' ? null : parseFloat(inp.value);
+      refreshBadge(); onChange();
+    });
+    return inp;
+  };
+  grp.appendChild(mk(minKey, 'min'));
+  grp.appendChild(document.createTextNode('–'));
+  grp.appendChild(mk(maxKey, 'max'));
+  panel.appendChild(grp);
 }
 
 /**
@@ -399,24 +426,17 @@ function buildFilterControls(container, config) {
 
   // CMC range
   if (facets.has('cmc')) {
-    const grp = document.createElement('div');
-    grp.className = 'filter-group';
-    grp.innerHTML = '<span class="filter-group-label">Mana value</span>';
-    const mk = (key, ph) => {
-      const inp = document.createElement('input');
-      inp.type = 'number'; inp.min = '0'; inp.className = 'cmc-input';
-      inp.placeholder = ph;
-      if (model[key] != null) inp.value = model[key];
-      inp.addEventListener('input', () => {
-        model[key] = inp.value === '' ? null : parseFloat(inp.value);
-        refreshBadge(); onChange();
-      });
-      return inp;
-    };
-    grp.appendChild(mk('cmcMin', 'min'));
-    grp.appendChild(document.createTextNode('–'));
-    grp.appendChild(mk('cmcMax', 'max'));
-    panel.appendChild(grp);
+    appendRangeFilterGroup(panel, 'Mana value', model, 'cmcMin', 'cmcMax', refreshBadge, onChange);
+  }
+
+  // Power range
+  if (facets.has('power')) {
+    appendRangeFilterGroup(panel, 'Power', model, 'powerMin', 'powerMax', refreshBadge, onChange);
+  }
+
+  // Toughness range
+  if (facets.has('toughness')) {
+    appendRangeFilterGroup(panel, 'Toughness', model, 'toughnessMin', 'toughnessMax', refreshBadge, onChange);
   }
 
   // Tags
@@ -1305,7 +1325,7 @@ async function init() {
   state.filter = makeFilterModel();
   buildFilterControls(document.getElementById('browser-filter-controls'), {
     model: state.filter,
-    facets: new Set(['colors', 'types', 'cmc']),
+    facets: new Set(['colors', 'types', 'cmc', 'power', 'toughness']),
     sortOptions: SORT_OPTIONS_BASE,
     onChange: reloadCards,
   });
@@ -1467,7 +1487,7 @@ async function loadCollectionView() {
     const tagOptions = await API.listCollectionTags();
     buildFilterControls(document.getElementById('collection-filter-controls'), {
       model: collectionState.filter,
-      facets: new Set(['colors', 'types', 'cmc', 'tags']),
+      facets: new Set(['colors', 'types', 'cmc', 'power', 'toughness', 'tags']),
       sortOptions: [...SORT_OPTIONS_BASE, SORT_OPTION_QUANTITY],
       tagOptions,
       onChange: renderCollectionGrid,
@@ -1810,7 +1830,7 @@ async function selectDeck(id) {
     ]);
     buildFilterControls(document.getElementById('deck-filter-controls'), {
       model: deckState.filter,
-      facets: new Set(['colors', 'types', 'cmc', 'tags']),
+      facets: new Set(['colors', 'types', 'cmc', 'power', 'toughness', 'tags']),
       sortOptions: [...SORT_OPTIONS_BASE, SORT_OPTION_QUANTITY],
       tagOptions: [...new Set([...collTags, ...deckTags])].sort(),
       onChange: renderDeckContent,
