@@ -178,6 +178,44 @@ def test_stream_cards_parses_jsonl_gzip_format(monkeypatch):
     assert result == cards
 
 
+def test_skips_art_series_layout(tmp_path, monkeypatch):
+    """Scryfall's 'art_series' layout is art-only, non-playable (e.g. crossover
+    art cards): top-level type_line/mana_cost are degenerate placeholders
+    ("Card // Card" / null) and there's no top-level image_uris. These must be
+    skipped like tokens, not imported as if they were real cards."""
+    db = _make_db(tmp_path)
+    monkeypatch.setattr(importer, "DB_PATH", db)
+    monkeypatch.setattr(importer, "get_bulk_download_url", lambda: "x")
+    monkeypatch.setattr(
+        importer, "_stream_cards",
+        lambda url: iter([
+            {
+                "oracle_id": "art-uuid", "name": "Agonizing Remorse // Agonizing Remorse",
+                "layout": "art_series", "type_line": "Card // Card", "mana_cost": None,
+                "cmc": 0.0, "color_identity": [],
+                "card_faces": [
+                    {"name": "Agonizing Remorse", "type_line": "Card",
+                     "image_uris": {"normal": "https://cards.scryfall.io/normal/a.jpg"}},
+                    {"name": "Agonizing Remorse", "type_line": "Card",
+                     "image_uris": {"normal": "https://cards.scryfall.io/normal/b.jpg"}},
+                ],
+            },
+            _card("elf-uuid", "Llanowar Elves"),
+        ]),
+    )
+    importer.import_cards()
+
+    conn = sqlite3.connect(str(db))
+    card_count = conn.execute("SELECT COUNT(*) FROM cards").fetchone()[0]
+    art_count = conn.execute(
+        "SELECT COUNT(*) FROM cards WHERE oracle_id = 'art-uuid'"
+    ).fetchone()[0]
+    conn.close()
+
+    assert card_count == 1      # only the real card, art_series entry skipped
+    assert art_count == 0
+
+
 def test_new_card_inserted_on_second_import(tmp_path, monkeypatch):
     """A brand-new oracle_id in a re-import must land in both cards and cards_fts."""
     db = _make_db(tmp_path)

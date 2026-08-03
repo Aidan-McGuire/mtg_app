@@ -99,7 +99,7 @@ def import_cards():
 
     for card in _stream_cards(download_url):
         try:
-            if card.get("layout") == "token":
+            if card.get("layout") in ("token", "art_series"):
                 continue
             if card.get("digital"):
                 continue
