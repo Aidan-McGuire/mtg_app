@@ -42,7 +42,8 @@ def _numeric_pt_frags(col_expr, min_v, max_v):
 
 
 def _build_card_filters(colors, colorless, types, cmc_min, cmc_max, text, col="",
-                         power_min=None, power_max=None, toughness_min=None, toughness_max=None):
+                         power_min=None, power_max=None, toughness_min=None, toughness_max=None,
+                         exact_colors="", exact_colorless=False):
     """Return (sql_fragments, params) for the optional card filters.
 
     `col` is an optional column prefix (e.g. "c.") for aliased queries.
@@ -92,6 +93,16 @@ def _build_card_filters(colors, colorless, types, cmc_min, cmc_max, text, col=""
         params.append(toughness_min)
     if toughness_max is not None:
         params.append(toughness_max)
+
+    if exact_colorless:
+        frags.append(f"{col}colors = ''")
+    elif exact_colors:
+        wanted_exact = sorted(set(
+            c.strip() for c in exact_colors.upper().split(",") if c.strip() in COLOR_LETTERS
+        ))
+        if wanted_exact:
+            frags.append(f"{col}colors = ?")
+            params.append("".join(wanted_exact))
 
     return frags, params
 
@@ -272,6 +283,8 @@ def search_cards(
     power_max: float | None = Query(None),
     toughness_min: float | None = Query(None),
     toughness_max: float | None = Query(None),
+    exact_colors: str = Query(""),
+    exact_colorless: bool = Query(False),
     text: str = Query(""),
     sort: str = Query("name"),
     direction: str = Query("asc", alias="dir"),
@@ -281,7 +294,8 @@ def search_cards(
         if q.strip():
             cfrags, cparams = _build_card_filters(colors, colorless, types, cmc_min, cmc_max, text, col="c.",
                                                     power_min=power_min, power_max=power_max,
-                                                    toughness_min=toughness_min, toughness_max=toughness_max)
+                                                    toughness_min=toughness_min, toughness_max=toughness_max,
+                                                    exact_colors=exact_colors, exact_colorless=exact_colorless)
             where_c = "".join(f" AND {f}" for f in cfrags)
             try:
                 fts_order = "rank" if sort == "name" else _order_by(sort, direction, "c.")
@@ -298,7 +312,8 @@ def search_cards(
             except sqlite3.OperationalError:
                 bfrags, bparams = _build_card_filters(colors, colorless, types, cmc_min, cmc_max, text,
                                                        power_min=power_min, power_max=power_max,
-                                                       toughness_min=toughness_min, toughness_max=toughness_max)
+                                                       toughness_min=toughness_min, toughness_max=toughness_max,
+                                                       exact_colors=exact_colors, exact_colorless=exact_colorless)
                 where_b = "".join(f" AND {f}" for f in bfrags)
                 cur.execute(f"""
                     SELECT {CARD_COLS}
@@ -312,7 +327,8 @@ def search_cards(
         else:
             frags, params = _build_card_filters(colors, colorless, types, cmc_min, cmc_max, text,
                                                  power_min=power_min, power_max=power_max,
-                                                 toughness_min=toughness_min, toughness_max=toughness_max)
+                                                 toughness_min=toughness_min, toughness_max=toughness_max,
+                                                 exact_colors=exact_colors, exact_colorless=exact_colorless)
             where_extra = "".join(f" AND {f}" for f in frags)
             cur.execute(f"""
                 SELECT {CARD_COLS}

@@ -120,3 +120,50 @@ def test_filter_by_power_combined_with_cmc(client, seed_cards):
     # Wise Elephant: power 3, but cmc 5 -> excluded by cmc_max.
     r = client.get("/api/cards", params={"power_min": 2, "cmc_max": 2})
     assert _names(r) == ["Grizzly Bears"]
+
+
+def test_filter_by_exact_colors_single_letter(client, seed_cards, db_path):
+    conn = sqlite3.connect(str(db_path))
+    conn.execute(
+        "INSERT INTO cards (oracle_id, name, mana_cost, cmc, type_line, colors, color_identity) "
+        "VALUES ('deathrite', 'Deathrite Shaman', '{B/G}', 1, 'Creature — Elf Shaman', 'BG', 'BG')"
+    )
+    conn.commit()
+    conn.close()
+    # exact G match returns only the mono-green seeded cards, excluding the
+    # multicolor Deathrite Shaman even though it contains green.
+    r = client.get("/api/cards", params={"exact_colors": "G"})
+    assert _names(r) == ["Grizzly Bears", "Mystery Hydra", "Wise Elephant"]
+
+
+def test_filter_by_exact_colors_multicolor(client, seed_cards, db_path):
+    conn = sqlite3.connect(str(db_path))
+    conn.execute(
+        "INSERT INTO cards (oracle_id, name, mana_cost, cmc, type_line, colors, color_identity) "
+        "VALUES ('deathrite', 'Deathrite Shaman', '{B/G}', 1, 'Creature — Elf Shaman', 'BG', 'BG')"
+    )
+    conn.commit()
+    conn.close()
+    r = client.get("/api/cards", params={"exact_colors": "B,G"})
+    assert _names(r) == ["Deathrite Shaman"]
+
+
+def test_filter_exact_colorless(client, seed_cards):
+    r = client.get("/api/cards", params={"exact_colorless": "1"})
+    assert _names(r) == ["Steel Wall"]
+
+
+def test_filter_color_identity_and_exact_colors_combined(client, seed_cards, db_path):
+    conn = sqlite3.connect(str(db_path))
+    conn.execute(
+        "INSERT INTO cards (oracle_id, name, mana_cost, cmc, type_line, colors, color_identity) "
+        "VALUES ('deathrite', 'Deathrite Shaman', '{B/G}', 1, 'Creature — Elf Shaman', 'BG', 'BG')"
+    )
+    conn.commit()
+    conn.close()
+    # Deathrite satisfies exact_colors=B,G but fails colors=G (identity BG is not
+    # a subset of {G}); bears/ele/hydra satisfy colors=G but fail exact_colors=B,G
+    # (their colors is 'G', not 'BG'). No card satisfies both filters at once, so
+    # an empty result proves the two are ANDed rather than ORed.
+    r = client.get("/api/cards", params={"colors": "G", "exact_colors": "B,G"})
+    assert r.json() == []
