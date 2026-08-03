@@ -12,3 +12,6 @@ __pycache__/
 .DS_Store
 
 image_cache
+
+# Subagent-driven-development workspace (per-plan scratch)
+.superpowers/
