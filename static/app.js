@@ -180,6 +180,7 @@ function makeFilterModel(overrides = {}) {
     text: '', colors: new Set(), colorlessOnly: false,
     types: new Set(), cmcMin: null, cmcMax: null,
     powerMin: null, powerMax: null, toughnessMin: null, toughnessMax: null,
+    exactColors: new Set(), exactColorlessOnly: false,
     tags: new Set(), sort: 'name', dir: 'asc', ...overrides,
   };
 }
@@ -240,6 +241,12 @@ function applyFilters(cards, model) {
       for (const ch of (c.color_identity || '')) {
         if (!model.colors.has(ch)) return false;   // subset; '' passes
       }
+    }
+    if (model.exactColorlessOnly) {
+      if ((c.colors || '') !== '') return false;
+    } else if (model.exactColors.size) {
+      const wantedExact = [...model.exactColors].sort().join('');
+      if ((c.colors || '') !== wantedExact) return false;
     }
     if (model.types.size) {
       const tl = c.type_line || '';
