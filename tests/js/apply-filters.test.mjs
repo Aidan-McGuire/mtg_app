@@ -1,5 +1,5 @@
 // Tests applyFilters (power/toughness range checks) by extracting it, along
-// with its ptNum helper, from static/app.js between its sentinel comments.
+// with its ptNumStrict helper, from static/app.js between its sentinel comments.
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';

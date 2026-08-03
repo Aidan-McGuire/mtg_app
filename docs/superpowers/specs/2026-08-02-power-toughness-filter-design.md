@@ -50,7 +50,7 @@ Add four optional params: `power_min, power_max, toughness_min, toughness_max` (
 
 ### 2b. Client-side filtering (Collection, Deck editor)
 
-`applyFilters` gains power/toughness range checks reusing the existing `ptNum()` helper (already used for power/toughness sort — parses a value only if it starts with a digit and is finite). For each of power/toughness: if a min or max bound is set and `ptNum(card.power)` is `null` (non-numeric/missing), the card is excluded; otherwise it must fall within the active bound(s).
+`applyFilters` gains power/toughness range checks using a new `ptNumStrict()` helper (not the existing `ptNum()`, which is too loose for filtering — it accepts `"1+*"`-style compound values as numeric, which would violate this feature's exclusion requirement). `ptNum` itself stays unchanged since `sortComparator` still needs its existing behavior. For each of power/toughness: if a min or max bound is set and `ptNum(card.power)` is `null` (non-numeric/missing), the card is excluded; otherwise it must fall within the active bound(s).
 
 ### 2c. Server-side filtering (Cards browser)
 

@@ -320,7 +320,7 @@ function appendRangeFilterGroup(panel, label, model, minKey, maxKey, refreshBadg
 
 /**
  * Render a filter/sort control bar into `container`.
- * config: { model, facets:Set<'colors'|'types'|'cmc'|'tags'>,
+ * config: { model, facets:Set<'colors'|'types'|'cmc'|'power'|'toughness'|'tags'>,
  *           sortOptions:[{value,label}], tagOptions:[], onChange:fn }
  */
 function buildFilterControls(container, config) {
