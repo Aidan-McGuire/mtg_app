@@ -178,8 +178,9 @@ const SORT_OPTION_QUANTITY = { value: 'quantity', label: 'Quantity' };
 function makeFilterModel(overrides = {}) {
   return {
     text: '', colors: new Set(), colorlessOnly: false,
-    types: new Set(), cmcMin: null, cmcMax: null, tags: new Set(),
-    sort: 'name', dir: 'asc', ...overrides,
+    types: new Set(), cmcMin: null, cmcMax: null,
+    powerMin: null, powerMax: null, toughnessMin: null, toughnessMax: null,
+    tags: new Set(), sort: 'name', dir: 'asc', ...overrides,
   };
 }
 
@@ -189,9 +190,16 @@ function typeRank(typeLine) {
   return i === -1 ? TYPE_OPTIONS.length : i;
 }
 
+// ── applyFilters ──
 function ptNum(v) {
   const n = parseFloat(v);
   return Number.isFinite(n) && /^[0-9]/.test(String(v)) ? n : null;
+}
+
+function ptNumStrict(v) {
+  if (v == null) return null;
+  const s = String(v);
+  return /^[0-9]+(\.[0-9]+)?$/.test(s) ? parseFloat(s) : null;
 }
 
 function sortComparator(model) {
@@ -239,6 +247,18 @@ function applyFilters(cards, model) {
     }
     if (model.cmcMin != null && (c.cmc ?? 0) < model.cmcMin) return false;
     if (model.cmcMax != null && (c.cmc ?? 0) > model.cmcMax) return false;
+    if (model.powerMin != null || model.powerMax != null) {
+      const pv = ptNumStrict(c.power);
+      if (pv == null) return false;
+      if (model.powerMin != null && pv < model.powerMin) return false;
+      if (model.powerMax != null && pv > model.powerMax) return false;
+    }
+    if (model.toughnessMin != null || model.toughnessMax != null) {
+      const tv = ptNumStrict(c.toughness);
+      if (tv == null) return false;
+      if (model.toughnessMin != null && tv < model.toughnessMin) return false;
+      if (model.toughnessMax != null && tv > model.toughnessMax) return false;
+    }
     if (model.tags.size) {
       const tags = [...(c.collection_tags || []), ...(c.deck_tags || [])];
       if (![...model.tags].some(tg => tags.includes(tg))) return false;
@@ -246,6 +266,7 @@ function applyFilters(cards, model) {
     return true;
   });
 }
+// ── end applyFilters ──
 
 function activeFilterCount(model) {
   let n = 0;
