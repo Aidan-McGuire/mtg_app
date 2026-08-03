@@ -7,7 +7,7 @@
 - create deck considering category that does not count towards total count
   - add way to remove card from deck and add to considering
   - ignore tags for cards in this category when grouping and sorting
--
+- default tag all lands as land, including mdfc lands
 
 
 
