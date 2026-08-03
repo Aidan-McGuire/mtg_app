@@ -1,3 +1,6 @@
+import sqlite3
+
+
 def test_collection_includes_oracle_text_and_pt(client, seed_cards):
     r = client.get("/api/collection")
     assert r.status_code == 200
@@ -84,3 +87,36 @@ def test_sort_by_power_puts_nonnumeric_and_missing_last(client, seed_cards):
     names = _ordered(r)
     assert names[:3] == ["Steel Wall", "Grizzly Bears", "Wise Elephant"]
     assert set(names[3:]) == {"Mystery Hydra", "Ancestral Vision"}
+
+
+def test_filter_by_power_range(client, seed_cards):
+    # powers: Steel Wall 0, Grizzly Bears 2, Wise Elephant 3, Mystery Hydra '*', Ancestral Vision NULL
+    r = client.get("/api/cards", params={"power_min": 1, "power_max": 3})
+    assert _names(r) == ["Grizzly Bears", "Wise Elephant"]
+
+
+def test_filter_by_toughness_range(client, seed_cards):
+    # toughness: Grizzly Bears 2, Steel Wall 4, Wise Elephant 5, Mystery Hydra '*', Ancestral Vision NULL
+    r = client.get("/api/cards", params={"toughness_min": 2, "toughness_max": 4})
+    assert _names(r) == ["Grizzly Bears", "Steel Wall"]
+
+
+def test_filter_by_power_excludes_variable_power(client, seed_cards, db_path):
+    conn = sqlite3.connect(str(db_path))
+    conn.execute(
+        "INSERT INTO cards (oracle_id, name, mana_cost, cmc, type_line, power, toughness) "
+        "VALUES ('variable', 'Battlefield Construct', '{2}', 2, 'Creature — Construct', '1+*', '1+*')"
+    )
+    conn.commit()
+    conn.close()
+    # CAST('1+*' AS REAL) == 1.0 in SQLite, so a naive numeric check would wrongly
+    # let this card pass power_min=1; the stricter digits-and-dot-only check excludes it.
+    r = client.get("/api/cards", params={"power_min": 1})
+    assert "Battlefield Construct" not in _names(r)
+
+
+def test_filter_by_power_combined_with_cmc(client, seed_cards):
+    # Grizzly Bears: power 2, cmc 2 -> matches both.
+    # Wise Elephant: power 3, but cmc 5 -> excluded by cmc_max.
+    r = client.get("/api/cards", params={"power_min": 2, "cmc_max": 2})
+    assert _names(r) == ["Grizzly Bears"]

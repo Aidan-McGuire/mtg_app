@@ -23,7 +23,26 @@ CARD_COLS_C = "c.id, c.oracle_id, c.name, c.mana_cost, c.cmc, c.type_line, c.ora
 COLOR_LETTERS = ("W", "U", "B", "R", "G")
 
 
-def _build_card_filters(colors, colorless, types, cmc_min, cmc_max, text, col=""):
+def _numeric_pt_frags(col_expr, min_v, max_v):
+    """Return SQL fragments constraining a power/toughness column to a numeric range.
+
+    Power/toughness are stored as free text (e.g. "3", "*", "1+*", "2.5"). A
+    value only counts as numeric if it consists solely of digits and ".",
+    which excludes "1+*"-style variable values that a bare GLOB '[0-9]*'
+    check would wrongly accept (SQLite's CAST stops at the first non-numeric
+    character, so CAST('1+*' AS REAL) == 1.0).
+    """
+    is_numeric = f"({col_expr} GLOB '[0-9]*' AND {col_expr} NOT GLOB '*[^0-9.]*')"
+    frags = []
+    if min_v is not None:
+        frags.append(f"({is_numeric} AND CAST({col_expr} AS REAL) >= ?)")
+    if max_v is not None:
+        frags.append(f"({is_numeric} AND CAST({col_expr} AS REAL) <= ?)")
+    return frags
+
+
+def _build_card_filters(colors, colorless, types, cmc_min, cmc_max, text, col="",
+                         power_min=None, power_max=None, toughness_min=None, toughness_max=None):
     """Return (sql_fragments, params) for the optional card filters.
 
     `col` is an optional column prefix (e.g. "c.") for aliased queries.
@@ -59,6 +78,20 @@ def _build_card_filters(colors, colorless, types, cmc_min, cmc_max, text, col=""
     if text and text.strip():
         frags.append(f"{col}oracle_text LIKE ?")
         params.append(f"%{text.strip()}%")
+
+    for frag in _numeric_pt_frags(f"{col}power", power_min, power_max):
+        frags.append(frag)
+    if power_min is not None:
+        params.append(power_min)
+    if power_max is not None:
+        params.append(power_max)
+
+    for frag in _numeric_pt_frags(f"{col}toughness", toughness_min, toughness_max):
+        frags.append(frag)
+    if toughness_min is not None:
+        params.append(toughness_min)
+    if toughness_max is not None:
+        params.append(toughness_max)
 
     return frags, params
 
@@ -235,6 +268,10 @@ def search_cards(
     types: str = Query(""),
     cmc_min: float | None = Query(None),
     cmc_max: float | None = Query(None),
+    power_min: float | None = Query(None),
+    power_max: float | None = Query(None),
+    toughness_min: float | None = Query(None),
+    toughness_max: float | None = Query(None),
     text: str = Query(""),
     sort: str = Query("name"),
     direction: str = Query("asc", alias="dir"),
@@ -242,7 +279,9 @@ def search_cards(
     with get_db() as conn:
         cur = conn.cursor()
         if q.strip():
-            cfrags, cparams = _build_card_filters(colors, colorless, types, cmc_min, cmc_max, text, col="c.")
+            cfrags, cparams = _build_card_filters(colors, colorless, types, cmc_min, cmc_max, text, col="c.",
+                                                    power_min=power_min, power_max=power_max,
+                                                    toughness_min=toughness_min, toughness_max=toughness_max)
             where_c = "".join(f" AND {f}" for f in cfrags)
             try:
                 fts_order = "rank" if sort == "name" else _order_by(sort, direction, "c.")
@@ -257,7 +296,9 @@ def search_cards(
                     LIMIT ? OFFSET ?
                 """, (q.strip() + "*", *cparams, limit, offset))
             except sqlite3.OperationalError:
-                bfrags, bparams = _build_card_filters(colors, colorless, types, cmc_min, cmc_max, text)
+                bfrags, bparams = _build_card_filters(colors, colorless, types, cmc_min, cmc_max, text,
+                                                       power_min=power_min, power_max=power_max,
+                                                       toughness_min=toughness_min, toughness_max=toughness_max)
                 where_b = "".join(f" AND {f}" for f in bfrags)
                 cur.execute(f"""
                     SELECT {CARD_COLS}
@@ -269,7 +310,9 @@ def search_cards(
                     LIMIT ? OFFSET ?
                 """, (f"%{q.strip()}%", *bparams, limit, offset))
         else:
-            frags, params = _build_card_filters(colors, colorless, types, cmc_min, cmc_max, text)
+            frags, params = _build_card_filters(colors, colorless, types, cmc_min, cmc_max, text,
+                                                 power_min=power_min, power_max=power_max,
+                                                 toughness_min=toughness_min, toughness_max=toughness_max)
             where_extra = "".join(f" AND {f}" for f in frags)
             cur.execute(f"""
                 SELECT {CARD_COLS}
