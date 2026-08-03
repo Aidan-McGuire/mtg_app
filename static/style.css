@@ -1212,7 +1212,7 @@ kbd {
   box-shadow: 0 4px 16px rgba(0,0,0,0.4); }
 .filter-panel.hidden { display: none; }
 .filter-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.filter-group-label { font-size: 12px; opacity: 0.7; width: 80px; }
+.filter-group-label { font-size: 12px; opacity: 0.7; width: 96px; }
 .color-btn { width: 26px; height: 26px; border-radius: 50%; border: 1px solid #555;
   background: #2a2a32; color: #ddd; cursor: pointer; }
 .color-btn.active { outline: 2px solid #6cf; }

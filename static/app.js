@@ -311,6 +311,7 @@ function appendColorFilterGroup(panel, label, model, colorsKey, colorlessKey, re
   const grp = document.createElement('div');
   grp.className = 'filter-group';
   grp.innerHTML = `<span class="filter-group-label">${label}</span>`;
+  // Declare clBtn before the loop so the loop's click handlers can reference it.
   const clBtn = document.createElement('button');
   clBtn.className = 'color-btn color-C' + (model[colorlessKey] ? ' active' : '');
   clBtn.textContent = 'C';

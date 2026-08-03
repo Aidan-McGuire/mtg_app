@@ -16,3 +16,4 @@
   - works decently well on 'Cards' page, needs refinement
   - Ultimately need to be able to navigate the app without using a mouse at all
 - cdv (card detail view) is not showing images
+- `colors` field is empty for double-faced/transform cards because the importer only reads the top-level Scryfall `colors` field, not `card_faces[*].colors` — affects the Exact Colors filter (and would affect anything else that reads `colors`) for ~895 cards. Fix: update `importer.py` to fall back to the union of face colors, then re-run `python importer.py` to backfill.
