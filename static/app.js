@@ -279,6 +279,7 @@ function activeFilterCount(model) {
   let n = 0;
   if (model.text) n++;
   if (model.colorlessOnly || model.colors.size) n++;
+  if (model.exactColorlessOnly || model.exactColors.size) n++;
   if (model.types.size) n++;
   if (model.cmcMin != null || model.cmcMax != null) n++;
   if (model.powerMin != null || model.powerMax != null) n++;
@@ -292,6 +293,8 @@ function modelToParams(model) {
   if (model.text) p.text = model.text;
   if (model.colorlessOnly) p.colorless = '1';
   else if (model.colors.size) p.colors = [...model.colors].join(',');
+  if (model.exactColorlessOnly) p.exact_colorless = '1';
+  else if (model.exactColors.size) p.exact_colors = [...model.exactColors].join(',');
   if (model.types.size) p.types = [...model.types].join(',');
   if (model.cmcMin != null) p.cmc_min = model.cmcMin;
   if (model.cmcMax != null) p.cmc_max = model.cmcMax;
@@ -302,6 +305,41 @@ function modelToParams(model) {
   if (model.sort) p.sort = model.sort;
   if (model.dir) p.dir = model.dir;
   return p;
+}
+
+function appendColorFilterGroup(panel, label, model, colorsKey, colorlessKey, refreshBadge, onChange) {
+  const grp = document.createElement('div');
+  grp.className = 'filter-group';
+  grp.innerHTML = `<span class="filter-group-label">${label}</span>`;
+  const clBtn = document.createElement('button');
+  clBtn.className = 'color-btn color-C' + (model[colorlessKey] ? ' active' : '');
+  clBtn.textContent = 'C';
+  clBtn.title = 'Colorless only';
+  for (const letter of COLOR_LETTERS) {
+    const b = document.createElement('button');
+    b.className = 'color-btn color-' + letter +
+      (model[colorsKey].has(letter) ? ' active' : '');
+    b.textContent = letter;
+    b.dataset.color = letter;
+    b.addEventListener('click', () => {
+      if (model[colorsKey].has(letter)) model[colorsKey].delete(letter);
+      else { model[colorsKey].add(letter); model[colorlessKey] = false; }
+      b.classList.toggle('active');
+      clBtn.classList.toggle('active', model[colorlessKey]);
+      refreshBadge(); onChange();
+    });
+    grp.appendChild(b);
+  }
+  clBtn.addEventListener('click', () => {
+    model[colorlessKey] = !model[colorlessKey];
+    if (model[colorlessKey]) model[colorsKey].clear();
+    grp.querySelectorAll('.color-btn').forEach(x =>
+      x.classList.toggle('active',
+        x === clBtn ? model[colorlessKey] : model[colorsKey].has(x.dataset.color)));
+    refreshBadge(); onChange();
+  });
+  grp.appendChild(clBtn);
+  panel.appendChild(grp);
 }
 
 function appendRangeFilterGroup(panel, label, model, minKey, maxKey, refreshBadge, onChange) {
@@ -327,7 +365,7 @@ function appendRangeFilterGroup(panel, label, model, minKey, maxKey, refreshBadg
 
 /**
  * Render a filter/sort control bar into `container`.
- * config: { model, facets:Set<'colors'|'types'|'cmc'|'power'|'toughness'|'tags'>,
+ * config: { model, facets:Set<'colors'|'exactColors'|'types'|'cmc'|'power'|'toughness'|'tags'>,
  *           sortOptions:[{value,label}], tagOptions:[], onChange:fn }
  */
 function buildFilterControls(container, config) {
@@ -373,41 +411,14 @@ function buildFilterControls(container, config) {
   panel.className = 'filter-panel hidden';
   filterBtn.addEventListener('click', () => panel.classList.toggle('hidden'));
 
-  // Colors
+  // Color Identity
   if (facets.has('colors')) {
-    const grp = document.createElement('div');
-    grp.className = 'filter-group';
-    grp.innerHTML = '<span class="filter-group-label">Colors</span>';
-    // Declare clBtn before the loop so the loop's click handlers can reference it.
-    const clBtn = document.createElement('button');
-    clBtn.className = 'color-btn color-C' + (model.colorlessOnly ? ' active' : '');
-    clBtn.textContent = 'C';
-    clBtn.title = 'Colorless only';
-    for (const letter of COLOR_LETTERS) {
-      const b = document.createElement('button');
-      b.className = 'color-btn color-' + letter +
-        (model.colors.has(letter) ? ' active' : '');
-      b.textContent = letter;
-      b.dataset.color = letter;
-      b.addEventListener('click', () => {
-        if (model.colors.has(letter)) model.colors.delete(letter);
-        else { model.colors.add(letter); model.colorlessOnly = false; }
-        b.classList.toggle('active');
-        clBtn.classList.toggle('active', model.colorlessOnly);
-        refreshBadge(); onChange();
-      });
-      grp.appendChild(b);
-    }
-    clBtn.addEventListener('click', () => {
-      model.colorlessOnly = !model.colorlessOnly;
-      if (model.colorlessOnly) model.colors.clear();
-      grp.querySelectorAll('.color-btn').forEach(x =>
-        x.classList.toggle('active',
-          x === clBtn ? model.colorlessOnly : model.colors.has(x.dataset.color)));
-      refreshBadge(); onChange();
-    });
-    grp.appendChild(clBtn);
-    panel.appendChild(grp);
+    appendColorFilterGroup(panel, 'Color Identity', model, 'colors', 'colorlessOnly', refreshBadge, onChange);
+  }
+
+  // Exact Colors
+  if (facets.has('exactColors')) {
+    appendColorFilterGroup(panel, 'Exact Colors', model, 'exactColors', 'exactColorlessOnly', refreshBadge, onChange);
   }
 
   // Types
@@ -1332,7 +1343,7 @@ async function init() {
   state.filter = makeFilterModel();
   buildFilterControls(document.getElementById('browser-filter-controls'), {
     model: state.filter,
-    facets: new Set(['colors', 'types', 'cmc', 'power', 'toughness']),
+    facets: new Set(['colors', 'exactColors', 'types', 'cmc', 'power', 'toughness']),
     sortOptions: SORT_OPTIONS_BASE,
     onChange: reloadCards,
   });
@@ -1494,7 +1505,7 @@ async function loadCollectionView() {
     const tagOptions = await API.listCollectionTags();
     buildFilterControls(document.getElementById('collection-filter-controls'), {
       model: collectionState.filter,
-      facets: new Set(['colors', 'types', 'cmc', 'power', 'toughness', 'tags']),
+      facets: new Set(['colors', 'exactColors', 'types', 'cmc', 'power', 'toughness', 'tags']),
       sortOptions: [...SORT_OPTIONS_BASE, SORT_OPTION_QUANTITY],
       tagOptions,
       onChange: renderCollectionGrid,
@@ -1837,7 +1848,7 @@ async function selectDeck(id) {
     ]);
     buildFilterControls(document.getElementById('deck-filter-controls'), {
       model: deckState.filter,
-      facets: new Set(['colors', 'types', 'cmc', 'power', 'toughness', 'tags']),
+      facets: new Set(['colors', 'exactColors', 'types', 'cmc', 'power', 'toughness', 'tags']),
       sortOptions: [...SORT_OPTIONS_BASE, SORT_OPTION_QUANTITY],
       tagOptions: [...new Set([...collTags, ...deckTags])].sort(),
       onChange: renderDeckContent,
