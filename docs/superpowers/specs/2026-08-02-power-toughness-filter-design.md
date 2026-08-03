@@ -82,9 +82,11 @@ The existing "Clear" button already resets via `makeFilterModel(...)` overrides,
 - A card with non-numeric power (e.g. `"*"` or `"1+*"`) is excluded when a power filter is active, even though `"1+*"` starts with a digit.
 - Combining a power/toughness filter with an existing filter (e.g. `q` or `cmc_min`) still ANDs correctly.
 
-### 3b. Frontend verification
+### 3b. Frontend tests
 
-No existing JS unit tests cover `applyFilters`/`buildFilterControls` (the `tests/js/` suite covers unrelated pure functions like `filter-decks`, `group-cards-by-type`). Verify manually in the running app (`uvicorn app:app --reload`) across all three pages: filter by power/toughness alone and combined with other filters, confirm non-numeric P/T cards drop out, confirm Clear resets the new inputs, confirm the active-filter badge count.
+`tests/js/` already has a convention for testing pure functions lifted out of `static/app.js` via sentinel comments (`// ── name ──` / `// ── end name ──`) and evaluated standalone with `new Function` (see `filter-decks.test.mjs`, `parse-add-query.test.mjs`). `applyFilters` fits this pattern directly — add sentinel comments around the existing `ptNum`/`sortComparator`/`applyFilters` block and a new `tests/js/apply-filters.test.mjs` covering power/toughness range filtering, including the non-numeric-exclusion case. Run via `node tests/js/apply-filters.test.mjs` (no test runner/CI wiring exists for these — same as the other `tests/js/*.test.mjs` files today).
+
+`buildFilterControls` (DOM-building) has no test harness and stays manual: verify in the running app (`uvicorn app:app --reload`) across all three pages — filter by power/toughness alone and combined with other filters, confirm non-numeric P/T cards drop out, confirm Clear resets the new inputs, confirm the active-filter badge count.
 
 ## Notes / caveats
 
