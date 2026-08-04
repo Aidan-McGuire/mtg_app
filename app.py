@@ -631,6 +631,55 @@ def import_deck(body: DeckImport):
 
 
 # ---------------------------------------------------------------------------
+# Import failures
+# ---------------------------------------------------------------------------
+
+@app.get("/api/import-failures")
+def list_import_failures(resolved: str = Query("false")):
+    with get_db() as conn:
+        cur = conn.cursor()
+        where = ""
+        if resolved == "false":
+            where = "WHERE f.resolved_at IS NULL"
+        elif resolved == "true":
+            where = "WHERE f.resolved_at IS NOT NULL"
+        elif resolved != "all":
+            raise HTTPException(400, "resolved must be 'false', 'true', or 'all'")
+
+        cur.execute(f"""
+            SELECT f.id, f.source, f.deck_id, d.name AS deck_name,
+                   f.card_name, f.requested_qty, f.created_at, f.resolved_at
+            FROM import_failures f
+            LEFT JOIN decks d ON d.id = f.deck_id
+            {where}
+            ORDER BY f.created_at DESC, f.id DESC
+        """)
+        return [dict(r) for r in cur.fetchall()]
+
+
+@app.post("/api/import-failures/{failure_id}/resolve")
+def resolve_import_failure(failure_id: int):
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT id FROM import_failures WHERE id = ?", (failure_id,))
+        if not cur.fetchone():
+            raise HTTPException(404, "Import failure not found")
+        cur.execute(
+            "UPDATE import_failures SET resolved_at = datetime('now') WHERE id = ?",
+            (failure_id,)
+        )
+        conn.commit()
+        cur.execute("""
+            SELECT f.id, f.source, f.deck_id, d.name AS deck_name,
+                   f.card_name, f.requested_qty, f.created_at, f.resolved_at
+            FROM import_failures f
+            LEFT JOIN decks d ON d.id = f.deck_id
+            WHERE f.id = ?
+        """, (failure_id,))
+        return dict(cur.fetchone())
+
+
+# ---------------------------------------------------------------------------
 # Deck cards
 # ---------------------------------------------------------------------------
 

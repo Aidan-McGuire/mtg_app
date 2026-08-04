@@ -40,3 +40,70 @@ def test_successful_import_records_no_failure(client, db_path):
     count = conn.execute("SELECT COUNT(*) FROM import_failures").fetchone()[0]
     conn.close()
     assert count == 0
+
+
+def _seed_failure(db_path, source="collection", deck_id=None, card_name="Ghost Card", qty=1, resolved=False):
+    conn = sqlite3.connect(str(db_path))
+    conn.execute(
+        "INSERT INTO import_failures (source, deck_id, card_name, requested_qty, resolved_at) "
+        "VALUES (?, ?, ?, ?, ?)",
+        (source, deck_id, card_name, qty, "2026-08-03T00:00:00" if resolved else None),
+    )
+    conn.commit()
+    failure_id = conn.execute("SELECT id FROM import_failures WHERE card_name = ?", (card_name,)).fetchone()[0]
+    conn.close()
+    return failure_id
+
+
+def test_get_import_failures_defaults_to_outstanding(client, db_path):
+    _seed_failure(db_path, card_name="Outstanding One", resolved=False)
+    _seed_failure(db_path, card_name="Resolved One", resolved=True)
+
+    r = client.get("/api/import-failures")
+    assert r.status_code == 200
+    names = [f["card_name"] for f in r.json()]
+    assert names == ["Outstanding One"]
+
+
+def test_get_import_failures_resolved_true(client, db_path):
+    _seed_failure(db_path, card_name="Outstanding One", resolved=False)
+    _seed_failure(db_path, card_name="Resolved One", resolved=True)
+
+    r = client.get("/api/import-failures?resolved=true")
+    names = [f["card_name"] for f in r.json()]
+    assert names == ["Resolved One"]
+
+
+def test_get_import_failures_resolved_all(client, db_path):
+    _seed_failure(db_path, card_name="Outstanding One", resolved=False)
+    _seed_failure(db_path, card_name="Resolved One", resolved=True)
+
+    r = client.get("/api/import-failures?resolved=all")
+    names = sorted(f["card_name"] for f in r.json())
+    assert names == ["Outstanding One", "Resolved One"]
+
+
+def test_get_import_failures_includes_deck_name(client, db_path):
+    # deck id 1 ("Test Deck") already exists per the base _SCHEMA seed data
+    _seed_failure(db_path, source="deck", deck_id=1, card_name="Deck Miss")
+
+    r = client.get("/api/import-failures")
+    row = next(f for f in r.json() if f["card_name"] == "Deck Miss")
+    assert row["deck_id"] == 1
+    assert row["deck_name"] == "Test Deck"
+
+
+def test_resolve_import_failure(client, db_path):
+    failure_id = _seed_failure(db_path, card_name="To Resolve")
+
+    r = client.post(f"/api/import-failures/{failure_id}/resolve")
+    assert r.status_code == 200
+    assert r.json()["resolved_at"] is not None
+
+    remaining = client.get("/api/import-failures").json()
+    assert all(f["id"] != failure_id for f in remaining)
+
+
+def test_resolve_nonexistent_import_failure_404(client):
+    r = client.post("/api/import-failures/9999/resolve")
+    assert r.status_code == 404
