@@ -1257,6 +1257,11 @@ kbd {
   cursor: pointer;
 }
 
+#import-history-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
 .import-history-empty {
   padding: 24px;
   opacity: 0.7;

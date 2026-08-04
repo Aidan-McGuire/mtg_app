@@ -1178,6 +1178,7 @@ document.addEventListener('keydown', e => {
   const collectionSearch = document.getElementById('collection-search');
   const modalOpen        = !document.getElementById('modal-overlay').classList.contains('hidden');
   const decksActive      = document.getElementById('view-decks').classList.contains('active');
+  const browserActive    = document.getElementById('view-browser').classList.contains('active');
 
   if (modalOpen) {
     if (e.key === 'Escape') closeModal();
@@ -1222,7 +1223,7 @@ document.addEventListener('keydown', e => {
       e.preventDefault(); openAddPalette(); return;
     } else if (collectionViewActive() && document.activeElement !== collectionSearch) {
       e.preventDefault(); collectionSearch.focus(); return;
-    } else if (!decksActive && !collectionViewActive() && document.activeElement !== searchInput) {
+    } else if (browserActive && document.activeElement !== searchInput) {
       e.preventDefault(); searchInput.focus(); return;
     }
   }
@@ -1249,10 +1250,10 @@ document.addEventListener('keydown', e => {
   }
 
   // Everything below drives the Cards page: it reads `state.cards` and
-  // `#card-grid`. Running it on the Decks or Collection views opens/edits a
-  // card the user isn't even looking at — e.g. Enter in the deck add palette
-  // used to add the card AND open a detail modal for a Cards-page result.
-  const browserActive = !decksActive && !collectionViewActive();
+  // `#card-grid`. Running it on the Decks, Collection, or History views
+  // opens/edits a card the user isn't even looking at — e.g. Enter in the
+  // deck add palette used to add the card AND open a detail modal for a
+  // Cards-page result.
 
   // Enter opens focused card (defaults to first card if none focused)
   if (browserActive && e.key === 'Enter' && state.cards.length > 0) {
