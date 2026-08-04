@@ -1241,3 +1241,47 @@ kbd {
   color: #d9534f;
 }
 .cmc-input { width: 50px; padding: 3px; }
+
+/* ── Import History ─────────────────────────────────────────────────────── */
+
+.import-history-title {
+  font-weight: 600;
+}
+
+.import-history-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  font-size: 0.9em;
+  cursor: pointer;
+}
+
+.import-history-empty {
+  padding: 24px;
+  opacity: 0.7;
+  text-align: center;
+}
+
+.import-history-row {
+  display: grid;
+  grid-template-columns: 120px 1fr 60px 180px auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.import-history-source {
+  opacity: 0.8;
+  font-size: 0.9em;
+}
+
+.import-history-qty {
+  opacity: 0.8;
+}
+
+.import-history-date {
+  opacity: 0.6;
+  font-size: 0.85em;
+}

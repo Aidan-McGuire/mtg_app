@@ -13,6 +13,7 @@
       <button class="nav-btn" data-view="browser">Cards</button>
       <button class="nav-btn active" data-view="collection">Collection</button>
       <button class="nav-btn" data-view="decks">Decks</button>
+      <button class="nav-btn" data-view="history">Import History</button>
     </nav>
 
     <div id="view-browser" class="view">
@@ -92,6 +93,17 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <div id="view-history" class="view">
+      <div class="search-bar">
+        <span class="import-history-title">Import History</span>
+        <label class="import-history-toggle">
+          <input type="checkbox" id="history-show-resolved">
+          Show resolved
+        </label>
+      </div>
+      <div id="import-history-list"></div>
     </div>
   </div>
 

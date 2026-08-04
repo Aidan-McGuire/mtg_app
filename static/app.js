@@ -100,6 +100,16 @@ const API = {
     }
     return r.json();
   },
+  async getImportFailures(resolved = 'false') {
+    const r = await fetch(`/api/import-failures?resolved=${resolved}`);
+    if (!r.ok) throw new Error('Failed to load import history');
+    return r.json();
+  },
+  async resolveImportFailure(id) {
+    const r = await fetch(`/api/import-failures/${id}/resolve`, { method: 'POST' });
+    if (!r.ok) throw new Error('Failed to resolve');
+    return r.json();
+  },
   async getCollectionCardTags(cardId) {
     const r = await fetch(`/api/collection/${cardId}/tags`);
     return r.ok ? r.json() : [];
@@ -1280,8 +1290,11 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
       });
     }
     if (btn.dataset.view === 'collection') loadCollectionView();
+    if (btn.dataset.view === 'history') loadImportHistoryView();
   });
 });
+
+document.getElementById('history-show-resolved').addEventListener('change', loadImportHistoryView);
 
 // ── Search input wiring ───────────────────────────────────────────────────────
 
@@ -1514,6 +1527,41 @@ async function loadCollectionView() {
     renderCollectionGrid();
   } catch (e) {
     console.error(e);
+  }
+}
+
+async function loadImportHistoryView() {
+  const showResolved = document.getElementById('history-show-resolved').checked;
+  const listEl = document.getElementById('import-history-list');
+  try {
+    const rows = await API.getImportFailures(showResolved ? 'true' : 'false');
+    listEl.innerHTML = '';
+    if (rows.length === 0) {
+      listEl.innerHTML = `<div class="import-history-empty">${showResolved ? 'No resolved entries.' : 'No outstanding import failures.'}</div>`;
+      return;
+    }
+    for (const f of rows) {
+      const row = document.createElement('div');
+      row.className = 'import-history-row';
+      const sourceLabel = f.source === 'deck' ? `Deck: ${esc(f.deck_name || 'Unknown')}` : 'Collection';
+      row.innerHTML = `
+        <span class="import-history-source">${esc(sourceLabel)}</span>
+        <span class="import-history-name">${esc(f.card_name)}</span>
+        <span class="import-history-qty">×${f.requested_qty}</span>
+        <span class="import-history-date">${esc(f.created_at)}</span>
+        ${showResolved ? '' : '<button class="action-btn import-history-resolve-btn">Resolve</button>'}
+      `;
+      if (!showResolved) {
+        row.querySelector('.import-history-resolve-btn').addEventListener('click', async () => {
+          await API.resolveImportFailure(f.id);
+          loadImportHistoryView();
+        });
+      }
+      listEl.appendChild(row);
+    }
+  } catch (e) {
+    console.error(e);
+    listEl.innerHTML = '<div class="import-history-empty">Failed to load import history.</div>';
   }
 }
 
