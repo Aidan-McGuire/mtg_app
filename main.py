@@ -119,6 +119,20 @@ def migrate_database():
         cur.execute("ALTER TABLE deck_cards ADD COLUMN is_considering INTEGER NOT NULL DEFAULT 0;")
         cur.execute("UPDATE schema_version SET version = 4;")
 
+    if version < 5:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS import_failures (
+                id INTEGER PRIMARY KEY,
+                source TEXT NOT NULL,
+                deck_id INTEGER REFERENCES decks(id) ON DELETE CASCADE,
+                card_name TEXT NOT NULL,
+                requested_qty INTEGER NOT NULL,
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                resolved_at TEXT
+            );
+        """)
+        cur.execute("UPDATE schema_version SET version = 5;")
+
     conn.commit()
     conn.close()
 

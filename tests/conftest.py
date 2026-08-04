@@ -51,7 +51,16 @@ CREATE TABLE deck_card_tags (
     tag TEXT NOT NULL,
     UNIQUE(deck_id, card_id, tag)
 );
-INSERT INTO schema_version VALUES (4);
+CREATE TABLE import_failures (
+    id INTEGER PRIMARY KEY,
+    source TEXT NOT NULL,
+    deck_id INTEGER REFERENCES decks(id) ON DELETE CASCADE,
+    card_name TEXT NOT NULL,
+    requested_qty INTEGER NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    resolved_at TEXT
+);
+INSERT INTO schema_version VALUES (5);
 INSERT INTO cards (id, oracle_id, name, mana_cost, cmc, type_line) VALUES (1, 'bolt-uuid', 'Lightning Bolt', '{R}', 1, 'Instant');
 INSERT INTO cards (id, oracle_id, name, mana_cost, cmc, type_line) VALUES (2, 'forest-uuid', 'Forest', NULL, 0, 'Basic Land');
 INSERT INTO collection (card_id, quantity) VALUES (1, 4);
