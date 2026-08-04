@@ -1545,7 +1545,7 @@ async function loadImportHistoryView() {
       row.className = 'import-history-row';
       const sourceLabel = f.source === 'deck' ? `Deck: ${esc(f.deck_name || 'Unknown')}` : 'Collection';
       row.innerHTML = `
-        <span class="import-history-source">${esc(sourceLabel)}</span>
+        <span class="import-history-source">${sourceLabel}</span>
         <span class="import-history-name">${esc(f.card_name)}</span>
         <span class="import-history-qty">×${f.requested_qty}</span>
         <span class="import-history-date">${esc(f.created_at)}</span>
