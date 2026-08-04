@@ -232,6 +232,13 @@ def lookup_card_id(cur, name: str) -> int | None:
     return row["id"] if row else None
 
 
+def _record_import_failure(cur, source: str, deck_id: int | None, card_name: str, requested_qty: int) -> None:
+    cur.execute("""
+        INSERT INTO import_failures (source, deck_id, card_name, requested_qty)
+        VALUES (?, ?, ?, ?)
+    """, (source, deck_id, card_name, requested_qty))
+
+
 # ---------------------------------------------------------------------------
 # Image cache
 # ---------------------------------------------------------------------------
@@ -497,6 +504,7 @@ def import_collection(body: CollectionImport):
                 imported += qty
             else:
                 not_found.append(name)
+                _record_import_failure(cur, "collection", None, name, qty)
         conn.commit()
 
     return {"imported": imported, "not_found": not_found}
@@ -611,6 +619,7 @@ def import_deck(body: DeckImport):
                 imported += qty
             else:
                 not_found.append(name)
+                _record_import_failure(cur, "deck", deck_id, name, qty)
 
         conn.commit()
 
