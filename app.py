@@ -186,8 +186,13 @@ def get_db():
 # Shared helpers
 # ---------------------------------------------------------------------------
 
-_ENTRY_RE = re.compile(r'^(\d+)x?\s+(.+?)(?:\s+\([A-Z0-9]{2,6}\)(?:\s+\d+.*)?)?$')
+_ENTRY_RE = re.compile(r'^(\d+)x?\s+(.+?)(?:\s+\([A-Z0-9]{2,6}\)(?:\s+\d+.*)?)?(?:\s+\{[0-9]+\})?$')
 _MARKER_RE = re.compile(r'\s+\*[A-Z]+\*$')  # strip *F* foil markers etc.
+
+_SMART_QUOTE_TRANSLATION = str.maketrans({
+    '‘': "'", '’': "'",  # curly single quotes → straight
+    '“': '"', '”': '"',  # curly double quotes → straight
+})
 
 
 def parse_decklist(text: str) -> list[tuple[int, str]]:
@@ -208,7 +213,9 @@ def parse_decklist(text: str) -> list[tuple[int, str]]:
 
 
 def lookup_card_id(cur, name: str) -> int | None:
-    """Look up a card id by name, handling MDFC slash variants."""
+    """Look up a card id by name, handling MDFC slash variants and smart quotes."""
+    name = name.translate(_SMART_QUOTE_TRANSLATION)
+
     # 1. Exact match
     cur.execute("SELECT id FROM cards WHERE name = ? COLLATE NOCASE LIMIT 1", (name,))
     row = cur.fetchone()

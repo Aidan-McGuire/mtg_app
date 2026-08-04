@@ -42,6 +42,36 @@ def test_successful_import_records_no_failure(client, db_path):
     assert count == 0
 
 
+def test_lookup_matches_curly_apostrophe_against_straight_apostrophe_name(client, db_path):
+    conn = sqlite3.connect(str(db_path))
+    conn.execute(
+        "INSERT INTO cards (oracle_id, name, mana_cost, cmc, type_line) "
+        "VALUES ('beifong-uuid', \"Beifong's Bounty Hunters\", '{2}{W}', 3, 'Creature')"
+    )
+    conn.commit()
+    conn.close()
+
+    r = client.post("/api/collection/import", json={"list": "1x Beifong’s Bounty Hunters"})
+    assert r.status_code == 200
+    assert r.json()["not_found"] == []
+
+    conn = sqlite3.connect(str(db_path))
+    count = conn.execute("SELECT COUNT(*) FROM import_failures").fetchone()[0]
+    conn.close()
+    assert count == 0
+
+
+def test_lookup_strips_curly_brace_collector_number_suffix(client, db_path):
+    r = client.post("/api/collection/import", json={"list": "1x Lightning Bolt {122}"})
+    assert r.status_code == 200
+    assert r.json()["not_found"] == []
+
+    conn = sqlite3.connect(str(db_path))
+    count = conn.execute("SELECT COUNT(*) FROM import_failures").fetchone()[0]
+    conn.close()
+    assert count == 0
+
+
 def _seed_failure(db_path, source="collection", deck_id=None, card_name="Ghost Card", qty=1, resolved=False):
     conn = sqlite3.connect(str(db_path))
     conn.execute(
