@@ -1998,9 +1998,14 @@ function renderDeckGrid() {
   const consideringCards = filtered.filter(c => c.is_considering);
 
   if (deckState.groupBy !== 'none') {
-    const groups = deckState.groupBy === 'type'
-      ? groupCardsByType(mainCards)
-      : groupCards(mainCards, deckState.groupBy === 'deck-tag' ? 'deck_tags' : 'collection_tags');
+    let groups;
+    if (deckState.groupBy === 'type') {
+      groups = groupCardsByType(mainCards);
+    } else {
+      const { commanderGroup, rest } = extractCommanderGroup(mainCards);
+      groups = groupCards(rest, deckState.groupBy === 'deck-tag' ? 'deck_tags' : 'collection_tags');
+      if (commanderGroup) groups.unshift(commanderGroup);
+    }
     for (const g of groups) g.cards.sort(cmp);
     if (consideringCards.length) {
       groups.push({ label: 'Considering', cards: [...consideringCards].sort(cmp) });
@@ -2120,9 +2125,14 @@ function renderDeckText() {
   const consideringCards = filtered.filter(c => c.is_considering);
 
   if (deckState.groupBy !== 'none') {
-    const groups = deckState.groupBy === 'type'
-      ? groupCardsByType(mainCards)
-      : groupCards(mainCards, deckState.groupBy === 'deck-tag' ? 'deck_tags' : 'collection_tags');
+    let groups;
+    if (deckState.groupBy === 'type') {
+      groups = groupCardsByType(mainCards);
+    } else {
+      const { commanderGroup, rest } = extractCommanderGroup(mainCards);
+      groups = groupCards(rest, deckState.groupBy === 'deck-tag' ? 'deck_tags' : 'collection_tags');
+      if (commanderGroup) groups.unshift(commanderGroup);
+    }
     for (const g of groups) g.cards.sort(cmp);
     if (consideringCards.length) {
       groups.push({ label: 'Considering', cards: [...consideringCards].sort(cmp) });

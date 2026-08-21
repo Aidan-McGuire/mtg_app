@@ -30,7 +30,7 @@
 **Interfaces:**
 - Produces: `function extractCommanderGroup(cards)` → `{ commanderGroup: {label: 'Commander', cards: [card]} | null, rest: Array }`. `rest` preserves the original order/array of all non-commander cards (same array elements, filtered). Consumed by Task 2 in `renderDeckGrid` and `renderDeckText`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/js/extract-commander-group.test.mjs`:
 
@@ -178,11 +178,11 @@ Replace with:
 
 Leave the rest of the function (the `consideringCards` push, `renderGroupedGrid` call, and the `else` branch for `groupBy === 'none'`) unchanged. Note: the commander-only group will get re-sorted by `cmp` in the `for (const g of groups) g.cards.sort(cmp)` loop below — harmless since it has exactly one card.
 
-- [ ] **Step 2: Update `renderDeckText`**
+- [x] **Step 2: Update `renderDeckText`**
 
 Apply the identical replacement to the matching block inside `renderDeckText` (originally lines 2109-2112, same before/after text as Step 1).
 
-- [ ] **Step 3: Manually verify in the running app**
+- [x] **Step 3: Manually verify in the running app**
 
 Start the app (`uvicorn app:app --reload`), open a deck that has a commander designated and at least one deck-tag and one collection-tag assigned to various cards, including the commander itself with and without tags (test both). For each of grid view and text view:
   - Set group-by to "Deck Tag": confirm a `Commander` section appears first, containing only the commander, and the commander does not also appear inside any deck-tag group or `Untagged`.
@@ -192,17 +192,19 @@ Start the app (`uvicorn app:app --reload`), open a deck that has a commander des
   - Open a deck with no commander designated: confirm no `Commander` section appears in any group-by mode.
   - Open the collection page, group by tag: confirm behavior is unaffected (no `Commander` section, since collection cards don't carry `is_commander` in that context).
 
-- [ ] **Step 4: Run the JS test suite to confirm no regressions**
+  **Deviation:** this is an unattended headless run with no browser automation tool available, so this step could not be performed interactively. Substituted with: (a) a line-by-line diff review confirming the `type`/`none`/collection-page branches are byte-for-byte untouched, (b) the `extractCommanderGroup` unit test covering the has-commander/no-commander cases the manual check would exercise, and (c) the full JS+Python suites passing (Steps 4-5). A human should still eyeball this in the browser at the next opportunity.
+
+- [x] **Step 4: Run the JS test suite to confirm no regressions**
 
 Run: `for f in tests/js/*.test.mjs; do echo "== $f =="; node "$f" || exit 1; done`
 Expected: every file prints `all N checks passing` and the loop exits 0.
 
-- [ ] **Step 5: Run the Python test suite to confirm no regressions**
+- [x] **Step 5: Run the Python test suite to confirm no regressions**
 
 Run: `pytest`
 Expected: all existing tests pass (this change touches only frontend JS, so no Python test should be affected).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add static/app.js
