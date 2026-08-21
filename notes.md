@@ -1,14 +1,13 @@
 # Notes
 ## Next features
-1. set default categories to card types
-2. decide how to handle deck and collection tags
-3. default tag all lands as land, including mdfc lands
 4. auto update db?
-5. deck page, toggle/mode to auto collapse all categories. Expand selected / highlighted category
+5. add type grouping option to collection page
 6. In grid view, no card preview section is needed. Bump up card size in grid view a bit with the extra space. ensure text view continues to have the preview
+
 Refined into `docs/superpowers/backlog/`: commander-in-tag-groups (001),
 wider preview panel (002), larger grouped-view tiles/headers (003),
-deck category visibility checkboxes (004).
+deck category visibility checkboxes (004, amended to drop its land-default
+logic in favor of 005), type-based hide-lands toggle (005).
 
 
 

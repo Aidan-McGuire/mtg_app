@@ -53,18 +53,15 @@ const deckHiddenCategories = { type: new Set(), 'collection-tag': new Set(), 'de
 
 function resetDeckHiddenCategories() {
   for (const key of Object.keys(deckHiddenCategories)) deckHiddenCategories[key].clear();
-  deckHiddenCategories.type.add('Land');
-  deckHiddenCategories['collection-tag'].add('land');
-  deckHiddenCategories['deck-tag'].add('land');
 }
 ```
 
-`resetDeckHiddenCategories()` is the *default* state: every category visible
-except a category whose label is exactly `'Land'` (type mode's fixed bucket,
-`static/app.js` line 1416) or exactly `'land'` case-insensitively (a tag
-literally named "land" in `collection-tag`/`deck-tag` mode — matched via
-`.toLowerCase() === 'land'`, not a substring match, so a tag like
-`'mdfc land'` is unaffected and stays visible by default).
+`resetDeckHiddenCategories()` is the *default* state: every category starts
+visible. (Hiding lands specifically is handled separately and more broadly
+by item 005's type-based "Hide lands" toggle, which catches a land
+regardless of what tags it has — a tag-category-based default here couldn't
+do that, since a land card with an unrelated tag would still show up under
+that other tag's category.)
 
 Call `resetDeckHiddenCategories()` once, alongside `resetDeckGroupCollapsed()`,
 in `selectDeck` (line 1883) — hidden-category state resets to defaults on
@@ -230,9 +227,12 @@ those same querySelectorAll calls.
   state) lives only in memory and resets to defaults on deck (re)load.
 - No "show all" / "hide all" bulk toggle in the panel — just per-category
   checkboxes.
+- Hiding lands specifically is out of scope here — see item 005's dedicated,
+  type-based "Hide lands" toggle, which is tag-independent and catches every
+  land regardless of what categories it'd otherwise appear in.
 - notes.md idea #3 ("default tag all lands as land, including mdfc lands")
   is separate, unimplemented scope — this item does not touch tagging
-  behavior, only which existing labels are hidden by default.
+  behavior.
 
 ## Acceptance criteria
 
@@ -240,9 +240,8 @@ those same querySelectorAll calls.
       button appears in the toolbar; clicking it opens a panel with one
       checkbox per currently-present type-mode category (Commander,
       Creature, Instant, Sorcery, Enchantment, Artifact, Planeswalker, Land,
-      Other, Considering — only ones with cards).
-  - [ ] "Land" starts unchecked (hidden) on a freshly loaded/switched deck;
-        every other present category starts checked (visible).
+      Other, Considering — only ones with cards), all checked (visible) by
+      default on a freshly loaded/switched deck.
 - [ ] Unchecking a category removes its entire section (header and cards)
       from both the grid and text views immediately, with no reordering
       artifact and no way to still see its header.
@@ -251,11 +250,10 @@ those same querySelectorAll calls.
       was hidden").
 - [ ] Switching to `Group: Collection tag` or `Group: Deck tag` shows its
       own independent set of checkboxes (tag names, plus Commander/
-      Considering as applicable) with a tag literally named "land"
-      (case-insensitive) unchecked by default and all others checked;
-      hiding a category in one mode has no effect on any other mode's
-      checkboxes or visibility, including a same-named category (e.g.
-      Commander) in a different mode.
+      Considering as applicable), all checked by default; hiding a category
+      in one mode has no effect on any other mode's checkboxes or
+      visibility, including a same-named category (e.g. Commander) in a
+      different mode.
 - [ ] Hiding every category shows an explanatory empty-state message rather
       than a blank grid/text area.
 - [ ] The "Categories" button/panel does not appear when `Group: None` is
@@ -266,8 +264,8 @@ those same querySelectorAll calls.
 - [ ] The Collection page's `Group: Tag` view still supports click-to-collapse
       on each category exactly as today (unaffected by this change).
 - [ ] Reloading the page or switching to a different deck and back resets
-      every mode's hidden-category state to the default (Land hidden,
-      everything else visible) — no persistence across loads.
+      every mode's hidden-category state back to all-visible — no
+      persistence across loads.
 - [ ] Switching `groupBy` away and back within the same deck-viewing session
       (without a reload) preserves whatever hide/show choices were made in
       each mode.
