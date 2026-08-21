@@ -1,13 +1,13 @@
 # Notes
 ## Next features
-4. auto update db?
 5. add type grouping option to collection page
 6. In grid view, no card preview section is needed. Bump up card size in grid view a bit with the extra space. ensure text view continues to have the preview
 
 Refined into `docs/superpowers/backlog/`: commander-in-tag-groups (001),
 wider preview panel (002), larger grouped-view tiles/headers (003),
 deck category visibility checkboxes (004, amended to drop its land-default
-logic in favor of 005), type-based hide-lands toggle (005).
+logic in favor of 005), type-based hide-lands toggle (005), auto-refresh
+card DB on server startup (006).
 
 
 
