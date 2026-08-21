@@ -1416,6 +1416,19 @@ function groupCards(cards, tagField) {
   return groups;
 }
 
+// ── extractCommanderGroup ──
+/**
+ * Splits the commander out of a card array into its own group, for grouped
+ * views (deck-tag / collection-tag) that don't otherwise special-case it.
+ * Mirrors the leading Commander bucket groupCardsByType keeps internally.
+ */
+function extractCommanderGroup(cards) {
+  const commander = cards.find(c => c.is_commander);
+  if (!commander) return { commanderGroup: null, rest: cards };
+  return { commanderGroup: { label: 'Commander', cards: [commander] }, rest: cards.filter(c => !c.is_commander) };
+}
+// ── end extractCommanderGroup ──
+
 // ── groupCardsByType ──
 const DECK_TYPE_GROUP_ORDER = [
   'Creature', 'Instant', 'Sorcery', 'Enchantment',
