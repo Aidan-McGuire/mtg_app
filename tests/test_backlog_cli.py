@@ -61,6 +61,38 @@ def test_claim_is_idempotent_on_resume(tmp_path, capsys):
     assert out == "item/3-deck-page-tweak"
 
 
+def test_branch_name_prints_derived_branch_without_writing(tmp_path, capsys):
+    path = make_item(tmp_path, 3, "Deck page tweak", status="queued")
+    before = path.read_text()
+    rc = backlog_cli.main(["branch-name", str(path)])
+    assert rc == 0
+    assert capsys.readouterr().out.strip() == "item/3-deck-page-tweak"
+    assert path.read_text() == before
+    assert parse_item(path).status == "queued"
+
+
+def test_branch_name_prefers_already_assigned_branch(tmp_path, capsys):
+    path = make_item(tmp_path, 3, "Renamed since claim", branch="item/3-deck-page-tweak")
+    rc = backlog_cli.main(["branch-name", str(path)])
+    assert rc == 0
+    assert capsys.readouterr().out.strip() == "item/3-deck-page-tweak"
+
+
+def test_find_by_id_prints_matching_item_path(tmp_path, capsys):
+    make_item(tmp_path, 1, "First item")
+    target = make_item(tmp_path, 12, "Target item")
+    rc = backlog_cli.main(["find-by-id", "12", "--dir", str(tmp_path)])
+    assert rc == 0
+    assert capsys.readouterr().out.strip() == str(target)
+
+
+def test_find_by_id_returns_one_when_missing(tmp_path, capsys):
+    make_item(tmp_path, 1, "First item")
+    rc = backlog_cli.main(["find-by-id", "99", "--dir", str(tmp_path)])
+    assert rc == 1
+    assert capsys.readouterr().out.strip() == ""
+
+
 def test_finish_sets_in_review(tmp_path, capsys):
     path = make_item(tmp_path, 4, "Finished item", status="in-progress", branch="item/4-finished-item")
     rc = backlog_cli.main(["finish", str(path)])

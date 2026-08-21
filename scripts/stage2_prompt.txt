@@ -20,9 +20,10 @@ Do this:
 4. Commit after each meaningful step, so progress is never lost even if
    this run is cut off partway through.
 5. When the plan is fully done and tests pass: run
-   `python3 scripts/backlog_cli.py finish {ITEM_PATH}`, push the current
-   branch to origin, and send a push notification saying which item is
-   ready for review.
+   `python3 scripts/backlog_cli.py finish {ITEM_PATH}`, commit that status
+   change (`git add {ITEM_PATH} && git commit -m "chore: mark item
+   in-review"`), then push the current branch to origin. The status change
+   must be committed — an uncommitted write would be lost and never pushed.
 6. If you cannot finish (blocked, ambiguous spec, failing tests you can't
    resolve): stop after committing whatever progress you have. Do not run
    `finish` and do not push. Leave the item's status as in-progress —
