@@ -4,10 +4,10 @@
 2. decide how to handle deck and collection tags
 3. default tag all lands as land, including mdfc lands
 4. auto update db?
-5. deck page, commander gets own section, even when not tagged in deck
-6. deck page make card viewer on hover larger
-7. deck page, make categories larger
-8. deck page, toggle/mode to auto collapse all categories. Expand selected / highlighted category
+5. deck page, toggle/mode to auto collapse all categories. Expand selected / highlighted category
+
+Refined into `docs/superpowers/backlog/`: commander-in-tag-groups (001),
+wider preview panel (002), larger grouped-view tiles/headers (003).
 
 
 
