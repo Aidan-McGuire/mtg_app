@@ -8,9 +8,9 @@ or requiring the user to be present:
 
 1. **Backlog development** — human + Claude refine raw ideas into
    implementation-ready specs.
-2. **Implementation** — a daily scheduled task autonomously implements one
-   ready item at a time, with no human input, resuming automatically across
-   daily usage-limit interruptions.
+2. **Implementation** — a daily local scheduled job autonomously implements
+   one ready item at a time, with no human input, resuming automatically
+   across daily usage-limit interruptions.
 3. **Test** — the user reviews, tests, accepts, or requests changes on
    finished work at their own pace.
 
@@ -47,16 +47,30 @@ line in `notes.md` so the raw list only ever holds not-yet-refined ideas.
 
 ## Stage 2 — Implementation (autonomous)
 
-A **daily scheduled task** (cron-style, via a scheduled cloud agent) fires
-once a day and runs the protocol below. The same protocol can also be
-triggered **on demand**, mid-conversation, when the user explicitly asks for
-the next item to be picked up — most commonly right after accepting or
-requesting changes on an item in Stage 3, so they can immediately get another
-item moving the same day instead of waiting for tomorrow's scheduled firing.
-An on-demand run isn't a fresh, context-less session the way a scheduled
-firing is, but it still follows the identical protocol (select/claim/
-plan/build/finish, one item) so behavior stays consistent regardless of what
-triggered it.
+### Execution mechanism
+
+Runs as a **local, OS-level scheduled job** — macOS `launchd` (a `cron`-style
+daily trigger is an equivalent fallback) — that invokes the `claude` CLI
+directly against this repo's working directory once a day, non-interactively
+(e.g. `claude -p "<fixed Stage 2 protocol prompt>"`), with a fixed prompt
+pointing at this spec. This is deliberately **not** a cloud-hosted routine:
+it runs on the user's own machine against the real, already-populated local
+`mtg.db` and `image_cache/` (both `.gitignore`d, so a cloud sandbox's fresh
+git checkout would have neither and would need to rebuild them — costly on
+every firing). The tradeoff is that the job only fires if the machine is on
+and awake at the scheduled time; `launchd` can be configured to catch a
+missed run on next wake, but a firing is simply skipped (and picked up at the
+*next* scheduled time) if the machine was off, same as any other missed
+interruption in this design.
+
+The same protocol can also be triggered **on demand**, mid-conversation, when
+the user explicitly asks for the next item to be picked up — most commonly
+right after accepting or requesting changes on an item in Stage 3, so they
+can immediately get another item moving the same day instead of waiting for
+tomorrow's scheduled firing. An on-demand run isn't a fresh, context-less
+session the way a scheduled firing is, but it still follows the identical
+protocol (select/claim/plan/build/finish, one item) so behavior stays
+consistent regardless of what triggered it.
 
 Each firing follows this fixed protocol:
 
@@ -89,7 +103,8 @@ Each firing follows this fixed protocol:
    - Partial/failed completion: leave `status: in-progress` with whatever is
      committed. The next daily firing resumes at step 1 automatically —
      hitting a usage limit requires no special handling, since the next
-     scheduled firing naturally retries once the limit resets.
+     scheduled `launchd` firing naturally retries once the limit resets (or
+     an on-demand trigger can resume it sooner).
 6. Exactly **one item per firing**, then stop — regardless of remaining
    budget for that run.
 
