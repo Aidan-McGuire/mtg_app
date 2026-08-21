@@ -15,3 +15,6 @@ Each item is one `NNN-slug.md` file (NNN = zero-padded id). Frontmatter:
 Body: problem statement, approach, acceptance criteria — refined until a
 fresh session with zero context could implement it without asking anyone
 anything. Copy `TEMPLATE.md` to start a new item, using the next unused id.
+
+Operationally: the daily job logs to `.claude/stage2.log` (gitignored) and can
+be (re)installed with `scripts/install_stage2_schedule.sh`.

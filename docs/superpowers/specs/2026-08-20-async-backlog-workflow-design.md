@@ -77,16 +77,21 @@ Each firing follows this fixed protocol:
 1. **Select.** Scan `docs/superpowers/backlog/*.md`.
    - If any item has `status: in-progress`, resume that one.
    - Otherwise, among `status: queued` and `status: changes-requested` items,
-     pick the highest-priority one (changes-requested is treated as bumped to
-     `high` regardless of its stored priority, so review feedback loops close
-     quickly). Tiebreak by lowest `id`.
+     pick the highest-priority one (changes-requested is bumped *above* `high`
+     regardless of its stored priority — it strictly beats a real high-priority
+     item rather than tying with it, so review feedback loops close quickly).
+     Tiebreak by lowest `id`.
    - If nothing is queued, in-progress, or has changes requested: exit
      immediately. No commits, no branch, no notification.
-2. **Claim.** Set the item's `status: in-progress`. Create (or re-enter, if
-   resuming) an isolated `git worktree` on branch `item/<id>-<slug>`. Work
-   only happens in this worktree — the user's own working tree/session is
-   never touched, so this can safely run even if the user is mid-edit
-   elsewhere.
+2. **Claim.** Create (or re-enter, if resuming) an isolated `git worktree` on
+   branch `item/<id>-<slug>`, cut explicitly from `main`. Then, *inside that
+   worktree*, set the item's `status: in-progress` and commit that change onto
+   the item's branch. Every status transition is committed on the item's own
+   branch and never on `main`: the user's own working tree/session is never
+   touched (so this can safely run even if the user is mid-edit elsewhere), and
+   the claim survives a stray `git stash`/`git clean` in the main checkout.
+   Because the committed branch *is* the claim, an existing `item/*` branch is
+   what marks a run as a resume.
 3. **Plan.** If no implementation plan exists yet for this item, run the
    `writing-plans` skill against the item's spec to produce a plan under
    `docs/superpowers/plans/`. If resuming, read the existing plan and the
@@ -98,8 +103,10 @@ Each firing follows this fixed protocol:
    resumable progress rather than losing work.
 5. **Finish.**
    - Full completion (plan done, tests passing): set `status: in-review`,
-     push the branch to origin, send a push notification that the item is
-     ready for review.
+     commit that status change onto the item's branch, and push the branch to
+     origin. (A push notification announcing the ready-for-review item is
+     deliberately deferred for now — check `.claude/stage2.log` or the pushed
+     branch instead.)
    - Partial/failed completion: leave `status: in-progress` with whatever is
      committed. The next daily firing resumes at step 1 automatically —
      hitting a usage limit requires no special handling, since the next
@@ -126,7 +133,7 @@ whatever cadence they choose to check in:
 After either accepting or requesting changes, the user may ask, in the same
 conversation, to pick up the next item right away rather than waiting for
 tomorrow's scheduled firing. This runs the Stage 2 protocol on demand: if
-changes were just requested, that same item (now bumped to high priority) is
+changes were just requested, that same item (now bumped above high priority) is
 the natural next pick; otherwise it's whatever the normal select step
 resolves to.
 

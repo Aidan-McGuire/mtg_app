@@ -12,7 +12,7 @@
 
 - No new Python dependencies (repo has no `requirements.txt`/PyYAML today — frontmatter parsing must be hand-rolled, stdlib only).
 - Backlog item frontmatter fields, exactly as in the spec: `id`, `title`, `priority` (`high`|`medium`|`low`), `status` (`queued`|`in-progress`|`changes-requested`|`in-review`|`accepted`), `branch`, `created`.
-- Selection rule, exactly as in the spec: any `status: in-progress` item wins outright (resume); otherwise pick the highest-priority item among `status: queued` and `status: changes-requested`, with `changes-requested` always treated as `high` priority for ordering purposes only (its stored `priority` field is left untouched); tiebreak by lowest `id`.
+- Selection rule, exactly as in the spec: any `status: in-progress` item wins outright (resume); otherwise pick the highest-priority item among `status: queued` and `status: changes-requested`, with `changes-requested` always ordered *above* `high` priority — strictly beating a real high-priority item rather than tying with it — for ordering purposes only (its stored `priority` field is left untouched); tiebreak by lowest `id`.
 - Stage 2 worker: one item per invocation, then stop.
 - Stage 2 execution is local only (no cloud sandbox) — daily `launchd` job at 12:00 local time, plus an on-demand path (just running `scripts/run_stage2.sh` directly).
 - Unattended runs must use a scoped permission allowlist (not `--dangerously-skip-permissions`), so an action outside the allowlist is denied rather than prompting a human who isn't there.
@@ -255,9 +255,10 @@ class BacklogItem:
     body: str
 
     def select_priority(self) -> int:
-        """Ordering key: changes-requested is always bumped to high (stored priority is untouched)."""
+        """Ordering key: changes-requested is bumped *above* high — it strictly beats a
+        real high-priority item rather than tying with it (stored priority is untouched)."""
         if self.status == "changes-requested":
-            return PRIORITIES["high"]
+            return -1
         return PRIORITIES.get(self.priority, PRIORITIES["low"])
 
 
