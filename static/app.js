@@ -1461,38 +1461,41 @@ function sortGroupsByCollapsed(groups, collapsedState) {
 }
 // ── end sortGroupsByCollapsed ──
 
-function renderGroupSection(container, group, buildTileFn, collapsedState, allGroups = [group]) {
+function renderGroupSection(container, group, buildTileFn, opts = {}, allGroups = [group]) {
+  const { collapsedState } = opts;
   const section = document.createElement('div');
   section.className = 'group-section';
   section.dataset.label = group.label;
 
-  const isCollapsed = collapsedState.has(group.label);
+  const isCollapsed = collapsedState ? collapsedState.has(group.label) : false;
   const header = document.createElement('div');
   header.className = 'group-header' + (isCollapsed ? ' collapsed' : '');
   header.innerHTML = `
     <span class="group-header-label">${esc(group.label)}</span>
     <span class="group-header-count">${group.cards.length}</span>
-    <span class="group-header-chevron">▾</span>`;
-  header.addEventListener('click', () => {
-    if (collapsedState.has(group.label)) {
-      collapsedState.delete(group.label);
-    } else {
-      collapsedState.add(group.label);
-    }
-    header.classList.toggle('collapsed');
-    body.classList.toggle('collapsed');
+    ${collapsedState ? '<span class="group-header-chevron">▾</span>' : ''}`;
+  if (collapsedState) {
+    header.addEventListener('click', () => {
+      if (collapsedState.has(group.label)) {
+        collapsedState.delete(group.label);
+      } else {
+        collapsedState.add(group.label);
+      }
+      header.classList.toggle('collapsed');
+      body.classList.toggle('collapsed');
 
-    const ordered = sortGroupsByCollapsed(allGroups, collapsedState);
-    const idx = ordered.findIndex(g => g.label === group.label);
-    const nextLabel = ordered[idx + 1]?.label;
-    const nextEl = nextLabel
-      ? container.querySelector(`:scope > .group-section[data-label="${CSS.escape(nextLabel)}"]`)
-      : null;
-    if (section.nextElementSibling !== nextEl) {
-      if (nextEl) container.insertBefore(section, nextEl);
-      else container.appendChild(section);
-    }
-  });
+      const ordered = sortGroupsByCollapsed(allGroups, collapsedState);
+      const idx = ordered.findIndex(g => g.label === group.label);
+      const nextLabel = ordered[idx + 1]?.label;
+      const nextEl = nextLabel
+        ? container.querySelector(`:scope > .group-section[data-label="${CSS.escape(nextLabel)}"]`)
+        : null;
+      if (section.nextElementSibling !== nextEl) {
+        if (nextEl) container.insertBefore(section, nextEl);
+        else container.appendChild(section);
+      }
+    });
+  }
 
   const body = document.createElement('div');
   body.className = 'group-body' + (isCollapsed ? ' collapsed' : '');
@@ -1504,10 +1507,10 @@ function renderGroupSection(container, group, buildTileFn, collapsedState, allGr
   container.appendChild(section);
 }
 
-function renderGroupedGrid(container, groups, buildTileFn, collapsedState) {
+function renderGroupedGrid(container, groups, buildTileFn, opts = {}) {
   container.innerHTML = '';
-  const ordered = sortGroupsByCollapsed(groups, collapsedState);
-  for (const group of ordered) renderGroupSection(container, group, buildTileFn, collapsedState, groups);
+  const ordered = opts.collapsedState ? sortGroupsByCollapsed(groups, opts.collapsedState) : groups;
+  for (const group of ordered) renderGroupSection(container, group, buildTileFn, opts, groups);
 }
 
 async function loadCollectionView() {
@@ -1592,7 +1595,7 @@ function renderCollectionGrid() {
   if (collectionState.groupBy !== 'none') {
     const groups = groupCards(filtered, 'collection_tags');
     for (const g of groups) g.cards.sort(cmp);
-    renderGroupedGrid(grid, groups, card => buildCardTile(card, { showOwnedBadge: false }), collectionGroupCollapsed);
+    renderGroupedGrid(grid, groups, card => buildCardTile(card, { showOwnedBadge: false }), { collapsedState: collectionGroupCollapsed });
   } else {
     const frag = document.createDocumentFragment();
     for (const card of [...filtered].sort(cmp)) frag.appendChild(buildCardTile(card, { showOwnedBadge: false }));
@@ -1991,7 +1994,13 @@ function renderDeckGrid() {
     if (consideringCards.length) {
       groups.push({ label: 'Considering', cards: [...consideringCards].sort(cmp) });
     }
-    renderGroupedGrid(el, groups, buildDeckCardTile, deckGroupCollapsed);
+    const hidden = deckHiddenCategories[deckState.groupBy];
+    const visibleGroups = groups.filter(g => !hidden.has(g.label));
+    if (!visibleGroups.length) {
+      el.innerHTML = '<div class="deck-empty-msg">All categories hidden — check a category above to show cards.</div>';
+      return;
+    }
+    renderGroupedGrid(el, visibleGroups, buildDeckCardTile, {});
   } else {
     const sorted = [...mainCards].sort((a, b) => {
       if (a.is_commander && !b.is_commander) return -1;   // commander pinned first
@@ -2006,7 +2015,7 @@ function renderDeckGrid() {
         el,
         { label: 'Considering', cards: [...consideringCards].sort(cmp) },
         buildDeckCardTile,
-        deckGroupCollapsed
+        { collapsedState: deckGroupCollapsed }
       );
       // Full grid width for this single trailing section — it sits below the
       // flat card grid, not alongside it as another narrow column. Scoped to
@@ -2111,7 +2120,13 @@ function renderDeckText() {
     if (consideringCards.length) {
       groups.push({ label: 'Considering', cards: [...consideringCards].sort(cmp) });
     }
-    renderGroupedGrid(el, groups, buildDeckTextRow, deckGroupCollapsed);
+    const hidden = deckHiddenCategories[deckState.groupBy];
+    const visibleGroups = groups.filter(g => !hidden.has(g.label));
+    if (!visibleGroups.length) {
+      el.innerHTML = '<div class="deck-empty-msg">All categories hidden — check a category above to show cards.</div>';
+      return;
+    }
+    renderGroupedGrid(el, visibleGroups, buildDeckTextRow, {});
   } else {
     const sorted = [...mainCards].sort((a, b) => {
       if (a.is_commander && !b.is_commander) return -1;   // commander pinned first
@@ -2126,7 +2141,7 @@ function renderDeckText() {
         el,
         { label: 'Considering', cards: [...consideringCards].sort(cmp) },
         buildDeckTextRow,
-        deckGroupCollapsed
+        { collapsedState: deckGroupCollapsed }
       );
     }
   }
