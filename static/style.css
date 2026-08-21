@@ -122,9 +122,11 @@ kbd {
   overflow-y: auto;
   padding: 8px 16px 24px;
   display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-auto-rows: max-content;
   gap: 12px;
   align-content: start;
-  /* grid-template-columns and grid-auto-rows set by JS */
+  align-items: start;
 }
 
 /* ── Card tile ─────────────────────────────────────────────────────────────── */
@@ -144,8 +146,8 @@ kbd {
 
 .card-img-wrap {
   width: 100%;
-  flex: 1;
-  min-height: 0;
+  aspect-ratio: 488 / 680;
+  flex-shrink: 0;
   background: var(--surface2);
   overflow: hidden;
   position: relative;
@@ -765,8 +767,10 @@ kbd {
 /* ── Deck grid view ────────────────────────────────────────────────────────── */
 .deck-grid-view {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-auto-rows: max-content;
   gap: 10px;
+  align-items: start;
 }
 
 .deck-card-tile {
@@ -1157,7 +1161,7 @@ kbd {
 
 /* Used only for the single trailing Considering section appended below the
    flat (ungrouped) deck grid, so it spans the full grid width instead of
-   being auto-placed into one ~140px column. Do NOT apply to grouped-by-tag
+   being auto-placed into one ~240px column. Do NOT apply to grouped-by-tag
    sections (Deck or Collection) — those intentionally render as columns. */
 .group-section-full { grid-column: 1 / -1; }
 
@@ -1165,24 +1169,24 @@ kbd {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 4px;
+  padding: 8px 4px;
   cursor: pointer;
   user-select: none;
   border-bottom: 1px solid var(--border);
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   color: var(--muted);
 }
 .group-header:hover { color: var(--text); }
 
 .group-header-label {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--accent);
 }
 .group-header-count {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
 }
 .group-header-chevron {
@@ -1195,8 +1199,10 @@ kbd {
 
 .group-body {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-auto-rows: max-content;
   gap: 10px;
+  align-items: start;
 }
 .group-body.collapsed { display: none; }
 
