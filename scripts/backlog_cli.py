@@ -4,9 +4,13 @@
 See docs/superpowers/specs/2026-08-20-async-backlog-workflow-design.md.
 
 Subcommands:
-    select [--dir DIR]     Print the path of the next item to work (in-progress
+    select [--dir DIR] [--exclude-id ID ...]
+                           Print the path of the next item to work (in-progress
                            first, else highest priority among queued/
                            changes-requested). Exit 1 with no output if none.
+                           --exclude-id skips an id, so the caller can pass over
+                           items whose work is already finished and awaiting
+                           human review.
     claim ITEM_PATH        Mark an item in-progress, assigning a branch name if
                            it doesn't have one yet. Print the branch name.
     finish ITEM_PATH       Mark an item in-review. Print the branch name.
@@ -30,7 +34,8 @@ DEFAULT_BACKLOG_DIR = Path(__file__).resolve().parent.parent / "docs" / "superpo
 
 
 def cmd_select(args):
-    items = list_items(Path(args.dir))
+    excluded = set(args.exclude_id or [])
+    items = [i for i in list_items(Path(args.dir)) if i.id not in excluded]
     chosen = select_next(items)
     if chosen is None:
         return 1
@@ -76,6 +81,13 @@ def main(argv=None):
 
     select_parser = sub.add_parser("select")
     select_parser.add_argument("--dir", default=str(DEFAULT_BACKLOG_DIR))
+    select_parser.add_argument(
+        "--exclude-id",
+        type=int,
+        action="append",
+        help="skip this item id when selecting (repeatable); used by the Stage 2 "
+        "wrapper to pass over items already finished and awaiting human review",
+    )
 
     claim_parser = sub.add_parser("claim")
     claim_parser.add_argument("item_path")

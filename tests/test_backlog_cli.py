@@ -42,6 +42,32 @@ def test_select_returns_one_when_nothing_actionable(tmp_path, capsys):
     assert capsys.readouterr().out.strip() == ""
 
 
+def test_select_skips_excluded_ids(tmp_path, capsys):
+    make_item(tmp_path, 1, "Awaiting review", priority="high", status="queued")
+    second = make_item(tmp_path, 2, "Next up", priority="medium", status="queued")
+    rc = backlog_cli.main(["select", "--dir", str(tmp_path), "--exclude-id", "1"])
+    assert rc == 0
+    assert capsys.readouterr().out.strip() == str(second)
+
+
+def test_select_accepts_repeated_exclude_ids(tmp_path, capsys):
+    make_item(tmp_path, 1, "First", priority="high", status="queued")
+    make_item(tmp_path, 2, "Second", priority="high", status="queued")
+    third = make_item(tmp_path, 3, "Third", priority="low", status="queued")
+    rc = backlog_cli.main(
+        ["select", "--dir", str(tmp_path), "--exclude-id", "1", "--exclude-id", "2"]
+    )
+    assert rc == 0
+    assert capsys.readouterr().out.strip() == str(third)
+
+
+def test_select_returns_one_when_every_candidate_is_excluded(tmp_path, capsys):
+    make_item(tmp_path, 1, "Only item", priority="high", status="queued")
+    rc = backlog_cli.main(["select", "--dir", str(tmp_path), "--exclude-id", "1"])
+    assert rc == 1
+    assert capsys.readouterr().out.strip() == ""
+
+
 def test_claim_sets_in_progress_and_branch(tmp_path, capsys):
     path = make_item(tmp_path, 3, "Deck page tweak", priority="medium", status="queued")
     rc = backlog_cli.main(["claim", str(path)])
