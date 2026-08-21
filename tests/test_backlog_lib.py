@@ -3,7 +3,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
-from backlog_lib import parse_item, write_item, list_items, select_next, slugify
+from backlog_lib import (
+    branch_name,
+    list_items,
+    parse_item,
+    select_next,
+    slugify,
+    write_item,
+)
 
 
 ITEM_TEMPLATE = """---
@@ -102,6 +109,36 @@ def test_list_items_ignores_non_item_markdown_files(tmp_path):
     items = list_items(tmp_path)
     assert len(items) == 1
     assert items[0].title == "Real item"
+
+
+def test_list_items_skips_malformed_item_file_with_warning(tmp_path, capsys):
+    make_item(tmp_path, 1, "Real item")
+    # Matches the item filename pattern (as this repo's dated doc names do) but
+    # has no parseable frontmatter — must not take the whole listing down.
+    (tmp_path / "2026-08-20-scratch-notes.md").write_text("just some notes, no frontmatter\n")
+    items = list_items(tmp_path)
+    assert [i.title for i in items] == ["Real item"]
+    assert "2026-08-20-scratch-notes.md" in capsys.readouterr().err
+
+
+def test_write_item_zero_pads_id_on_disk(tmp_path):
+    path = make_item(tmp_path, 7, "Padding test")
+    item = parse_item(path)
+    write_item(item)
+    assert "id: 007" in path.read_text()
+    assert parse_item(path).id == 7
+
+
+def test_write_item_does_not_truncate_larger_ids(tmp_path):
+    path = make_item(tmp_path, 1234, "Big id")
+    item = parse_item(path)
+    write_item(item)
+    assert "id: 1234" in path.read_text()
+
+
+def test_branch_name_derives_from_id_and_title(tmp_path):
+    item = parse_item(make_item(tmp_path, 3, "Deck page tweak"))
+    assert branch_name(item) == "item/3-deck-page-tweak"
 
 
 def test_slugify():

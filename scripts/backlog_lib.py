@@ -5,6 +5,7 @@ See docs/superpowers/specs/2026-08-20-async-backlog-workflow-design.md.
 from __future__ import annotations
 
 import re
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -26,7 +27,8 @@ class BacklogItem:
     body: str
 
     def select_priority(self) -> int:
-        """Ordering key: changes-requested is always bumped to high (stored priority is untouched)."""
+        """Ordering key: changes-requested is bumped *above* high — it strictly beats a
+        real high-priority item rather than tying with it (stored priority is untouched)."""
         if self.status == "changes-requested":
             return -1
         return PRIORITIES.get(self.priority, PRIORITIES["low"])
@@ -58,7 +60,7 @@ def parse_item(path: Path) -> BacklogItem:
 
 def write_item(item: BacklogItem) -> None:
     frontmatter_lines = [
-        f"id: {item.id}",
+        f"id: {item.id:03d}",
         f"title: {item.title}",
         f"priority: {item.priority}",
         f"status: {item.status}",
@@ -70,12 +72,22 @@ def write_item(item: BacklogItem) -> None:
 
 
 def list_items(backlog_dir: Path) -> list[BacklogItem]:
+    """Parse every backlog item in backlog_dir.
+
+    A file that looks like an item by name but fails to parse is skipped with a
+    warning on stderr rather than raising: one malformed or non-item .md file
+    dropped into the backlog directory must not take down the whole workflow.
+    """
     item_pattern = re.compile(r"^\d+-.+\.md$")
-    return [
-        parse_item(p)
-        for p in sorted(Path(backlog_dir).glob("*.md"))
-        if item_pattern.match(p.name)
-    ]
+    items = []
+    for p in sorted(Path(backlog_dir).glob("*.md")):
+        if not item_pattern.match(p.name):
+            continue
+        try:
+            items.append(parse_item(p))
+        except Exception as exc:
+            print(f"warning: skipping unparseable backlog file {p.name}: {exc}", file=sys.stderr)
+    return items
 
 
 def select_next(items: list[BacklogItem]) -> BacklogItem | None:
@@ -91,3 +103,8 @@ def select_next(items: list[BacklogItem]) -> BacklogItem | None:
 def slugify(text: str) -> str:
     slug = re.sub(r"[^a-zA-Z0-9]+", "-", text.strip().lower())
     return slug.strip("-")
+
+
+def branch_name(item: BacklogItem) -> str:
+    """The canonical branch name for an item: item/<id>-<slug-of-title>."""
+    return f"item/{item.id}-{slugify(item.title)}"
