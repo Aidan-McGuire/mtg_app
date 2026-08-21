@@ -2,8 +2,8 @@
 id: 004
 title: Deck page category visibility checkboxes, replacing click-to-collapse
 priority: medium
-status: queued
-branch:
+status: in-review
+branch: item/4-deck-page-category-visibility-checkboxes-replacing-click-to-collapse
 created: 2026-08-21
 ---
 
