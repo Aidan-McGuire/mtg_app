@@ -74,24 +74,47 @@ consistent regardless of what triggered it.
 
 Each firing follows this fixed protocol:
 
-1. **Select.** Scan `docs/superpowers/backlog/*.md`.
-   - If any item has `status: in-progress`, resume that one.
-   - Otherwise, among `status: queued` and `status: changes-requested` items,
-     pick the highest-priority one (changes-requested is bumped *above* `high`
+Because every status transition is committed on the item's own branch (see
+step 2), `main`'s copy of an item only ever holds `queued` or
+`changes-requested` — or is gone entirely, deleted on accept. `in-progress` and
+`in-review` live exclusively on the item's branch. Selection reads both places
+accordingly:
+
+1. **Select.** First check for an unfinished run to resume: if an `item/*`
+   branch exists *and that branch's own copy* of its item file (found by the id
+   in the branch name, read straight out of the branch with `git show` — no
+   checkout needed) still says `status: in-progress`, resume that branch.
+   - A branch whose item says `in-review` is finished work waiting on the human
+     in Stage 3, not a resume target. It is skipped, so a completed item's
+     lingering branch never starves the rest of the backlog.
+   - Otherwise, scan `main`'s `docs/superpowers/backlog/*.md` and, among
+     `status: queued` and `status: changes-requested` items, pick the
+     highest-priority one (changes-requested is bumped *above* `high`
      regardless of its stored priority — it strictly beats a real high-priority
      item rather than tying with it, so review feedback loops close quickly).
      Tiebreak by lowest `id`.
-   - If nothing is queued, in-progress, or has changes requested: exit
-     immediately. No commits, no branch, no notification.
-2. **Claim.** Create (or re-enter, if resuming) an isolated `git worktree` on
-   branch `item/<id>-<slug>`, cut explicitly from `main`. Then, *inside that
-   worktree*, set the item's `status: in-progress` and commit that change onto
-   the item's branch. Every status transition is committed on the item's own
+   - A selected item whose branch already exists needs one more check, because
+     main's copy still reads `queued` for work that is finished but not yet
+     accepted. If the branch says `in-review` and main does *not* say
+     `changes-requested`, that item is awaiting the human in Stage 3: skip it
+     (`select --exclude-id`) and take the next candidate, so one un-reviewed
+     item cannot starve the rest of the backlog. If main says
+     `changes-requested`, it is a rework — proceed to step 2.
+   - If there is nothing to resume, and nothing queued or with changes
+     requested that isn't already awaiting review: exit immediately. No
+     commits, no branch, no notification.
+2. **Claim.** Create (or re-enter) an isolated `git worktree` on branch
+   `item/<id>-<slug>`. If that branch does not exist yet, cut it explicitly from
+   `main`. If it *does* already exist, this is a changes-requested rework: reuse
+   the branch, and first copy `main`'s current version of the item file over the
+   branch's stale copy, so the human's `## Review feedback` section and status
+   make it onto the branch. Then, *inside that worktree*, set the item's
+   `status: in-progress` and commit that change onto the item's branch (claiming
+   only rewrites frontmatter and preserves the body verbatim, so the synced-in
+   feedback survives). Every status transition is committed on the item's own
    branch and never on `main`: the user's own working tree/session is never
    touched (so this can safely run even if the user is mid-edit elsewhere), and
    the claim survives a stray `git stash`/`git clean` in the main checkout.
-   Because the committed branch *is* the claim, an existing `item/*` branch is
-   what marks a run as a resume.
 3. **Plan.** If no implementation plan exists yet for this item, run the
    `writing-plans` skill against the item's spec to produce a plan under
    `docs/superpowers/plans/`. If resuming, read the existing plan and the
@@ -117,8 +140,10 @@ Each firing follows this fixed protocol:
 
 ## Stage 3 — Test (human-paced)
 
-Any item with `status: in-review` has a pushed branch waiting on the user, on
-whatever cadence they choose to check in:
+An item whose *branch* has `status: in-review` has a pushed branch waiting on
+the user, on whatever cadence they choose to check in (`main`'s copy of that
+item still reads `queued` or `changes-requested` — status only moves on the
+branch):
 
 - **Test**: check out the branch/worktree, exercise the change in the running
   app.
@@ -126,9 +151,13 @@ whatever cadence they choose to check in:
   the branch/worktree, and delete the backlog item file (git history retains
   it; nothing further to track).
 - **Request changes**: append a `## Review feedback` section to the item's
-  file with what needs to change, set `status: changes-requested`. The next
-  Stage 2 firing picks it up ahead of untouched queued work (see Stage 2,
-  step 1) and continues on the *same* branch rather than restarting.
+  file **on `main`** with what needs to change, and set
+  `status: changes-requested` there. The branch is left alone. The next Stage 2
+  firing skips that branch as a resume target (its item still says `in-review`),
+  finds the item again through the normal select scan of `main` — ahead of
+  untouched queued work, since changes-requested outranks `high` — and then
+  reuses the *same* branch, syncing `main`'s updated item file (feedback and
+  all) onto it before claiming, rather than restarting from scratch.
 
 After either accepting or requesting changes, the user may ask, in the same
 conversation, to pick up the next item right away rather than waiting for
