@@ -1356,6 +1356,12 @@ function resetDeckGroupCollapsed() {
   deckGroupCollapsed.add('Considering');
 }
 
+const deckHiddenCategories = { type: new Set(), 'collection-tag': new Set(), 'deck-tag': new Set() };
+
+function resetDeckHiddenCategories() {
+  for (const key of Object.keys(deckHiddenCategories)) deckHiddenCategories[key].clear();
+}
+
 /**
  * Groups an array of card objects by a tag field.
  * Returns [{label, cards}, ...] sorted alphabetically, "Untagged" last.
@@ -1881,6 +1887,7 @@ async function selectDeck(id) {
   deckState.query = '';                   // reset content search between decks
   deckState.focusedCardId = null;         // reset preview-panel focus between decks
   resetDeckGroupCollapsed();              // Considering starts collapsed for every freshly loaded deck
+  resetDeckHiddenCategories();            // every category starts visible for every freshly loaded deck
   const searchInput = document.getElementById('deck-content-search');
   if (searchInput) searchInput.value = '';
   renderDeckSwitchResults();
