@@ -70,10 +70,11 @@ def write_item(item: BacklogItem) -> None:
 
 
 def list_items(backlog_dir: Path) -> list[BacklogItem]:
+    item_pattern = re.compile(r"^\d+-.+\.md$")
     return [
         parse_item(p)
         for p in sorted(Path(backlog_dir).glob("*.md"))
-        if p.name != "TEMPLATE.md"
+        if item_pattern.match(p.name)
     ]
 
 

@@ -95,6 +95,15 @@ def test_select_next_returns_none_when_nothing_actionable(tmp_path):
     assert select_next(list_items(tmp_path)) is None
 
 
+def test_list_items_ignores_non_item_markdown_files(tmp_path):
+    make_item(tmp_path, 1, "Real item")
+    (tmp_path / "README.md").write_text("# Documentation")
+    (tmp_path / "TEMPLATE.md").write_text("---\nid: 0\ntitle:\npriority: medium\nstatus: queued\nbranch:\ncreated:\n---\n")
+    items = list_items(tmp_path)
+    assert len(items) == 1
+    assert items[0].title == "Real item"
+
+
 def test_slugify():
     assert slugify("Commander gets own section!") == "commander-gets-own-section"
     assert slugify("  Trim -- me  ") == "trim-me"
