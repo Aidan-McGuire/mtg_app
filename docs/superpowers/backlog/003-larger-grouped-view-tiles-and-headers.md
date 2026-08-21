@@ -2,7 +2,7 @@
 id: 003
 title: Larger card tiles and more prominent headers in grouped views
 priority: medium
-status: in-progress
+status: in-review
 branch: item/3-larger-card-tiles-and-more-prominent-headers-in-grouped-views
 created: 2026-08-21
 ---
