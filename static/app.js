@@ -1429,6 +1429,19 @@ function extractCommanderGroup(cards) {
 }
 // ── end extractCommanderGroup ──
 
+/**
+ * Shared grouping logic for renderDeckGrid/renderDeckText's non-'none'
+ * branch: type mode uses groupCardsByType's own Commander bucket, while
+ * tag modes extract the commander first so it doesn't land in a tag group.
+ */
+function groupMainCardsForRender(mainCards, groupBy) {
+  if (groupBy === 'type') return groupCardsByType(mainCards);
+  const { commanderGroup, rest } = extractCommanderGroup(mainCards);
+  const groups = groupCards(rest, groupBy === 'deck-tag' ? 'deck_tags' : 'collection_tags');
+  if (commanderGroup) groups.unshift(commanderGroup);
+  return groups;
+}
+
 // ── groupCardsByType ──
 const DECK_TYPE_GROUP_ORDER = [
   'Creature', 'Instant', 'Sorcery', 'Enchantment',
@@ -1998,14 +2011,7 @@ function renderDeckGrid() {
   const consideringCards = filtered.filter(c => c.is_considering);
 
   if (deckState.groupBy !== 'none') {
-    let groups;
-    if (deckState.groupBy === 'type') {
-      groups = groupCardsByType(mainCards);
-    } else {
-      const { commanderGroup, rest } = extractCommanderGroup(mainCards);
-      groups = groupCards(rest, deckState.groupBy === 'deck-tag' ? 'deck_tags' : 'collection_tags');
-      if (commanderGroup) groups.unshift(commanderGroup);
-    }
+    const groups = groupMainCardsForRender(mainCards, deckState.groupBy);
     for (const g of groups) g.cards.sort(cmp);
     if (consideringCards.length) {
       groups.push({ label: 'Considering', cards: [...consideringCards].sort(cmp) });
@@ -2125,14 +2131,7 @@ function renderDeckText() {
   const consideringCards = filtered.filter(c => c.is_considering);
 
   if (deckState.groupBy !== 'none') {
-    let groups;
-    if (deckState.groupBy === 'type') {
-      groups = groupCardsByType(mainCards);
-    } else {
-      const { commanderGroup, rest } = extractCommanderGroup(mainCards);
-      groups = groupCards(rest, deckState.groupBy === 'deck-tag' ? 'deck_tags' : 'collection_tags');
-      if (commanderGroup) groups.unshift(commanderGroup);
-    }
+    const groups = groupMainCardsForRender(mainCards, deckState.groupBy);
     for (const g of groups) g.cards.sort(cmp);
     if (consideringCards.length) {
       groups.push({ label: 'Considering', cards: [...consideringCards].sort(cmp) });
