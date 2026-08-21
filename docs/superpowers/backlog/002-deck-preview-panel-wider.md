@@ -2,7 +2,7 @@
 id: 002
 title: Widen deck-page hover/focus preview panel
 priority: medium
-status: in-progress
+status: in-review
 branch: item/2-widen-deck-page-hover-focus-preview-panel
 created: 2026-08-21
 ---
