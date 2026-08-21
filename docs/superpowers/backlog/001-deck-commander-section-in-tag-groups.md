@@ -2,8 +2,8 @@
 id: 001
 title: Commander gets exclusive section in deck/collection-tag grouped views
 priority: medium
-status: queued
-branch:
+status: in-progress
+branch: item/1-commander-gets-exclusive-section-in-deck-collection-tag-grouped-views
 created: 2026-08-21
 ---
 
