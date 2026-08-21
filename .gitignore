@@ -15,3 +15,6 @@ image_cache
 
 # Subagent-driven-development workspace (per-plan scratch)
 .superpowers/
+
+# Per-plan isolated git worktrees
+.claude/worktrees/
