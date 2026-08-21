@@ -1165,24 +1165,24 @@ kbd {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 4px;
+  padding: 8px 4px;
   cursor: pointer;
   user-select: none;
   border-bottom: 1px solid var(--border);
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   color: var(--muted);
 }
 .group-header:hover { color: var(--text); }
 
 .group-header-label {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--accent);
 }
 .group-header-count {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
 }
 .group-header-chevron {
@@ -1195,7 +1195,7 @@ kbd {
 
 .group-body {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
   gap: 10px;
 }
 .group-body.collapsed { display: none; }
