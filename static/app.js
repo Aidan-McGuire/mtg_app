@@ -1317,43 +1317,11 @@ document.getElementById('modal-overlay').addEventListener('click', e => {
   if (e.target === document.getElementById('modal-overlay')) closeModal();
 });
 
-// ── Grid sizing ───────────────────────────────────────────────────────────────
-
-const CARD_ASPECT = 680 / 488; // height / width of a magic card
-const GRID_GAP    = 12;
-const GRID_PAD_X  = 32;  // 16px left + 16px right
-const GRID_PAD_Y  = 32;  // 8px top + 24px bottom
-const INFO_H      = 78;  // fixed height of .card-info section
-const MIN_CARD_W  = 240; // minimum card width before adding another column
-
-function computeGrid(gridEl) {
-  if (!gridEl) return;
-
-  const W = gridEl.clientWidth  - GRID_PAD_X;
-  const H = gridEl.clientHeight - GRID_PAD_Y;
-  if (W <= 0 || H <= 0) return;
-
-  const N     = Math.max(1, Math.floor((W + GRID_GAP) / (MIN_CARD_W + GRID_GAP)));
-  const cardW = (W - GRID_GAP * (N - 1)) / N;
-  const cardH = Math.floor(cardW * CARD_ASPECT + INFO_H);
-
-  gridEl.style.gridTemplateColumns = `repeat(${N}, 1fr)`;
-  gridEl.style.gridAutoRows        = `${cardH}px`;
-}
-
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 async function init() {
   await loadCollection();
   setupInfiniteScroll();
-
-  // Size both card grids before first paint, keep in sync with resizes
-  const browserGrid    = document.getElementById('card-grid');
-  const collectionGrid = document.getElementById('collection-grid');
-  computeGrid(browserGrid);
-  computeGrid(collectionGrid);
-  new ResizeObserver(() => computeGrid(browserGrid)).observe(browserGrid);
-  new ResizeObserver(() => computeGrid(collectionGrid)).observe(collectionGrid);
 
   state.filter = makeFilterModel();
   buildFilterControls(document.getElementById('browser-filter-controls'), {
