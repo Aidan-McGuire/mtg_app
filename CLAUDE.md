@@ -55,3 +55,10 @@ python main.py       # initialize the database
 python importer.py   # download and import cards from Scryfall
 uvicorn app:app --reload # start the dev server (once app.py exists)
 ```
+
+## Async Backlog Workflow
+
+Refined, ready-to-implement work lives in `docs/superpowers/backlog/` and is
+picked up autonomously by a daily local `launchd` job running
+`scripts/run_stage2.sh`. Full protocol:
+`docs/superpowers/specs/2026-08-20-async-backlog-workflow-design.md`.
