@@ -1423,9 +1423,9 @@ function groupCards(cards, tagField) {
  * Mirrors the leading Commander bucket groupCardsByType keeps internally.
  */
 function extractCommanderGroup(cards) {
-  const commander = cards.find(c => c.is_commander);
-  if (!commander) return { commanderGroup: null, rest: cards };
-  return { commanderGroup: { label: 'Commander', cards: [commander] }, rest: cards.filter(c => !c.is_commander) };
+  const commanders = cards.filter(c => c.is_commander);
+  if (!commanders.length) return { commanderGroup: null, rest: cards };
+  return { commanderGroup: { label: 'Commander', cards: commanders }, rest: cards.filter(c => !c.is_commander) };
 }
 // ── end extractCommanderGroup ──
 

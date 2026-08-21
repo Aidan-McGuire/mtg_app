@@ -17,6 +17,7 @@ assert.ok(from !== -1 && to > from, 'extractCommanderGroup sentinel comments not
 const extractCommanderGroup = new Function(`${src.slice(from, to)}; return extractCommanderGroup;`)();
 
 const commander = { id: 'c', name: 'Atraxa', is_commander: true };
+const commander2 = { id: 'c2', name: 'Thrasios', is_commander: true };
 const tagged     = { id: 't', name: 'Bear',   is_commander: false, deck_tags: ['ramp'] };
 const untagged   = { id: 'u', name: 'Bolt',   is_commander: false, deck_tags: [] };
 
@@ -59,5 +60,19 @@ function check(label, actual, expected) {
   );
 }
 
-console.log(failed ? `\n${failed} failing` : `\nall 4 checks passing`);
+{
+  const { commanderGroup, rest } = extractCommanderGroup([tagged, commander, untagged, commander2]);
+  check(
+    'both partner commanders land in commanderGroup, none dropped',
+    commanderGroup,
+    { label: 'Commander', cards: [commander, commander2] }
+  );
+  check(
+    'rest excludes both commanders, preserves order',
+    rest.map(c => c.id),
+    ['t', 'u']
+  );
+}
+
+console.log(failed ? `\n${failed} failing` : `\nall 6 checks passing`);
 process.exit(failed ? 1 : 0);
