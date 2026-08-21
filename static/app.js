@@ -1200,8 +1200,8 @@ document.addEventListener('keydown', e => {
   }
 
   if (e.key === 'Escape') {
-    const openPanel = document.querySelector('.filter-panel:not(.hidden), .categories-panel:not(.hidden)');
-    if (openPanel) { openPanel.classList.add('hidden'); return; }
+    const openPanels = document.querySelectorAll('.filter-panel:not(.hidden), .categories-panel:not(.hidden)');
+    if (openPanels.length) { openPanels.forEach(p => p.classList.add('hidden')); return; }
     if (!document.getElementById('import-overlay').classList.contains('hidden')) {
       closeImportModal(); return;
     }
@@ -1980,6 +1980,10 @@ function renderDeckContent() {
 
 function renderDeckCategoryControls() {
   const container = document.getElementById('deck-category-controls');
+  // A checkbox's own 'change' handler calls renderDeckContent(), which calls
+  // this function again — read whether the panel was open BEFORE wiping it,
+  // so toggling a category doesn't force the panel shut on every click.
+  const wasOpen = !!container.querySelector('.categories-panel:not(.hidden)');
   container.className = 'filter-bar';
   if (deckState.groupBy === 'none') { container.innerHTML = ''; return; }
 
@@ -1994,7 +1998,7 @@ function renderDeckCategoryControls() {
   btn.className = 'categories-btn action-btn';
   btn.textContent = 'Categories';
   const panel = document.createElement('div');
-  panel.className = 'categories-panel hidden';
+  panel.className = 'categories-panel' + (wasOpen ? '' : ' hidden');
   btn.addEventListener('click', () => panel.classList.toggle('hidden'));
 
   for (const g of groups) {
