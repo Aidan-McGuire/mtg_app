@@ -48,8 +48,16 @@ line in `notes.md` so the raw list only ever holds not-yet-refined ideas.
 ## Stage 2 — Implementation (autonomous)
 
 A **daily scheduled task** (cron-style, via a scheduled cloud agent) fires
-once a day. Each firing is a brand-new session with no memory of prior
-firings — all state needed to act must be reconstructed from the repo itself.
+once a day and runs the protocol below. The same protocol can also be
+triggered **on demand**, mid-conversation, when the user explicitly asks for
+the next item to be picked up — most commonly right after accepting or
+requesting changes on an item in Stage 3, so they can immediately get another
+item moving the same day instead of waiting for tomorrow's scheduled firing.
+An on-demand run isn't a fresh, context-less session the way a scheduled
+firing is, but it still follows the identical protocol (select/claim/
+plan/build/finish, one item) so behavior stays consistent regardless of what
+triggered it.
+
 Each firing follows this fixed protocol:
 
 1. **Select.** Scan `docs/superpowers/backlog/*.md`.
@@ -99,6 +107,13 @@ whatever cadence they choose to check in:
   file with what needs to change, set `status: changes-requested`. The next
   Stage 2 firing picks it up ahead of untouched queued work (see Stage 2,
   step 1) and continues on the *same* branch rather than restarting.
+
+After either accepting or requesting changes, the user may ask, in the same
+conversation, to pick up the next item right away rather than waiting for
+tomorrow's scheduled firing. This runs the Stage 2 protocol on demand: if
+changes were just requested, that same item (now bumped to high priority) is
+the natural next pick; otherwise it's whatever the normal select step
+resolves to.
 
 ## Out of scope
 
