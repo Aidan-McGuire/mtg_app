@@ -1200,7 +1200,7 @@ document.addEventListener('keydown', e => {
   }
 
   if (e.key === 'Escape') {
-    const openPanel = document.querySelector('.filter-panel:not(.hidden)');
+    const openPanel = document.querySelector('.filter-panel:not(.hidden), .categories-panel:not(.hidden)');
     if (openPanel) { openPanel.classList.add('hidden'); return; }
     if (!document.getElementById('import-overlay').classList.contains('hidden')) {
       closeImportModal(); return;
@@ -1271,7 +1271,7 @@ document.addEventListener('keydown', e => {
 // Close any open filter panel when clicking outside a filter bar.
 document.addEventListener('click', e => {
   if (!e.target.closest('.filter-bar')) {
-    document.querySelectorAll('.filter-panel:not(.hidden)').forEach(p => p.classList.add('hidden'));
+    document.querySelectorAll('.filter-panel:not(.hidden), .categories-panel:not(.hidden)').forEach(p => p.classList.add('hidden'));
   }
 });
 
@@ -1964,6 +1964,8 @@ function renderDeckContent() {
   document.getElementById('deck-editor-name').textContent =
     deck ? `${deck.name} (${total})` : `(${total})`;
 
+  renderDeckCategoryControls();
+
   if (deckState.deckView === 'grid') {
     renderDeckGrid();
     document.getElementById('deck-grid-view').classList.remove('hidden');
@@ -1974,6 +1976,44 @@ function renderDeckContent() {
     document.getElementById('deck-grid-view').classList.add('hidden');
   }
   renderDeckPreviewPanel();
+}
+
+function renderDeckCategoryControls() {
+  const container = document.getElementById('deck-category-controls');
+  container.className = 'filter-bar';
+  if (deckState.groupBy === 'none') { container.innerHTML = ''; return; }
+
+  const mainCards = deckState.deckCards.filter(c => !c.is_considering);
+  const groups = groupMainCardsForRender(mainCards, deckState.groupBy);
+  if (deckState.deckCards.some(c => c.is_considering)) groups.push({ label: 'Considering', cards: [] });
+
+  const hidden = deckHiddenCategories[deckState.groupBy];
+  container.innerHTML = '';
+
+  const btn = document.createElement('button');
+  btn.className = 'categories-btn action-btn';
+  btn.textContent = 'Categories';
+  const panel = document.createElement('div');
+  panel.className = 'categories-panel hidden';
+  btn.addEventListener('click', () => panel.classList.toggle('hidden'));
+
+  for (const g of groups) {
+    const lab = document.createElement('label');
+    lab.className = 'check-pill';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = !hidden.has(g.label);
+    cb.addEventListener('change', () => {
+      if (cb.checked) hidden.delete(g.label); else hidden.add(g.label);
+      renderDeckContent();
+    });
+    lab.appendChild(cb);
+    lab.appendChild(document.createTextNode(g.label));
+    panel.appendChild(lab);
+  }
+
+  container.appendChild(btn);
+  container.appendChild(panel);
 }
 
 function renderDeckGrid() {

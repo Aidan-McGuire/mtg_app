@@ -1212,11 +1212,11 @@ kbd {
 .filter-badge { display: inline-block; min-width: 16px; padding: 0 4px; border-radius: 8px;
   background: #c33; color: #fff; font-size: 11px; text-align: center; }
 .filter-badge.hidden { display: none; }
-.filter-panel { position: absolute; top: 110%; left: 0; z-index: 20;
+.filter-panel, .categories-panel { position: absolute; top: 110%; left: 0; z-index: 20;
   background: #1e1e24; border: 1px solid #444; border-radius: 6px; padding: 12px;
   display: flex; flex-direction: column; gap: 10px; min-width: 340px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.4); }
-.filter-panel.hidden { display: none; }
+.filter-panel.hidden, .categories-panel.hidden { display: none; }
 .filter-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .filter-group-label { font-size: 12px; opacity: 0.7; width: 96px; }
 .color-btn { width: 26px; height: 26px; border-radius: 50%; border: 1px solid #555;
