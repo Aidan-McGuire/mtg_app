@@ -2,7 +2,7 @@
 id: 001
 title: Commander gets exclusive section in deck/collection-tag grouped views
 priority: medium
-status: in-review
+status: in-progress
 branch: item/1-commander-gets-exclusive-section-in-deck-collection-tag-grouped-views
 created: 2026-08-21
 ---
@@ -82,3 +82,64 @@ its call sites on the deck page. Collection cards don't carry a meaningful
 - [ ] The collection page's grouped-by-tag view is unaffected.
 - [ ] A deck with no commander designated renders grouped views exactly as
       it does today (no empty `Commander` section appears).
+
+## Review feedback
+
+Code review on `item/1-commander-gets-exclusive-section-in-deck-collection-tag-grouped-views`
+found a data-loss bug in the implementation. Note: this repo's app has no
+constraint against multiple `is_commander=true` rows in `deck_cards` (partner
+commanders) — `toggleCommander` and `PATCH /api/decks/{id}/cards/{card_id}`
+only ever set/clear the flag on the single clicked card — so this is a
+reachable, real state, not a hypothetical.
+
+**Blocking bug** — `extractCommanderGroup` (`static/app.js` ~line 1425)
+mismatches its own `find` and `filter`:
+
+```js
+function extractCommanderGroup(cards) {
+  const commander = cards.find(c => c.is_commander);
+  if (!commander) return { commanderGroup: null, rest: cards };
+  return { commanderGroup: { label: 'Commander', cards: [commander] }, rest: cards.filter(c => !c.is_commander) };
+}
+```
+
+`cards.find(...)` keeps only the *first* commander-flagged card, but
+`cards.filter(c => !c.is_commander)` strips *every* commander-flagged card out
+of `rest`. In a deck with two `is_commander` cards, the second one is dropped
+from both `commanderGroup.cards` and `rest` — it disappears entirely from the
+grid/text view under `groupBy: 'deck-tag'`/`'collection-tag'`, while still
+counting toward the deck total. `groupCardsByType` (the existing `type`-mode
+handler, unchanged by this item) does not have this bug — it loops and pushes
+every `is_commander` card into its `Commander` bucket — so the same deck now
+renders inconsistently across group-by modes.
+
+(Note: this exact flawed snippet came from this item's own "Approach"
+section above — fix the code to match the fix below rather than the spec as
+originally written.)
+
+Fix: collect *all* commander-flagged cards, not just the first:
+
+```js
+function extractCommanderGroup(cards) {
+  const commanders = cards.filter(c => c.is_commander);
+  if (!commanders.length) return { commanderGroup: null, rest: cards };
+  return { commanderGroup: { label: 'Commander', cards: commanders }, rest: cards.filter(c => !c.is_commander) };
+}
+```
+
+Add a regression test in `tests/js/extract-commander-group.test.mjs` covering
+a two-commander input (both must land in `commanderGroup.cards`, neither in
+`rest`) — the existing tests only cover zero/one commander.
+
+**Also noticed, non-blocking (fix only if time allows; do not let these
+block re-finishing this item):**
+
+- The new Commander group's collapse state (`deckGroupCollapsed`, keyed by
+  the label `'Commander'`) is shared with `groupCardsByType`'s own Commander
+  bucket. Collapsing Commander under `groupBy: 'type'` leaves it
+  pre-collapsed after switching to `groupBy: 'deck-tag'`/`'collection-tag'`,
+  and vice versa, even though the user never touched it in that mode.
+- The commander-extraction `if`/`else` block is duplicated verbatim between
+  `renderDeckGrid` and `renderDeckText` rather than factored into one shared
+  helper — a future change to the extraction logic has to be applied in both
+  places.
