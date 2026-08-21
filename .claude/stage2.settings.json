@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 scripts/backlog_cli.py *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(pytest *)",
+      "Bash(python3 *)",
+      "Bash(python main.py)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git log *)",
+      "Bash(git branch --show-current)",
+      "Bash(git push origin item/*)",
+      "Bash(uvicorn app:app *)",
+      "Bash(pkill -f \"uvicorn app:app*\")",
+      "Bash(curl -s http://127.0.0.1:*)"
+    ],
+    "deny": [
+      "Bash(git push origin main*)",
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git reset --hard*)",
+      "Bash(git checkout main*)",
+      "Bash(git merge*)",
+      "Bash(git worktree remove*)",
+      "Bash(rm -rf*)"
+    ]
+  }
+}

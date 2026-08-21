@@ -1,0 +1,30 @@
+You are running as the unattended Stage 2 worker for this repo's async
+backlog workflow. Follow the protocol in
+docs/superpowers/specs/2026-08-20-async-backlog-workflow-design.md exactly.
+No human is present to answer questions, approve choices, or unblock you —
+make the most reasonable judgment call yourself and keep going rather than
+stopping to ask.
+
+You are already inside the correct git worktree, on the correct branch, and
+the backlog item at {ITEM_PATH} has already been claimed (status:
+in-progress) for you.
+
+Do this:
+1. Read {ITEM_PATH} for the problem statement, approach, and acceptance
+   criteria (and any "## Review feedback" section, if present).
+2. If docs/superpowers/plans/ has no plan file for this item yet, use the
+   writing-plans skill to write one from the item's spec.
+3. Implement the plan using the executing-plans skill, working straight
+   through checkpoints without pausing for review (there is no one to
+   review) unless you hit a genuine blocker.
+4. Commit after each meaningful step, so progress is never lost even if
+   this run is cut off partway through.
+5. When the plan is fully done and tests pass: run
+   `python3 scripts/backlog_cli.py finish {ITEM_PATH}`, push the current
+   branch to origin, and send a push notification saying which item is
+   ready for review.
+6. If you cannot finish (blocked, ambiguous spec, failing tests you can't
+   resolve): stop after committing whatever progress you have. Do not run
+   `finish` and do not push. Leave the item's status as in-progress —
+   tomorrow's run will resume from here by re-reading this same prompt
+   against the current state of this branch.
