@@ -1359,7 +1359,7 @@ init();
 const collectionState = {
   cards: [],   // full card objects with .quantity
   query: '',
-  groupBy: 'none',   // 'none' | 'collection-tag'
+  groupBy: 'none',   // 'none' | 'type' | 'collection-tag'
   filter: makeFilterModel(),
 };
 
@@ -1608,7 +1608,11 @@ function renderCollectionGrid() {
     return;
   }
 
-  if (collectionState.groupBy !== 'none') {
+  if (collectionState.groupBy === 'type') {
+    const groups = groupCardsByType(filtered);
+    for (const g of groups) g.cards.sort(cmp);
+    renderGroupedGrid(grid, groups, card => buildCardTile(card, { showOwnedBadge: false }), { collapsedState: collectionGroupCollapsed });
+  } else if (collectionState.groupBy === 'collection-tag') {
     const groups = groupCards(filtered, 'collection_tags');
     for (const g of groups) g.cards.sort(cmp);
     renderGroupedGrid(grid, groups, card => buildCardTile(card, { showOwnedBadge: false }), { collapsedState: collectionGroupCollapsed });
