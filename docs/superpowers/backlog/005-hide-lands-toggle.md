@@ -2,8 +2,8 @@
 id: 005
 title: Type-based "Hide lands" toggle on Collection and Deck pages
 priority: medium
-status: queued
-branch:
+status: in-review
+branch: item/005-hide-lands-toggle
 created: 2026-08-21
 ---
 
@@ -152,23 +152,23 @@ Update the three `buildFilterControls` call sites:
 
 ## Acceptance criteria
 
-- [ ] On the Deck page, a "Hide Lands" toggle button appears in the toolbar
+- [x] On the Deck page, a "Hide Lands" toggle button appears in the toolbar
       (next to the existing Filters button) and is active/pressed by
       default when a deck is freshly loaded or switched to.
-- [ ] With Hide Lands active on the Deck page, every card whose `type_line`
+- [x] With Hide Lands active on the Deck page, every card whose `type_line`
       contains "Land" is absent from both the grid and text views —
       including an MDFC land like "Jwari Disruption // Jwari Ruins" (stored
       type_line `"Instant // Land"`) — regardless of what deck/collection
       tags that card has or what `groupBy` mode is active.
-- [ ] Clicking the toggle off immediately shows lands again (still subject
+- [x] Clicking the toggle off immediately shows lands again (still subject
       to any other active filters); clicking it back on hides them again.
-- [ ] On the Collection page, the same toggle button appears in its toolbar
+- [x] On the Collection page, the same toggle button appears in its toolbar
       but starts inactive (lands shown) by default.
-- [ ] The toggle's current state is unaffected by clicking the Filters
+- [x] The toggle's current state is unaffected by clicking the Filters
       panel's "Clear" button on either page.
-- [ ] The toggle does not appear anywhere on the Cards browse page.
-- [ ] Reloading the page resets the Deck page's toggle back to active (hidden)
+- [x] The toggle does not appear anywhere on the Cards browse page.
+- [x] Reloading the page resets the Deck page's toggle back to active (hidden)
       and the Collection page's back to inactive (shown) — no persistence.
-- [ ] The existing allow-list "Types" filter inside the Filters panel
+- [x] The existing allow-list "Types" filter inside the Filters panel
       (checking "Land" to show only lands) continues to work unchanged and
       independently of this new toggle.

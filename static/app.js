@@ -191,7 +191,7 @@ function makeFilterModel(overrides = {}) {
     types: new Set(), cmcMin: null, cmcMax: null,
     powerMin: null, powerMax: null, toughnessMin: null, toughnessMax: null,
     exactColors: new Set(), exactColorlessOnly: false,
-    tags: new Set(), sort: 'name', dir: 'asc', ...overrides,
+    tags: new Set(), hideLands: false, sort: 'name', dir: 'asc', ...overrides,
   };
 }
 
@@ -262,6 +262,7 @@ function applyFilters(cards, model) {
       const tl = c.type_line || '';
       if (![...model.types].some(ty => tl.includes(ty))) return false;
     }
+    if (model.hideLands && (c.type_line || '').includes('Land')) return false;
     if (model.cmcMin != null && (c.cmc ?? 0) < model.cmcMin) return false;
     if (model.cmcMax != null && (c.cmc ?? 0) > model.cmcMax) return false;
     if (model.powerMin != null || model.powerMax != null) {
@@ -380,7 +381,7 @@ function appendRangeFilterGroup(panel, label, model, minKey, maxKey, refreshBadg
  *           sortOptions:[{value,label}], tagOptions:[], onChange:fn }
  */
 function buildFilterControls(container, config) {
-  const { model, facets, sortOptions, tagOptions = [], onChange } = config;
+  const { model, facets, sortOptions, tagOptions = [], onChange, showHideLandsToggle = false } = config;
   container.innerHTML = '';
   container.className = 'filter-bar';
 
@@ -404,6 +405,19 @@ function buildFilterControls(container, config) {
     dirBtn.textContent = model.dir === 'desc' ? '↓' : '↑';
     onChange();
   });
+
+  // Hide Lands toggle
+  let landsBtn = null;
+  if (showHideLandsToggle) {
+    landsBtn = document.createElement('button');
+    landsBtn.className = 'hide-lands-btn action-btn' + (model.hideLands ? ' active' : '');
+    landsBtn.textContent = 'Hide Lands';
+    landsBtn.addEventListener('click', () => {
+      model.hideLands = !model.hideLands;
+      landsBtn.classList.toggle('active', model.hideLands);
+      onChange();
+    });
+  }
 
   // Filters disclosure
   const filterBtn = document.createElement('button');
@@ -496,7 +510,7 @@ function buildFilterControls(container, config) {
   clearBtn.addEventListener('click', () => {
     // Text search is owned by the page's search box, so Clear preserves it.
     const keepText = model.text;
-    Object.assign(model, makeFilterModel({ sort: model.sort, dir: model.dir, text: keepText }));
+    Object.assign(model, makeFilterModel({ sort: model.sort, dir: model.dir, text: keepText, hideLands: model.hideLands }));
     buildFilterControls(container, config);  // re-render to reset control state
     onChange();
   });
@@ -505,6 +519,7 @@ function buildFilterControls(container, config) {
   refreshBadge();
   container.appendChild(sortSel);
   container.appendChild(dirBtn);
+  if (landsBtn) container.appendChild(landsBtn);
   container.appendChild(filterBtn);
   container.appendChild(panel);
 }
@@ -1527,6 +1542,7 @@ async function loadCollectionView() {
       sortOptions: [...SORT_OPTIONS_BASE, SORT_OPTION_QUANTITY],
       tagOptions,
       onChange: renderCollectionGrid,
+      showHideLandsToggle: true,
     });
     renderCollectionGrid();
   } catch (e) {
@@ -1797,7 +1813,7 @@ const deckState = {
   deckCards:      [],
   deckView:       'grid',
   groupBy:        'none',   // 'none' | 'type' | 'collection-tag' | 'deck-tag'
-  filter:         makeFilterModel(),
+  filter:         makeFilterModel({ hideLands: true }),
   query:          '',       // deck content search box (name/text/type)
   searchResults:  [],
   searchFocusIdx: -1,
@@ -1886,7 +1902,7 @@ async function selectDeck(id) {
   closeAddPalette();                      // never carry the palette between decks
   deckState.currentDeckId = id;
   deckState.deckCards = [];
-  deckState.filter = makeFilterModel();   // reset filters between decks
+  deckState.filter = makeFilterModel({ hideLands: true });   // reset filters between decks (lands hidden by default)
   deckState.query = '';                   // reset content search between decks
   deckState.focusedCardId = null;         // reset preview-panel focus between decks
   resetDeckGroupCollapsed();              // Considering starts collapsed for every freshly loaded deck
@@ -1906,6 +1922,7 @@ async function selectDeck(id) {
       sortOptions: [...SORT_OPTIONS_BASE, SORT_OPTION_QUANTITY],
       tagOptions: [...new Set([...collTags, ...deckTags])].sort(),
       onChange: renderDeckContent,
+      showHideLandsToggle: true,
     });
     showDeckEditor();
   } catch (e) {

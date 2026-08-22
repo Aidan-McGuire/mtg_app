@@ -22,7 +22,7 @@ function baseModel(overrides = {}) {
     text: '', colors: new Set(), colorlessOnly: false, types: new Set(),
     cmcMin: null, cmcMax: null, powerMin: null, powerMax: null,
     toughnessMin: null, toughnessMax: null, exactColors: new Set(),
-    exactColorlessOnly: false, tags: new Set(),
+    exactColorlessOnly: false, tags: new Set(), hideLands: false,
     ...overrides,
   };
 }
@@ -35,6 +35,8 @@ const cards = [
   { name: 'Ancestral Vision', power: null, toughness: null, cmc: 1, type_line: 'Sorcery', color_identity: 'U', colors: 'U' },
   { name: 'Compound Beast', power: '1+*', toughness: '1+*', cmc: 3, type_line: 'Creature — Beast', color_identity: 'G', colors: 'G' },
   { name: 'Deathrite Shaman', power: '1', toughness: '2', cmc: 1, type_line: 'Creature — Elf Shaman', color_identity: 'BG', colors: 'BG' },
+  { name: 'Forest', power: null, toughness: null, cmc: 0, type_line: 'Basic Land — Forest', color_identity: '', colors: '' },
+  { name: 'Jwari Disruption // Jwari Ruins', power: null, toughness: null, cmc: 2, type_line: 'Instant // Land', color_identity: 'U', colors: 'U' },
 ];
 
 const names = (result) => result.map(c => c.name);
@@ -63,10 +65,16 @@ const cases = [
     ['Deathrite Shaman']],
   ['exact colorless matches only the colorless card',
     baseModel({ exactColorlessOnly: true }),
-    ['Steel Wall']],
+    ['Steel Wall', 'Forest']],
   ['no power/toughness/color filter passes everything through',
     baseModel(),
+    ['Grizzly Bears', 'Wise Elephant', 'Steel Wall', 'Mystery Hydra', 'Ancestral Vision', 'Compound Beast', 'Deathrite Shaman', 'Forest', 'Jwari Disruption // Jwari Ruins']],
+  ['hideLands excludes plain lands and MDFC lands, keeps everything else',
+    baseModel({ hideLands: true }),
     ['Grizzly Bears', 'Wise Elephant', 'Steel Wall', 'Mystery Hydra', 'Ancestral Vision', 'Compound Beast', 'Deathrite Shaman']],
+  ['hideLands false (default) shows lands too',
+    baseModel({ hideLands: false }),
+    ['Grizzly Bears', 'Wise Elephant', 'Steel Wall', 'Mystery Hydra', 'Ancestral Vision', 'Compound Beast', 'Deathrite Shaman', 'Forest', 'Jwari Disruption // Jwari Ruins']],
 ];
 
 let failed = 0;
