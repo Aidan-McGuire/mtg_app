@@ -2,8 +2,8 @@
 id: 008
 title: Hide deck preview panel in grid view and enlarge grid tiles
 priority: medium
-status: queued
-branch:
+status: in-progress
+branch: item/8-hide-deck-preview-panel-in-grid-view-and-enlarge-grid-tiles
 created: 2026-08-21
 ---
 
