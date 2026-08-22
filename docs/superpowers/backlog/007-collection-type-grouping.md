@@ -2,8 +2,8 @@
 id: 007
 title: Add "Group: Type" option to the Collection page
 priority: medium
-status: queued
-branch:
+status: in-progress
+branch: item/7-add-group-type-option-to-the-collection-page
 created: 2026-08-21
 ---
 
