@@ -510,7 +510,7 @@ function buildFilterControls(container, config) {
   clearBtn.addEventListener('click', () => {
     // Text search is owned by the page's search box, so Clear preserves it.
     const keepText = model.text;
-    Object.assign(model, makeFilterModel({ sort: model.sort, dir: model.dir, text: keepText }));
+    Object.assign(model, makeFilterModel({ sort: model.sort, dir: model.dir, text: keepText, hideLands: model.hideLands }));
     buildFilterControls(container, config);  // re-render to reset control state
     onChange();
   });
@@ -1542,6 +1542,7 @@ async function loadCollectionView() {
       sortOptions: [...SORT_OPTIONS_BASE, SORT_OPTION_QUANTITY],
       tagOptions,
       onChange: renderCollectionGrid,
+      showHideLandsToggle: true,
     });
     renderCollectionGrid();
   } catch (e) {
@@ -1921,6 +1922,7 @@ async function selectDeck(id) {
       sortOptions: [...SORT_OPTIONS_BASE, SORT_OPTION_QUANTITY],
       tagOptions: [...new Set([...collTags, ...deckTags])].sort(),
       onChange: renderDeckContent,
+      showHideLandsToggle: true,
     });
     showDeckEditor();
   } catch (e) {
