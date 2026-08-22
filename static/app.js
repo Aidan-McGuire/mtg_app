@@ -1983,14 +1983,17 @@ function renderDeckContent() {
 
   renderDeckCategoryControls();
 
+  const previewPanel = document.getElementById('deck-preview-panel');
   if (deckState.deckView === 'grid') {
     renderDeckGrid();
     document.getElementById('deck-grid-view').classList.remove('hidden');
     document.getElementById('deck-text-view').classList.add('hidden');
+    previewPanel.classList.add('hidden');
   } else {
     renderDeckText();
     document.getElementById('deck-text-view').classList.remove('hidden');
     document.getElementById('deck-grid-view').classList.add('hidden');
+    previewPanel.classList.remove('hidden');
   }
   renderDeckPreviewPanel();
 }

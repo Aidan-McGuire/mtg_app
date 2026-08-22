@@ -2,8 +2,8 @@
 id: 008
 title: Hide deck preview panel in grid view and enlarge grid tiles
 priority: medium
-status: queued
-branch:
+status: in-review
+branch: item/8-hide-deck-preview-panel-in-grid-view-and-enlarge-grid-tiles
 created: 2026-08-21
 ---
 
@@ -105,16 +105,16 @@ untouched.)
 
 ## Acceptance criteria
 
-- [ ] With a deck open in grid view, the preview panel is not visible and
+- [x] With a deck open in grid view, the preview panel is not visible and
       the card grid occupies the full width of the deck editor body.
-- [ ] Switching to text view immediately shows the preview panel again,
+- [x] Switching to text view immediately shows the preview panel again,
       reflecting whatever card is currently focused/hovered.
-- [ ] Switching back to grid view hides it again.
-- [ ] In grid view, card tiles are noticeably larger than before (minimum
+- [x] Switching back to grid view hides it again.
+- [x] In grid view, card tiles are noticeably larger than before (minimum
       ~280px instead of ~240px), in both the ungrouped grid and every
       grouped-by-type/tag/deck-tag section.
-- [ ] In text view, hovering/clicking a row still updates the preview panel
+- [x] In text view, hovering/clicking a row still updates the preview panel
       exactly as today.
-- [ ] The Collection page's own tile sizes (ungrouped and grouped) are
+- [x] The Collection page's own tile sizes (ungrouped and grouped) are
       visually unchanged.
-- [ ] Full test suite (pytest + JS) still passes.
+- [x] Full test suite (pytest + JS) still passes.
