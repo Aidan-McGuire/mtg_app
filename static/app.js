@@ -1359,7 +1359,7 @@ init();
 const collectionState = {
   cards: [],   // full card objects with .quantity
   query: '',
-  groupBy: 'none',   // 'none' | 'collection-tag'
+  groupBy: 'none',   // 'none' | 'type' | 'collection-tag'
   filter: makeFilterModel(),
 };
 
