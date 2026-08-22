@@ -1798,7 +1798,7 @@ const deckState = {
   deckCards:      [],
   deckView:       'grid',
   groupBy:        'none',   // 'none' | 'type' | 'collection-tag' | 'deck-tag'
-  filter:         makeFilterModel(),
+  filter:         makeFilterModel({ hideLands: true }),
   query:          '',       // deck content search box (name/text/type)
   searchResults:  [],
   searchFocusIdx: -1,
@@ -1887,7 +1887,7 @@ async function selectDeck(id) {
   closeAddPalette();                      // never carry the palette between decks
   deckState.currentDeckId = id;
   deckState.deckCards = [];
-  deckState.filter = makeFilterModel();   // reset filters between decks
+  deckState.filter = makeFilterModel({ hideLands: true });   // reset filters between decks (lands hidden by default)
   deckState.query = '';                   // reset content search between decks
   deckState.focusedCardId = null;         // reset preview-panel focus between decks
   resetDeckGroupCollapsed();              // Considering starts collapsed for every freshly loaded deck
