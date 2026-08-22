@@ -191,7 +191,7 @@ function makeFilterModel(overrides = {}) {
     types: new Set(), cmcMin: null, cmcMax: null,
     powerMin: null, powerMax: null, toughnessMin: null, toughnessMax: null,
     exactColors: new Set(), exactColorlessOnly: false,
-    tags: new Set(), sort: 'name', dir: 'asc', ...overrides,
+    tags: new Set(), hideLands: false, sort: 'name', dir: 'asc', ...overrides,
   };
 }
 
@@ -262,6 +262,7 @@ function applyFilters(cards, model) {
       const tl = c.type_line || '';
       if (![...model.types].some(ty => tl.includes(ty))) return false;
     }
+    if (model.hideLands && (c.type_line || '').includes('Land')) return false;
     if (model.cmcMin != null && (c.cmc ?? 0) < model.cmcMin) return false;
     if (model.cmcMax != null && (c.cmc ?? 0) > model.cmcMax) return false;
     if (model.powerMin != null || model.powerMax != null) {
