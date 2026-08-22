@@ -2,7 +2,7 @@
 id: 005
 title: Type-based "Hide lands" toggle on Collection and Deck pages
 priority: medium
-status: in-progress
+status: in-review
 branch: item/005-hide-lands-toggle
 created: 2026-08-21
 ---
