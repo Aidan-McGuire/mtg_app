@@ -424,6 +424,7 @@ kbd {
 .action-btn:hover { border-color: var(--muted); color: var(--text); }
 .action-btn-danger { color: var(--muted); }
 .action-btn-danger:hover { border-color: #c0392b; color: #e74c3c; }
+.hide-lands-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(200,155,60,0.1); }
 
 /* ── View toggle ───────────────────────────────────────────────────────────── */
 .view-toggle {

@@ -381,7 +381,7 @@ function appendRangeFilterGroup(panel, label, model, minKey, maxKey, refreshBadg
  *           sortOptions:[{value,label}], tagOptions:[], onChange:fn }
  */
 function buildFilterControls(container, config) {
-  const { model, facets, sortOptions, tagOptions = [], onChange } = config;
+  const { model, facets, sortOptions, tagOptions = [], onChange, showHideLandsToggle = false } = config;
   container.innerHTML = '';
   container.className = 'filter-bar';
 
@@ -405,6 +405,19 @@ function buildFilterControls(container, config) {
     dirBtn.textContent = model.dir === 'desc' ? '↓' : '↑';
     onChange();
   });
+
+  // Hide Lands toggle
+  let landsBtn = null;
+  if (showHideLandsToggle) {
+    landsBtn = document.createElement('button');
+    landsBtn.className = 'hide-lands-btn action-btn' + (model.hideLands ? ' active' : '');
+    landsBtn.textContent = 'Hide Lands';
+    landsBtn.addEventListener('click', () => {
+      model.hideLands = !model.hideLands;
+      landsBtn.classList.toggle('active', model.hideLands);
+      onChange();
+    });
+  }
 
   // Filters disclosure
   const filterBtn = document.createElement('button');
@@ -506,6 +519,7 @@ function buildFilterControls(container, config) {
   refreshBadge();
   container.appendChild(sortSel);
   container.appendChild(dirBtn);
+  if (landsBtn) container.appendChild(landsBtn);
   container.appendChild(filterBtn);
   container.appendChild(panel);
 }
