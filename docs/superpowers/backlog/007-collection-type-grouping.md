@@ -89,17 +89,17 @@ through however that item's call sites do, matching the existing
 
 ## Acceptance criteria
 
-- [ ] The Collection page's group-by select shows "Group: None", "Group:
+- [x] The Collection page's group-by select shows "Group: None", "Group:
       Type", and "Group: Tag" in that order.
-- [ ] Selecting "Group: Type" groups the collection grid into
+- [x] Selecting "Group: Type" groups the collection grid into
       Creature/Instant/Sorcery/Enchantment/Artifact/Planeswalker/Land/Other
       sections (only non-empty ones shown), in that fixed order — no
       "Commander" section ever appears.
-- [ ] Cards within each type section are sorted according to the current
+- [x] Cards within each type section are sorted according to the current
       sort control, same as within tag-mode sections today.
-- [ ] Clicking a section header still collapses/expands it exactly like tag
+- [x] Clicking a section header still collapses/expands it exactly like tag
       mode does today.
-- [ ] Switching between "Group: Type", "Group: Tag", and "Group: None"
+- [x] Switching between "Group: Type", "Group: Tag", and "Group: None"
       re-renders correctly with no leftover sections from the previous mode.
-- [ ] The Deck page's own type-grouping option and behavior are unaffected.
-- [ ] Full test suite (pytest + JS) still passes.
+- [x] The Deck page's own type-grouping option and behavior are unaffected.
+- [x] Full test suite (pytest + JS) still passes.
