@@ -1,11 +1,18 @@
 # Notes
-## Next features
+## Feature backlog
+
+1. make text view have two columns
+2. make removing from collction only an option on collections page. ensure there is a way to remove a card from a deck on grid and list view
+3. deck view grid view cards same size as collection view
+4. add way to move card to considering from list view
+
 Refined into `docs/superpowers/backlog/`: commander-in-tag-groups (001),
 wider preview panel (002), larger grouped-view tiles/headers (003),
 deck category visibility checkboxes (004, amended to drop its land-default
 logic in favor of 005), type-based hide-lands toggle (005), auto-refresh
 card DB on server startup (006), collection type grouping (007), deck grid
-view hide-preview + bump tile size (008).
+view hide-preview + bump tile size (008), deck list view arrow nav crosses
+categories (009).
 
 
 
