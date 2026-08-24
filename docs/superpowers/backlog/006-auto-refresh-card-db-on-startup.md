@@ -2,7 +2,7 @@
 id: 006
 title: Auto-refresh card database from Scryfall in the background on server startup
 priority: low
-status: in-progress
+status: in-review
 branch: item/6-auto-refresh-card-database-from-scryfall-in-the-background-on-server-startup
 created: 2026-08-21
 ---
