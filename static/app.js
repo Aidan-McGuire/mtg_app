@@ -2135,7 +2135,8 @@ function buildDeckCardTile(card) {
   // A commander can't be Considering, so the toggle is pointless on that tile.
   const consideringBtnHtml = card.is_commander ? '' : `
     <button class="deck-considering-btn${card.is_considering ? ' active' : ''}"
-            title="${card.is_considering ? 'Move back to deck' : 'Move to Considering'}">?</button>`;
+            title="${card.is_considering ? 'Move back to deck' : 'Move to Considering'}">?</button>
+    <kbd class="deck-kbd-hint" title="Toggle Considering">c</kbd>`;
 
   div.innerHTML = `
     <div class="deck-card-img-wrap" data-owned-wrap-for="${card.id}">${ownedBadgeHtml}${imgHtml}</div>
@@ -2176,7 +2177,8 @@ function buildDeckTextRow(card) {
   // A commander can't be Considering, so the toggle is pointless on this row.
   const consideringBtnHtml = card.is_commander ? '' : `
     <button class="deck-considering-btn${card.is_considering ? ' active' : ''}"
-            title="${card.is_considering ? 'Move back to deck' : 'Move to Considering'}">?</button>`;
+            title="${card.is_considering ? 'Move back to deck' : 'Move to Considering'}">?</button>
+    <kbd class="deck-kbd-hint" title="Toggle Considering">c</kbd>`;
 
   row.innerHTML = `
     <span class="deck-text-qty">${card.quantity}x</span>
