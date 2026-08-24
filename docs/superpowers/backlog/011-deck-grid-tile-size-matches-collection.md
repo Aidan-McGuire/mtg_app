@@ -2,8 +2,8 @@
 id: 011
 title: Deck grid view tile size matches Collection view
 priority: medium
-status: queued
-branch:
+status: in-progress
+branch: item/11-deck-grid-view-tile-size-matches-collection-view
 created: 2026-08-23
 ---
 
