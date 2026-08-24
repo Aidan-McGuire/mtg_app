@@ -1271,6 +1271,11 @@ document.addEventListener('keydown', e => {
       else handleDeckColumnNavKey(e, 'deck-text-view');
       return;
     }
+    if (!typingInField && e.key === 'Backspace' && deckState.focusedCardId) {
+      e.preventDefault();
+      removeDeckCard(deckState.focusedCardId);
+      return;
+    }
   }
 
   // Everything below drives the Cards page: it reads `state.cards` and
