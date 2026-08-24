@@ -2,8 +2,8 @@
 id: 011
 title: Deck grid view tile size matches Collection view
 priority: medium
-status: queued
-branch:
+status: in-review
+branch: item/11-deck-grid-view-tile-size-matches-collection-view
 created: 2026-08-23
 ---
 
@@ -55,12 +55,12 @@ CSS-only change — no JS changes, no HTML changes.
 
 ## Acceptance criteria
 
-- [ ] Deck grid view (ungrouped, `groupBy: 'none'`) renders tiles at the
+- [x] Deck grid view (ungrouped, `groupBy: 'none'`) renders tiles at the
       same minimum width (240px) and column count as Collection view, for
       the same window width.
-- [ ] Deck grid view in grouped mode (type / collection-tag / deck-tag)
+- [x] Deck grid view in grouped mode (type / collection-tag / deck-tag)
       also renders tiles at 240px minimum width, matching Collection's
       grouped view.
-- [ ] Deck preview panel remains hidden in grid view (unaffected by this
+- [x] Deck preview panel remains hidden in grid view (unaffected by this
       change) and still shows in list/text view.
-- [ ] Collection view and Cards page tile sizing are unchanged.
+- [x] Collection view and Cards page tile sizing are unchanged.

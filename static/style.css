@@ -768,7 +768,7 @@ kbd {
 /* ── Deck grid view ────────────────────────────────────────────────────────── */
 .deck-grid-view {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   grid-auto-rows: max-content;
   gap: 10px;
   align-items: start;
@@ -1206,10 +1206,6 @@ kbd {
   align-items: start;
 }
 .group-body.collapsed { display: none; }
-
-#deck-grid-view .group-body {
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-}
 
 .filter-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; position: relative; }
 .sort-select { padding: 4px 6px; }
