@@ -1,16 +1,15 @@
 # Notes
 ## Feature backlog
 
-1. add way to move card to considering from list view
-
-Refined into `docs/superpowers/backlog/`: commander-in-tag-groups (001),
-wider preview panel (002), larger grouped-view tiles/headers (003),
+All raw ideas refined into `docs/superpowers/backlog/`: commander-in-tag-groups
+(001), wider preview panel (002), larger grouped-view tiles/headers (003),
 deck category visibility checkboxes (004, amended to drop its land-default
 logic in favor of 005), type-based hide-lands toggle (005), auto-refresh
 card DB on server startup (006), collection type grouping (007), deck grid
 view hide-preview + bump tile size (008), deck list view two-column grid +
 column-aware nav (009), deck removal scoping + list-view/keyboard removal
-parity (010), deck grid tile size reverted to match collection (011).
+parity (010), deck grid tile size reverted to match collection (011),
+deck considering-toggle in list view + keyboard shortcut (012).
 
 
 
