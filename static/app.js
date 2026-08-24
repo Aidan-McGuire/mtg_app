@@ -1276,6 +1276,13 @@ document.addEventListener('keydown', e => {
       removeDeckCard(deckState.focusedCardId);
       return;
     }
+    if (!typingInField && (e.key === 'c' || e.key === 'C') && deckState.focusedCardId) {
+      const card = deckState.deckCards.find(c => c.id === deckState.focusedCardId);
+      if (card && !card.is_commander) {
+        e.preventDefault();
+        toggleConsidering(card.id);
+      }
+    }
   }
 
   // Everything below drives the Cards page: it reads `state.cards` and
@@ -2135,7 +2142,8 @@ function buildDeckCardTile(card) {
   // A commander can't be Considering, so the toggle is pointless on that tile.
   const consideringBtnHtml = card.is_commander ? '' : `
     <button class="deck-considering-btn${card.is_considering ? ' active' : ''}"
-            title="${card.is_considering ? 'Move back to deck' : 'Move to Considering'}">?</button>`;
+            title="${card.is_considering ? 'Move back to deck' : 'Move to Considering'}">?</button>
+    <kbd class="deck-kbd-hint" title="Toggle Considering">c</kbd>`;
 
   div.innerHTML = `
     <div class="deck-card-img-wrap" data-owned-wrap-for="${card.id}">${ownedBadgeHtml}${imgHtml}</div>
@@ -2172,13 +2180,23 @@ function buildDeckTextRow(card) {
   const row = document.createElement('div');
   row.className = 'deck-text-row' + (card.id === deckState.focusedCardId ? ' focused' : '');
   row.dataset.id = card.id;
+
+  // A commander can't be Considering, so the toggle is pointless on this row.
+  const consideringBtnHtml = card.is_commander ? '' : `
+    <button class="deck-considering-btn${card.is_considering ? ' active' : ''}"
+            title="${card.is_considering ? 'Move back to deck' : 'Move to Considering'}">?</button>
+    <kbd class="deck-kbd-hint" title="Toggle Considering">c</kbd>`;
+
   row.innerHTML = `
     <span class="deck-text-qty">${card.quantity}x</span>
     <span class="deck-text-name">${esc(card.name)}</span>
     <span class="deck-text-mana">${esc(card.mana_cost || '')}</span>
     ${tagChipsHtml(card.deck_tags, 'deck-tag')}
+    ${consideringBtnHtml}
     <kbd class="deck-kbd-hint" title="Remove focused card">⌫</kbd>
     <button class="deck-remove-btn" title="Remove">×</button>`;
+  const consideringBtn = row.querySelector('.deck-considering-btn');
+  if (consideringBtn) consideringBtn.addEventListener('click', e => { e.stopPropagation(); toggleConsidering(card.id); });
   row.querySelector('.deck-remove-btn').addEventListener('click', e => { e.stopPropagation(); removeDeckCard(card.id); });
   row.addEventListener('mouseenter', () => setDeckFocus(card.id, row));
   row.addEventListener('click', () => openModal(card, { deckId: deckState.currentDeckId }));
