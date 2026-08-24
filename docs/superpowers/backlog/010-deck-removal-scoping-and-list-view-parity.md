@@ -2,7 +2,7 @@
 id: 010
 title: Scope collection removal off the deck page; add list-view + keyboard deck-card removal
 priority: medium
-status: in-progress
+status: in-review
 branch: item/10-scope-collection-removal-off-the-deck-page-add-list-view-keyboard-deck-card-removal
 created: 2026-08-23
 ---
