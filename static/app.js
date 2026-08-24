@@ -2172,13 +2172,22 @@ function buildDeckTextRow(card) {
   const row = document.createElement('div');
   row.className = 'deck-text-row' + (card.id === deckState.focusedCardId ? ' focused' : '');
   row.dataset.id = card.id;
+
+  // A commander can't be Considering, so the toggle is pointless on this row.
+  const consideringBtnHtml = card.is_commander ? '' : `
+    <button class="deck-considering-btn${card.is_considering ? ' active' : ''}"
+            title="${card.is_considering ? 'Move back to deck' : 'Move to Considering'}">?</button>`;
+
   row.innerHTML = `
     <span class="deck-text-qty">${card.quantity}x</span>
     <span class="deck-text-name">${esc(card.name)}</span>
     <span class="deck-text-mana">${esc(card.mana_cost || '')}</span>
     ${tagChipsHtml(card.deck_tags, 'deck-tag')}
+    ${consideringBtnHtml}
     <kbd class="deck-kbd-hint" title="Remove focused card">⌫</kbd>
     <button class="deck-remove-btn" title="Remove">×</button>`;
+  const consideringBtn = row.querySelector('.deck-considering-btn');
+  if (consideringBtn) consideringBtn.addEventListener('click', e => { e.stopPropagation(); toggleConsidering(card.id); });
   row.querySelector('.deck-remove-btn').addEventListener('click', e => { e.stopPropagation(); removeDeckCard(card.id); });
   row.addEventListener('mouseenter', () => setDeckFocus(card.id, row));
   row.addEventListener('click', () => openModal(card, { deckId: deckState.currentDeckId }));
