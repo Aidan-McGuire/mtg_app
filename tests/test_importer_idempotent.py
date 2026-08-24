@@ -256,3 +256,28 @@ def test_new_card_inserted_on_second_import(tmp_path, monkeypatch):
     assert fts_count == 2       # FTS row inserted for new card too
     assert bolt_cards == 1      # new card present in cards
     assert bolt_fts == 1        # new card present in cards_fts
+
+
+def test_import_cards_returns_counts(tmp_path, monkeypatch):
+    db = _make_db(tmp_path)
+    monkeypatch.setattr(importer, "DB_PATH", db)
+    monkeypatch.setattr(importer, "get_bulk_download_url", lambda: "x")
+
+    monkeypatch.setattr(
+        importer, "_stream_cards",
+        lambda url: iter([_card("elf-uuid", "Llanowar Elves")]),
+    )
+    result = importer.import_cards()
+    assert result == {"inserted": 1, "updated": 0, "processed": 1}
+
+    monkeypatch.setattr(
+        importer, "_stream_cards",
+        lambda url: iter([
+            _card("elf-uuid", "Llanowar Elves"),
+            _card("bolt-uuid", "Lightning Bolt", type_line="Instant",
+                  oracle_text="Lightning Bolt deals 3 damage to any target.",
+                  colors=["R"], color_identity=["R"]),
+        ]),
+    )
+    result = importer.import_cards()
+    assert result == {"inserted": 1, "updated": 1, "processed": 2}

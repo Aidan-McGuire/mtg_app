@@ -96,6 +96,8 @@ def import_cards():
     seen_oracle_ids = set()
     batch = 0
     processed = 0
+    inserted = 0
+    updated = 0
 
     for card in _stream_cards(download_url):
         try:
@@ -135,6 +137,7 @@ def import_cards():
                     UPDATE cards_fts SET name = ?, oracle_text = ?
                     WHERE rowid = (SELECT rowid FROM cards WHERE oracle_id = ?)
                 """, (card.get("name"), card.get("oracle_text"), oracle_id))
+                updated += 1
             else:
                 cur.execute("""
                     INSERT INTO cards (
@@ -146,6 +149,7 @@ def import_cards():
                     "INSERT INTO cards_fts (name, oracle_text) VALUES (?, ?)",
                     (card.get("name"), card.get("oracle_text")),
                 )
+                inserted += 1
 
             batch += 1
             processed += 1
@@ -158,8 +162,9 @@ def import_cards():
             continue
 
     conn.commit()
-    print("Finished importing cards.")
+    print(f"Finished importing cards. {inserted} new, {updated} updated, {processed} processed.")
     conn.close()
+    return {"inserted": inserted, "updated": updated, "processed": processed}
 
 if __name__ == "__main__":
     import_cards()
