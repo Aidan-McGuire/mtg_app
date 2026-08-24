@@ -1276,6 +1276,13 @@ document.addEventListener('keydown', e => {
       removeDeckCard(deckState.focusedCardId);
       return;
     }
+    if (!typingInField && (e.key === 'c' || e.key === 'C') && deckState.focusedCardId) {
+      const card = deckState.deckCards.find(c => c.id === deckState.focusedCardId);
+      if (card && !card.is_commander) {
+        e.preventDefault();
+        toggleConsidering(card.id);
+      }
+    }
   }
 
   // Everything below drives the Cards page: it reads `state.cards` and
