@@ -922,6 +922,13 @@ kbd {
 .deck-text-name { font-size: 13px; font-weight: 500; flex: 1; }
 .deck-text-mana { font-size: 11px; color: var(--muted); }
 
+/* Backspace-removal hint: hidden by default, shown only on the focused
+   grid tile / list row (setDeckFocus toggles `.focused` on hover/arrow-nav
+   without rebuilding the tile, so visibility here is purely CSS-driven). */
+.deck-kbd-hint { display: none; }
+.deck-card-tile.focused .deck-kbd-hint,
+.deck-text-row.focused .deck-kbd-hint { display: inline-block; }
+
 /* ── Import modal ──────────────────────────────────────────────────────────── */
 .import-modal {
   max-width: 560px;

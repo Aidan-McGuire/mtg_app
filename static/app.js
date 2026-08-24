@@ -814,6 +814,17 @@ function openModal(card, deckContext = null) {
     ? `<img id="modal-main-img" src="${imgSrc}" alt="${esc(card.name)}">`
     : `<div class="modal-img-placeholder">${esc(card.name)}</div>`;
 
+  // Collection-quantity editing belongs on the Cards/Collection pages only —
+  // the Deck page has its own deck-quantity controls on each tile, and
+  // showing this too is a second, easily-confused quantity control.
+  const collectionHtml = deckContext ? '' : `
+      <div class="modal-collection">
+        <button class="qty-btn" data-action="dec" title="Remove (-)">−</button>
+        <span class="qty-label${q > 0 ? ' owned' : ''}" data-qty-for="${card.id}">${q}</span>
+        <button class="qty-btn" data-action="inc" title="Add (+)">+</button>
+        <span class="qty-owned-label">owned</span>
+      </div>`;
+
   const contentEl = document.getElementById('modal-content');
   contentEl.innerHTML = `
     <div class="modal-left">
@@ -828,18 +839,15 @@ function openModal(card, deckContext = null) {
       <div class="modal-mana">${esc(card.mana_cost || '—')}</div>
       <div class="modal-type">${esc(card.type_line || '')}</div>
       <div class="modal-oracle">${esc(card.oracle_text || '')}</div>
-      <div class="modal-collection">
-        <button class="qty-btn" data-action="dec" title="Remove (-)">−</button>
-        <span class="qty-label${q > 0 ? ' owned' : ''}" data-qty-for="${card.id}">${q}</span>
-        <button class="qty-btn" data-action="inc" title="Add (+)">+</button>
-        <span class="qty-owned-label">owned</span>
-      </div>
+      ${collectionHtml}
       <div id="modal-tags-section"></div>
       <div id="modal-decks-section"></div>
     </div>`;
 
-  contentEl.querySelector('[data-action="inc"]').addEventListener('click', () => increment(card.id));
-  contentEl.querySelector('[data-action="dec"]').addEventListener('click', () => decrement(card.id));
+  if (!deckContext) {
+    contentEl.querySelector('[data-action="inc"]').addEventListener('click', () => increment(card.id));
+    contentEl.querySelector('[data-action="dec"]').addEventListener('click', () => decrement(card.id));
+  }
 
   document.getElementById('modal-overlay').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
@@ -1261,6 +1269,11 @@ document.addEventListener('keydown', e => {
     if (!typingInField && isArrow) {
       if (deckState.deckView === 'grid') handleDeckColumnNavKey(e, 'deck-grid-view');
       else handleDeckColumnNavKey(e, 'deck-text-view');
+      return;
+    }
+    if (!typingInField && e.key === 'Backspace' && deckState.focusedCardId) {
+      e.preventDefault();
+      removeDeckCard(deckState.focusedCardId);
       return;
     }
   }
@@ -2135,6 +2148,7 @@ function buildDeckCardTile(card) {
         <div class="deck-actions">
           ${consideringBtnHtml}
           <button class="deck-cmd-btn${card.is_commander ? ' active' : ''}" title="Toggle commander">♛</button>
+          <kbd class="deck-kbd-hint" title="Remove focused card">⌫</kbd>
           <button class="deck-remove-btn" title="Remove">×</button>
         </div>
       </div>
@@ -2162,7 +2176,10 @@ function buildDeckTextRow(card) {
     <span class="deck-text-qty">${card.quantity}x</span>
     <span class="deck-text-name">${esc(card.name)}</span>
     <span class="deck-text-mana">${esc(card.mana_cost || '')}</span>
-    ${tagChipsHtml(card.deck_tags, 'deck-tag')}`;
+    ${tagChipsHtml(card.deck_tags, 'deck-tag')}
+    <kbd class="deck-kbd-hint" title="Remove focused card">⌫</kbd>
+    <button class="deck-remove-btn" title="Remove">×</button>`;
+  row.querySelector('.deck-remove-btn').addEventListener('click', e => { e.stopPropagation(); removeDeckCard(card.id); });
   row.addEventListener('mouseenter', () => setDeckFocus(card.id, row));
   row.addEventListener('click', () => openModal(card, { deckId: deckState.currentDeckId }));
   return row;
