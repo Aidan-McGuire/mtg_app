@@ -2148,6 +2148,7 @@ function buildDeckCardTile(card) {
         <div class="deck-actions">
           ${consideringBtnHtml}
           <button class="deck-cmd-btn${card.is_commander ? ' active' : ''}" title="Toggle commander">♛</button>
+          <kbd class="deck-kbd-hint" title="Remove focused card">⌫</kbd>
           <button class="deck-remove-btn" title="Remove">×</button>
         </div>
       </div>
