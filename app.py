@@ -3,13 +3,16 @@ import re
 import sqlite3
 import hashlib
 import httpx
-from contextlib import contextmanager
+import threading
+from contextlib import asynccontextmanager, contextmanager
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from main import migrate_database
+from importer import import_cards
 
 DB_PATH = Path("mtg.db")
 IMAGE_CACHE_DIR = Path("image_cache")
@@ -158,7 +161,46 @@ def fetch_deck_tags(cur, deck_id: int, card_id: int) -> list[str]:
 
 migrate_database()
 
-app = FastAPI()
+REFRESH_INTERVAL = timedelta(days=7)
+REFRESH_LOG_PATH = Path("card_refresh.log")
+
+
+def _should_refresh_cards():
+    with get_db() as conn:
+        row = conn.execute("SELECT cards_last_refreshed FROM schema_version LIMIT 1").fetchone()
+    last = row[0] if row else None
+    if not last:
+        return True
+    return datetime.now(timezone.utc) - datetime.fromisoformat(last) > REFRESH_INTERVAL
+
+
+def _run_card_refresh():
+    started = datetime.now(timezone.utc)
+    try:
+        result = import_cards()
+        with get_db() as conn:
+            conn.execute(
+                "UPDATE schema_version SET cards_last_refreshed = ?",
+                (datetime.now(timezone.utc).isoformat(),),
+            )
+            conn.commit()
+        line = (f"{started.isoformat()} refreshed cards: "
+                f"{result['inserted']} new, {result['updated']} updated, "
+                f"{result['processed']} processed\n")
+    except Exception as e:
+        line = f"{started.isoformat()} card refresh FAILED: {e}\n"
+    with open(REFRESH_LOG_PATH, "a") as f:
+        f.write(line)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    if _should_refresh_cards():
+        threading.Thread(target=_run_card_refresh, daemon=True).start()
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 # ---------------------------------------------------------------------------

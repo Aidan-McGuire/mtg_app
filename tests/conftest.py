@@ -1,9 +1,10 @@
 import pytest
 import sqlite3
+from datetime import datetime, timezone
 from fastapi.testclient import TestClient
 
 _SCHEMA = """
-CREATE TABLE schema_version (version INTEGER NOT NULL);
+CREATE TABLE schema_version (version INTEGER NOT NULL, cards_last_refreshed TEXT);
 CREATE TABLE cards (
     id INTEGER PRIMARY KEY,
     oracle_id TEXT UNIQUE NOT NULL,
@@ -60,7 +61,7 @@ CREATE TABLE import_failures (
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     resolved_at TEXT
 );
-INSERT INTO schema_version VALUES (5);
+INSERT INTO schema_version VALUES (6, NULL);
 INSERT INTO cards (id, oracle_id, name, mana_cost, cmc, type_line) VALUES (1, 'bolt-uuid', 'Lightning Bolt', '{R}', 1, 'Instant');
 INSERT INTO cards (id, oracle_id, name, mana_cost, cmc, type_line) VALUES (2, 'forest-uuid', 'Forest', NULL, 0, 'Basic Land');
 INSERT INTO collection (card_id, quantity) VALUES (1, 4);
@@ -78,6 +79,15 @@ def db_path(tmp_path):
         stmt = stmt.strip()
         if stmt:
             conn.execute(stmt)
+    # Seed a fresh (not stale) refresh timestamp, computed at fixture-setup
+    # time rather than hardcoded, so the background card-refresh startup
+    # hook never fires during tests (see tests/test_card_refresh.py for its
+    # dedicated coverage) — a hardcoded past date would eventually cross the
+    # 7-day threshold and start making real network calls in test runs.
+    conn.execute(
+        "UPDATE schema_version SET cards_last_refreshed = ?",
+        (datetime.now(timezone.utc).isoformat(),),
+    )
     conn.commit()
     conn.close()
     return p
