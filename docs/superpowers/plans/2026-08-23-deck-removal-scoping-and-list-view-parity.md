@@ -79,7 +79,7 @@ function openModal(card, deckContext = null) {
 }
 ```
 
-- [ ] **Step 1: Wrap the `.modal-collection` markup in a `deckContext` check**
+- [x] **Step 1: Wrap the `.modal-collection` markup in a `deckContext` check**
 
 Replace the `<div class="modal-collection">...</div>` block with a conditional expression assigned to a local variable, then interpolate that variable in its place:
 
@@ -141,12 +141,12 @@ function openModal(card, deckContext = null) {
 
 Note: `q` is still computed unconditionally (cheap, and `qty()` has no side effects) — only its use in the markup is now conditional. This keeps the diff minimal and avoids restructuring unrelated code.
 
-- [ ] **Step 2: Syntax-check**
+- [x] **Step 2: Syntax-check**
 
 Run: `/opt/homebrew/bin/node --check static/app.js`
 Expected: no output, exit code 0.
 
-- [ ] **Step 3: Manually trace both call paths against the acceptance criterion**
+- [x] **Step 3: Manually trace both call paths against the acceptance criterion**
 
 Trace 1 (Cards page): `handleGridKey` (app.js:800) calls `openModal(c)` — `deckContext` defaults to `null`, so `collectionHtml` renders the stepper and the two `inc`/`dec` listeners attach. Unchanged from before.
 
@@ -154,7 +154,7 @@ Trace 2 (Deck page): `buildDeckCardTile`/`buildDeckTextRow` call `openModal(card
 
 Confirm both traces hold by re-reading the edited `openModal` function.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add static/app.js
@@ -190,7 +190,7 @@ function buildDeckTextRow(card) {
 }
 ```
 
-- [ ] **Step 1: Add the `.deck-remove-btn` markup and its click listener**
+- [x] **Step 1: Add the `.deck-remove-btn` markup and its click listener**
 
 ```js
 function buildDeckTextRow(card) {
@@ -213,7 +213,7 @@ function buildDeckTextRow(card) {
 
 The `<kbd class="deck-kbd-hint">` is added here (not in a later task) because it belongs to the same row markup — Task 4 only adds the CSS that shows/hides it. It's harmless to have it in the DOM now (Task 4's CSS defaults it to `display: none`; until that CSS lands it's an inert always-visible `⌫`, fixed within this same plan before commit-worthy state, so add both together — see Step 2 below, which pulls Task 4's CSS forward for this row so nothing renders broken between tasks).
 
-- [ ] **Step 2: Add the same default-hidden CSS rule now (shared with Task 4, written once)**
+- [x] **Step 2: Add the same default-hidden CSS rule now (shared with Task 4, written once)**
 
 Open `static/style.css`. After the `.deck-text-mana` rule (style.css:923), add:
 
@@ -225,18 +225,18 @@ Open `static/style.css`. After the `.deck-text-mana` rule (style.css:923), add:
 
 This is the same CSS Task 4 needs for the grid tile's badge; writing it once here means list view never renders an unstyled/always-visible badge, and Task 4 simply confirms it already covers the grid tile selector too (it does, since both selectors are added together).
 
-- [ ] **Step 3: Syntax-check**
+- [x] **Step 3: Syntax-check**
 
 Run: `/opt/homebrew/bin/node --check static/app.js`
 Expected: no output, exit code 0.
 
-- [ ] **Step 4: Manually trace against acceptance criteria**
+- [x] **Step 4: Manually trace against acceptance criteria**
 
 - List view rows now render a `×` button (`.deck-remove-btn`, reusing the existing grid-tile CSS class — same visual style, no new CSS needed for the button itself).
 - Its click handler calls `e.stopPropagation()` first (so it doesn't also trigger the row's own `click` → `openModal(...)`), then `removeDeckCard(card.id)` — the exact same function the grid tile's × button calls, so deck card count and preview panel update identically (per `removeDeckCard`, app.js:2337, which calls `syncDeckCount()` and `renderDeckContent()`).
 - The new `<kbd class="deck-kbd-hint">⌫</kbd>` defaults to `display: none` per the Step 2 CSS, and only becomes visible when its row has class `.focused` — which `setDeckFocus` (app.js:2099) already toggles via `classList`, so no extra wiring is needed here for it to track focus correctly.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add static/app.js static/style.css
@@ -271,7 +271,7 @@ git commit -m "feat: add remove button to deck list view rows"
   }
 ```
 
-- [ ] **Step 1: Add a sibling `Backspace` branch inside the same guarded block**
+- [x] **Step 1: Add a sibling `Backspace` branch inside the same guarded block**
 
 ```js
   // Deck page: arrow-key focus navigation drives the preview panel.
@@ -295,18 +295,18 @@ git commit -m "feat: add remove button to deck list view rows"
 
 This reuses the existing `typingInField` guard (`input, textarea, select`) and the existing `decksActive`/`currentDeckId`/palette-closed gate, so it only fires on the Deck page, only when a deck is open, only when no palette is open, and never while the user is typing in a field. Because `deckState.focusedCardId` is shared by both grid and list view (set by the same `setDeckFocus` call from either view's row/tile), this one branch works for both views without any view-specific branching.
 
-- [ ] **Step 2: Syntax-check**
+- [x] **Step 2: Syntax-check**
 
 Run: `/opt/homebrew/bin/node --check static/app.js`
 Expected: no output, exit code 0.
 
-- [ ] **Step 3: Manually trace against acceptance criteria**
+- [x] **Step 3: Manually trace against acceptance criteria**
 
 - With a card focused (via hover or arrow nav — both go through `setDeckFocus`, which sets `deckState.focusedCardId`), pressing `Backspace` while not typing in a field calls `removeDeckCard(deckState.focusedCardId)` — same function as the × buttons, so deck count/preview panel update the same way.
 - If focus is inside an `input`/`textarea`/`select` (e.g. deck search box, a tag-input field), `typingInField` is `true`, so the branch is skipped entirely and `Backspace` behaves as normal text editing.
 - If no card is focused (`deckState.focusedCardId` is falsy — e.g. right after switching to a freshly-loaded deck before any hover/arrow-nav), the `&& deckState.focusedCardId` guard prevents calling `removeDeckCard(undefined)`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add static/app.js
@@ -346,7 +346,7 @@ git commit -m "feat: add Backspace shortcut to remove focused deck card"
     </div>`;
 ```
 
-- [ ] **Step 1: Add the `<kbd>` badge immediately before the remove button, inside `.deck-actions`**
+- [x] **Step 1: Add the `<kbd>` badge immediately before the remove button, inside `.deck-actions`**
 
 ```js
         <div class="deck-actions">
@@ -359,12 +359,12 @@ git commit -m "feat: add Backspace shortcut to remove focused deck card"
 
 This uses the *unconditional* markup + CSS-visibility approach (already established for list view in Task 2), not a `card.id === deckState.focusedCardId ? ... : ''` conditional in the template string. That's a deliberate deviation from a literal reading of the spec's illustrative snippet: `setDeckFocus` (app.js:2099) changes focus by toggling the `.focused` class directly on existing DOM nodes via `classList` — it does **not** rebuild tile/row `innerHTML` on every hover or arrow-key move (that would be a full re-render per keystroke/hover, which the codebase deliberately avoids — see `setDeckFocus`'s own implementation). A conditional baked into `innerHTML` would only reflect the focus state at the moment the tile was *built*, then go stale (badge stuck on whichever card was focused at build time) every time focus changes afterward without a full `renderDeckContent()`. Making the badge always-present in markup and toggling its visibility purely via the already-correct `.focused` class (CSS added in Task 2 Step 2) produces the behavior the acceptance criteria actually describe — appears/disappears as focus moves — using the mechanism this codebase already relies on for the `.focused` outline/background styling itself (style.css:791, 919).
 
-- [ ] **Step 2: Syntax-check**
+- [x] **Step 2: Syntax-check**
 
 Run: `/opt/homebrew/bin/node --check static/app.js`
 Expected: no output, exit code 0.
 
-- [ ] **Step 3: Confirm the CSS from Task 2 Step 2 already covers this tile**
+- [x] **Step 3: Confirm the CSS from Task 2 Step 2 already covers this tile**
 
 Re-read `static/style.css` around the rule added in Task 2 Step 2:
 
@@ -376,14 +376,14 @@ Re-read `static/style.css` around the rule added in Task 2 Step 2:
 
 `.deck-card-tile.focused` is exactly the class `buildDeckCardTile` already applies (app.js:2113: `(card.id === deckState.focusedCardId ? ' focused' : '')`) and that `setDeckFocus` toggles at runtime — no further CSS change needed.
 
-- [ ] **Step 4: Manually trace against acceptance criteria**
+- [x] **Step 4: Manually trace against acceptance criteria**
 
 - On initial render, the grid tile whose `card.id === deckState.focusedCardId` has class `focused` (existing logic, app.js:2113, unchanged) → its `.deck-kbd-hint` is visible; every other tile's badge is `display: none`.
 - On hover, `setDeckFocus(card.id, div)` (app.js:2151, unchanged) removes `.focused` from whichever tile/row had it and adds it to the newly-hovered one (app.js:2101-2103) → the badge visually moves with focus, in both grid and list view, without any re-render.
 - On arrow-key nav, `handleDeckColumnNavKey` → `setDeckFocus` (app.js:2252) — same mechanism, same result.
 - Badge appears "next to the remove button" in both views: grid places it directly before `.deck-remove-btn` inside `.deck-actions` (Task 4 Step 1); list view places it directly before `.deck-remove-btn` at the end of the row (Task 2 Step 1).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add static/app.js
@@ -396,22 +396,22 @@ git commit -m "feat: show Backspace-removal hint badge on focused deck card"
 
 **Files:** none (verification only)
 
-- [ ] **Step 1: Run the full existing JS test suite**
+- [x] **Step 1: Run the full existing JS test suite**
 
 Run: `for f in tests/js/*.test.mjs; do echo "== $f =="; /opt/homebrew/bin/node "$f" || exit 1; done`
 Expected: every file prints its passing test output; script exits 0. (None of these tests touch the functions this plan modifies — this is a pure regression check that nothing else broke.)
 
-- [ ] **Step 2: Run the Python test suite**
+- [x] **Step 2: Run the Python test suite**
 
 Run: `python3 -m pytest -q`
 Expected: all tests pass. (This plan makes no backend/API changes, so this is a regression check only.)
 
-- [ ] **Step 3: Final syntax check of the full file**
+- [x] **Step 3: Final syntax check of the full file**
 
 Run: `/opt/homebrew/bin/node --check static/app.js`
 Expected: no output, exit code 0.
 
-- [ ] **Step 4: Walk every acceptance criterion from the spec one more time against the final diff**
+- [x] **Step 4: Walk every acceptance criterion from the spec one more time against the final diff**
 
 Run: `git diff main --stat` then `git diff main` to review the complete set of changes across all four tasks together, and re-check each bullet in the spec's "## Acceptance criteria" section:
 
@@ -422,4 +422,4 @@ Run: `git diff main --stat` then `git diff main` to review the complete set of c
 5. Keyboard/list-view removal updates deck count and preview panel the same way the grid × button does — Task 2 Step 1 and Task 3 Step 1 both call the shared `removeDeckCard`.
 6. Cards/Collection page tile-level +/− controls unaffected — nothing in this plan touches `buildCardTile` (app.js:630) or the Cards/Collection page render paths.
 
-- [ ] **Step 5: Commit if Step 4 turned up any final fixups (otherwise nothing to commit — this task is verification-only)**
+- [x] **Step 5: Commit if Step 4 turned up any final fixups (otherwise nothing to commit — this task is verification-only)**
