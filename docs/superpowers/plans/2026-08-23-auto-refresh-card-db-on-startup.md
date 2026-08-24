@@ -1,6 +1,6 @@
 # Auto-refresh Card DB on Startup Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Kick off a non-blocking background refresh of the card database from Scryfall on FastAPI server startup, gated by a 7-day minimum interval tracked in `schema_version.cards_last_refreshed`, so the ~34k-card DB stays current without the user having to remember to run `python importer.py` manually.
 
@@ -31,7 +31,7 @@
 **Interfaces:**
 - Produces: `schema_version.cards_last_refreshed` (TEXT, nullable) column, present once `migrate_database()` has run; `schema_version.version == 6` after migration.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `tests/test_migrate.py`:
 
@@ -82,12 +82,12 @@ def test_migration_is_idempotent(tmp_path, monkeypatch):
     assert version == 6
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `pytest tests/test_migrate.py -v`
 Expected: FAIL — `sqlite3.OperationalError: no such column: cards_last_refreshed` (column doesn't exist yet, since `migrate_database()` doesn't add it).
 
-- [ ] **Step 3: Implement the migration**
+- [x] **Step 3: Implement the migration**
 
 In `main.py`, inside `migrate_database()`, immediately after the existing `if version < 5:` block (before `conn.commit()` / `conn.close()`), add:
 
@@ -97,12 +97,12 @@ In `main.py`, inside `migrate_database()`, immediately after the existing `if ve
         cur.execute("UPDATE schema_version SET version = 6;")
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `pytest tests/test_migrate.py -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add main.py tests/test_migrate.py
@@ -121,7 +121,7 @@ git commit -m "feat(db): add cards_last_refreshed column via schema migration v6
 - Consumes: nothing new.
 - Produces: `import_cards() -> {"inserted": int, "updated": int, "processed": int}` — Task 4 depends on exactly these three keys.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `tests/test_importer_idempotent.py`:
 
@@ -151,12 +151,12 @@ def test_import_cards_returns_counts(tmp_path, monkeypatch):
     assert result == {"inserted": 1, "updated": 1, "processed": 2}
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pytest tests/test_importer_idempotent.py::test_import_cards_returns_counts -v`
 Expected: FAIL — `assert None == {...}` (function currently returns `None`).
 
-- [ ] **Step 3: Implement counters and return value**
+- [x] **Step 3: Implement counters and return value**
 
 In `importer.py`, inside `import_cards()`:
 
@@ -196,12 +196,12 @@ with:
     return {"inserted": inserted, "updated": updated, "processed": processed}
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pytest tests/test_importer_idempotent.py -v`
 Expected: PASS (all tests in the file, including the new one and the pre-existing ones — the pre-existing tests don't check the return value so they're unaffected by this change).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add importer.py tests/test_importer_idempotent.py
@@ -225,7 +225,7 @@ git commit -m "feat(importer): return inserted/updated/processed counts from imp
 
 **Why `tests/conftest.py` needs a change:** `app.py`'s `lifespan` fires on every `with TestClient(app_module.app) as c:` (used by the shared `client` fixture that most existing tests use). If left at its current schema (`schema_version` has no `cards_last_refreshed` column, stuck at version 5), `_should_refresh_cards()` would raise `OperationalError` on every test using that fixture. Seeding the column with a fresh timestamp makes `_should_refresh_cards()` correctly return `False` (matches production behavior for an already-refreshed DB) so no thread spawns and no test ever makes a real Scryfall network call.
 
-- [ ] **Step 1: Update `tests/conftest.py`'s schema to include `cards_last_refreshed`**
+- [x] **Step 1: Update `tests/conftest.py`'s schema to include `cards_last_refreshed`**
 
 In `tests/conftest.py`, change the `_SCHEMA` string's `schema_version` table definition and seed row from:
 
@@ -260,12 +260,12 @@ Add the needed import at the top of `tests/conftest.py`:
 from datetime import datetime, timezone
 ```
 
-- [ ] **Step 2: Run the existing suite to confirm this alone doesn't break anything**
+- [x] **Step 2: Run the existing suite to confirm this alone doesn't break anything**
 
 Run: `pytest tests/ -v -k "not test_card_refresh"`
 Expected: PASS (this step only changes seed data shape; `app.py` doesn't reference `cards_last_refreshed` yet, so nothing consumes it yet — this just confirms the conftest edit itself is safe).
 
-- [ ] **Step 3: Write the failing tests for the new behavior**
+- [x] **Step 3: Write the failing tests for the new behavior**
 
 Create `tests/test_card_refresh.py`:
 
@@ -392,12 +392,12 @@ def test_startup_does_not_refresh_when_recent(tmp_path, monkeypatch):
     assert calls == []
 ```
 
-- [ ] **Step 4: Run tests to verify they fail**
+- [x] **Step 4: Run tests to verify they fail**
 
 Run: `pytest tests/test_card_refresh.py -v`
 Expected: FAIL — `AttributeError: module 'app' has no attribute '_should_refresh_cards'` (and similar for the other new names), since none of this exists in `app.py` yet.
 
-- [ ] **Step 5: Implement the background refresh in `app.py`**
+- [x] **Step 5: Implement the background refresh in `app.py`**
 
 Add to the import block at the top of `app.py` (after the existing imports, before `DB_PATH = Path("mtg.db")`):
 
@@ -481,17 +481,17 @@ app = FastAPI(lifespan=lifespan)
 
 Note: `_should_refresh_cards()` and `_run_card_refresh()` reference `get_db()`, which is defined later in the file (in the "DB helpers" section). This is fine in Python — the name is looked up from the module namespace at *call* time, not at function-definition time, and by the time these functions are actually called (inside `lifespan`, when the app starts) the whole module has finished loading.
 
-- [ ] **Step 6: Run tests to verify they pass**
+- [x] **Step 6: Run tests to verify they pass**
 
 Run: `pytest tests/test_card_refresh.py -v`
 Expected: PASS
 
-- [ ] **Step 7: Run the full suite to confirm nothing else broke**
+- [x] **Step 7: Run the full suite to confirm nothing else broke**
 
 Run: `pytest tests/ -v`
 Expected: PASS — in particular, every test using the shared `client` fixture must still pass without hanging or making network calls (the conftest change from Step 1 seeds a fresh `cards_last_refreshed`, so `_should_refresh_cards()` returns `False` for all of them).
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add app.py tests/conftest.py tests/test_card_refresh.py
@@ -507,7 +507,7 @@ git commit -m "feat(app): background-refresh card DB from Scryfall on startup, g
 
 **Interfaces:** none (no code dependency).
 
-- [ ] **Step 1: Add the entry**
+- [x] **Step 1: Add the entry**
 
 In `.gitignore`, after the existing `.claude/stage2.log` line, add:
 
@@ -516,7 +516,7 @@ In `.gitignore`, after the existing `.claude/stage2.log` line, add:
 card_refresh.log
 ```
 
-- [ ] **Step 2: Verify**
+- [x] **Step 2: Verify**
 
 Run: `git status --porcelain` after touching a local `card_refresh.log` (e.g. `touch card_refresh.log`) to confirm it doesn't show as untracked, then remove the manually-created file:
 
@@ -530,7 +530,7 @@ Expected: no output (file is ignored).
 rm -f card_refresh.log
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add .gitignore
@@ -543,16 +543,16 @@ git commit -m "chore: gitignore card_refresh.log"
 
 **Files:** none (verification only).
 
-- [ ] **Step 1: Run the full Python test suite**
+- [x] **Step 1: Run the full Python test suite**
 
 Run: `pytest tests/ -v`
 Expected: PASS, no errors, no warnings about unclosed threads/sockets, no network access.
 
-- [ ] **Step 2: Run the JS sentinel tests**
+- [x] **Step 2: Run the JS sentinel tests**
 
 Run: `find . -path ./node_modules -prune -o -name "*.test.mjs" -print` to confirm the test files under `tests/js/`, then run them with whatever runner the project uses (check `package.json` / `docs/superpowers/plans/2026-06-*.md` for the established `node --test` invocation used by prior plans). This item touches no JS, so these are a regression check only — expect them to pass unchanged.
 
-- [ ] **Step 3: Manual sanity check of the acceptance criteria**
+- [x] **Step 3: Manual sanity check of the acceptance criteria**
 
 Run these from the plan's working directory (the worktree root) against the *real* `mtg.db` — first back up or note that this mutates real local state, since this is a manual smoke check, not part of the automated suite:
 
