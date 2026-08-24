@@ -1259,7 +1259,8 @@ document.addEventListener('keydown', e => {
       document.activeElement.matches('input, textarea, select');
     const isArrow = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key);
     if (!typingInField && isArrow) {
-      if (deckState.deckView === 'grid') handleDeckGridKey(e); else handleDeckListKey(e);
+      if (deckState.deckView === 'grid') handleDeckColumnNavKey(e, 'deck-grid-view');
+      else handleDeckColumnNavKey(e, 'deck-text-view');
       return;
     }
   }
@@ -2252,26 +2253,6 @@ function focusDeckTile(el) {
   el.scrollIntoView({ block: 'nearest' });
 }
 
-function handleDeckListKey(e) {
-  const groups = deckNavGroups(document.getElementById('deck-text-view'));
-  if (!groups.length) return;
-  const pos = deckState.focusedCardId && findTileIndex(groups, deckState.focusedCardId);
-
-  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-    e.preventDefault();
-    if (!pos) { focusDeckTile(groups[0][0]); return; }
-    const delta = e.key === 'ArrowDown' ? 1 : -1;
-    const nextI = Math.max(0, Math.min(pos.i + delta, groups[pos.g].length - 1));
-    focusDeckTile(groups[pos.g][nextI]);
-  } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-    e.preventDefault();
-    if (!pos) { focusDeckTile(groups[0][0]); return; }
-    const nextG = pos.g + (e.key === 'ArrowRight' ? 1 : -1);
-    if (nextG < 0 || nextG >= groups.length) return;   // clamp — no wrap past the ends
-    focusDeckTile(groups[nextG][0]);
-  }
-}
-
 /** Column count for one group's tiles, measured from actual layout (same
  *  technique as the Cards page's `columnCount()`), since a group's own
  *  `.group-body` can wrap to a different column count than another group's. */
@@ -2286,8 +2267,8 @@ function groupColumnCount(tiles) {
   return Math.max(1, n);
 }
 
-function handleDeckGridKey(e) {
-  const groups = deckNavGroups(document.getElementById('deck-grid-view'));
+function handleDeckColumnNavKey(e, containerId) {
+  const groups = deckNavGroups(document.getElementById(containerId));
   if (!groups.length) return;
   const isArrow = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key);
   if (!isArrow) return;

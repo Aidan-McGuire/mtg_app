@@ -2,8 +2,8 @@
 id: 009
 title: Deck list view uses a two-column grid with column-aware arrow nav
 priority: medium
-status: queued
-branch:
+status: in-review
+branch: item/9-deck-list-view-uses-a-two-column-grid-with-column-aware-arrow-nav
 created: 2026-08-23
 ---
 

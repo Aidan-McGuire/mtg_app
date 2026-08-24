@@ -887,13 +887,13 @@ kbd {
   gap: 2px;
 }
 
-/* Group bodies in text view are a vertical row list, not the tile grid
-   `.group-body` uses elsewhere — this ID-scoped override wins over the
-   shared `.group-body { display: grid; ... }` rule. */
+/* Group bodies in text view are a fixed 2-column row grid, not the
+   auto-fill tile grid `.group-body` uses elsewhere — this ID-scoped
+   override wins over the shared `.group-body { display: grid; ... }` rule. */
 #deck-text-view .group-body {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2px 8px;
 }
 
 #deck-text-view .group-body.collapsed { display: none; }
