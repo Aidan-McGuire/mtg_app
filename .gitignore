@@ -21,3 +21,6 @@ image_cache
 
 # Daily Stage 2 job log
 .claude/stage2.log
+
+# Card DB auto-refresh log
+card_refresh.log
