@@ -1,8 +1,7 @@
 # Notes
 ## Feature backlog
 
-1. deck view grid view cards same size as collection view
-2. add way to move card to considering from list view
+1. add way to move card to considering from list view
 
 Refined into `docs/superpowers/backlog/`: commander-in-tag-groups (001),
 wider preview panel (002), larger grouped-view tiles/headers (003),
@@ -11,7 +10,7 @@ logic in favor of 005), type-based hide-lands toggle (005), auto-refresh
 card DB on server startup (006), collection type grouping (007), deck grid
 view hide-preview + bump tile size (008), deck list view two-column grid +
 column-aware nav (009), deck removal scoping + list-view/keyboard removal
-parity (010).
+parity (010), deck grid tile size reverted to match collection (011).
 
 
 
