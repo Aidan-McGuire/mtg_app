@@ -2170,7 +2170,10 @@ function buildDeckTextRow(card) {
     <span class="deck-text-qty">${card.quantity}x</span>
     <span class="deck-text-name">${esc(card.name)}</span>
     <span class="deck-text-mana">${esc(card.mana_cost || '')}</span>
-    ${tagChipsHtml(card.deck_tags, 'deck-tag')}`;
+    ${tagChipsHtml(card.deck_tags, 'deck-tag')}
+    <kbd class="deck-kbd-hint" title="Remove focused card">⌫</kbd>
+    <button class="deck-remove-btn" title="Remove">×</button>`;
+  row.querySelector('.deck-remove-btn').addEventListener('click', e => { e.stopPropagation(); removeDeckCard(card.id); });
   row.addEventListener('mouseenter', () => setDeckFocus(card.id, row));
   row.addEventListener('click', () => openModal(card, { deckId: deckState.currentDeckId }));
   return row;
