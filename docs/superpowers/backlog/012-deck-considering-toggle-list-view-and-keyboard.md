@@ -2,7 +2,7 @@
 id: 012
 title: Add considering-toggle to list view, plus a shared keyboard shortcut
 priority: medium
-status: in-progress
+status: in-review
 branch: item/12-add-considering-toggle-to-list-view-plus-a-shared-keyboard-shortcut
 created: 2026-08-23
 ---
