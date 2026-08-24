@@ -133,6 +133,10 @@ def migrate_database():
         """)
         cur.execute("UPDATE schema_version SET version = 5;")
 
+    if version < 6:
+        cur.execute("ALTER TABLE schema_version ADD COLUMN cards_last_refreshed TEXT;")
+        cur.execute("UPDATE schema_version SET version = 6;")
+
     conn.commit()
     conn.close()
 
