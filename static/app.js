@@ -532,9 +532,11 @@ async function loadCollection() {
   for (const r of rows) state.collection[r.id] = r.quantity;
 }
 
+// ── qty ──
 function qty(cardId) {
   return state.collection[cardId] || 0;
 }
+// ── end qty ──
 
 async function increment(cardId) {
   const wasOwned = qty(cardId) > 0;
