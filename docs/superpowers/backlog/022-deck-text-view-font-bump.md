@@ -2,8 +2,8 @@
 id: 022
 title: Bump deck text view font sizes slightly
 priority: low
-status: queued
-branch:
+status: in-review
+branch: item/22-bump-deck-text-view-font-sizes-slightly
 created: 2026-08-26
 ---
 
@@ -42,11 +42,11 @@ Only the `font-size` values change — leave `color`, `min-width`,
 
 ## Acceptance criteria
 
-- [ ] `.deck-text-qty` renders at 13px.
-- [ ] `.deck-text-name` renders at 14px.
-- [ ] `.deck-text-mana` renders at 12px.
-- [ ] No other properties on these three rules changed.
-- [ ] No other deck text view elements (tags, kbd hints, considering
+- [x] `.deck-text-qty` renders at 13px.
+- [x] `.deck-text-name` renders at 14px.
+- [x] `.deck-text-mana` renders at 12px.
+- [x] No other properties on these three rules changed.
+- [x] No other deck text view elements (tags, kbd hints, considering
       button) changed size.
-- [ ] Rows still lay out without visual overflow/clipping at the new
+- [x] Rows still lay out without visual overflow/clipping at the new
       sizes (check a card with a long name and a full tag list).
