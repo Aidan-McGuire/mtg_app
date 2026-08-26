@@ -63,6 +63,11 @@ const API = {
     if (!r.ok) throw new Error('Failed to load deck');
     return r.json();
   },
+  async getDeckAllocations(id) {
+    const r = await fetch(`/api/decks/${id}/allocations`);
+    if (!r.ok) throw new Error('Failed to load deck allocations');
+    return r.json();
+  },
   async addCardToDeck(deckId, cardId, quantity = 1) {
     const r = await fetch(`/api/decks/${deckId}/cards`, {
       method: 'POST',
@@ -581,6 +586,12 @@ function qty(cardId) {
   return state.collection[cardId] || 0;
 }
 // ── end qty ──
+
+function isLockedElsewhere(cardId) {
+  const owned = qty(cardId);
+  if (owned <= 0) return false;
+  return owned <= (deckState.allocatedElsewhere[cardId] || 0);
+}
 
 async function increment(cardId) {
   const wasOwned = qty(cardId) > 0;
@@ -1880,9 +1891,10 @@ document.getElementById('col-import-submit').addEventListener('click', async () 
 // ── Deck state ────────────────────────────────────────────────────────────────
 
 const deckState = {
-  decks:          [],
-  currentDeckId:  null,
-  deckCards:      [],
+  decks:              [],
+  currentDeckId:      null,
+  deckCards:          [],
+  allocatedElsewhere: {},   // card id -> qty allocated to OTHER built decks
   deckView:       'grid',
   groupBy:        'none',   // 'none' | 'type' | 'collection-tag' | 'deck-tag'
   filter:         makeFilterModel({ hideLands: true }),
@@ -1984,11 +1996,14 @@ async function selectDeck(id) {
   if (searchInput) searchInput.value = '';
   renderDeckSwitchResults();
   try {
-    deckState.deckCards = await API.getDeckCards(id);
-    const [collTags, deckTags] = await Promise.all([
+    const [cards, allocations, collTags, deckTags] = await Promise.all([
+      API.getDeckCards(id),
+      API.getDeckAllocations(id),
       API.listCollectionTags(),
       API.listDeckTags(id),
     ]);
+    deckState.deckCards = cards;
+    deckState.allocatedElsewhere = allocations;
     buildFilterControls(document.getElementById('deck-filter-controls'), {
       model: deckState.filter,
       facets: new Set(['colors', 'exactColors', 'types', 'cmc', 'power', 'toughness', 'tags']),
@@ -2182,6 +2197,9 @@ function buildDeckCardTile(card) {
     : `<div class="card-img-placeholder">${esc(card.name)}</div>`;
 
   const ownedBadgeHtml = q > 0 ? OWNED_BADGE_HTML : '';
+  const lockedBadgeHtml = isLockedElsewhere(card.id)
+    ? '<div class="deck-card-locked-badge" role="img" aria-label="Locked in other built decks">⚠</div>'
+    : '';
 
   // A commander can't be Considering, so the toggle is pointless on that tile.
   const consideringBtnHtml = card.is_commander ? '' : `
@@ -2190,7 +2208,7 @@ function buildDeckCardTile(card) {
     <kbd class="deck-kbd-hint" title="Toggle Considering">c</kbd>`;
 
   div.innerHTML = `
-    <div class="deck-card-img-wrap" data-owned-wrap-for="${card.id}">${ownedBadgeHtml}${imgHtml}</div>
+    <div class="deck-card-img-wrap" data-owned-wrap-for="${card.id}">${ownedBadgeHtml}${lockedBadgeHtml}${imgHtml}</div>
     <div class="deck-card-info">
       <div class="deck-card-name">${esc(card.name)}</div>
       <div class="deck-card-row">
@@ -2233,9 +2251,13 @@ function buildDeckTextRow(card) {
             title="${card.is_considering ? 'Move back to deck' : 'Move to Considering'}">?</button>
     <kbd class="deck-kbd-hint" title="Toggle Considering">c</kbd>`;
 
+  const lockedHtml = isLockedElsewhere(card.id)
+    ? '<span class="deck-text-locked" title="All owned copies are in other built decks">⚠</span>'
+    : '';
   row.innerHTML = `
     <span class="deck-text-qty">${card.quantity}x</span>
     <span class="deck-text-name">${esc(card.name)}</span>
+    ${lockedHtml}
     <span class="deck-text-mana">${esc(card.mana_cost || '')}</span>
     ${tagChipsHtml(card.deck_tags, 'deck-tag')}
     ${consideringBtnHtml}
@@ -2570,9 +2592,13 @@ function renderDeckSearchResults() {
     const row = document.createElement('div');
     row.className = 'deck-search-row';
     row.dataset.idx = i;
+    const lockedHtml = isLockedElsewhere(card.id)
+      ? '<span class="dsearch-locked" title="All owned copies are in other built decks">⚠</span>'
+      : '';
     row.innerHTML = `
       <span class="dsearch-name">${esc(card.name)}</span>
       <span class="dsearch-type">${esc(card.type_line || '')}</span>
+      ${lockedHtml}
       <span class="dsearch-indeck">${inDeck ? `in deck: ${inDeck.quantity}` : ''}</span>
       <button class="dsearch-add-btn" title="Add to deck">+</button>`;
     row.querySelector('.dsearch-add-btn').addEventListener('click', e => { e.stopPropagation(); addFromPalette(card); });

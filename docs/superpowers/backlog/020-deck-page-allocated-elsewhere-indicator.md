@@ -2,8 +2,8 @@
 id: 020
 title: Deck-page indicator for cards fully allocated to other built decks
 priority: medium
-status: queued
-branch:
+status: in-review
+branch: item/20-deck-page-indicator-for-cards-fully-allocated-to-other-built-decks
 created: 2026-08-26
 ---
 
@@ -97,19 +97,19 @@ once and used as a plain client-side lookup everywhere.
 
 ## Acceptance criteria
 
-- [ ] Opening a deck fetches its allocation map once (visible via one
+- [x] Opening a deck fetches its allocation map once (visible via one
       `GET /api/decks/{id}/allocations` request per deck switch, not per
       card).
-- [ ] A card already in the open deck, owned but with all copies
+- [x] A card already in the open deck, owned but with all copies
       allocated to *other* built decks, shows the new indicator.
-- [ ] The same card does NOT show the indicator while viewing a deck that
+- [x] The same card does NOT show the indicator while viewing a deck that
       itself holds the allocating copies (deck-relative exclusion works).
-- [ ] The "Add cards" search results show the same indicator for a
+- [x] The "Add cards" search results show the same indicator for a
       matching card, distinct from (and combinable with) the existing "in
       deck: N" text already shown there.
-- [ ] A card allocated only to Considering sections elsewhere is not
+- [x] A card allocated only to Considering sections elsewhere is not
       treated as locked (matches item 018/019's Considering-doesn't-count
       rule).
-- [ ] A card allocated to non-built decks doesn't trigger the indicator.
-- [ ] The indicator is visually distinct from the existing green owned
+- [x] A card allocated to non-built decks doesn't trigger the indicator.
+- [x] The indicator is visually distinct from the existing green owned
       checkmark/qty-label styling, and both can appear together.
