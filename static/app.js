@@ -524,7 +524,7 @@ function buildFilterControls(container, config) {
   clearBtn.addEventListener('click', () => {
     // Text search is owned by the page's search box, so Clear preserves it.
     const keepText = model.text;
-    Object.assign(model, makeFilterModel({ sort: model.sort, dir: model.dir, text: keepText, hideLands: model.hideLands }));
+    Object.assign(model, makeFilterModel({ sort: model.sort, dir: model.dir, text: keepText, hideLands: model.hideLands, unownedOnly: model.unownedOnly }));
     buildFilterControls(container, config);  // re-render to reset control state
     onChange();
   });
