@@ -2,8 +2,8 @@
 id: 015
 title: Grid-view categories span full width instead of side-by-side columns
 priority: medium
-status: queued
-branch:
+status: in-progress
+branch: item/15-grid-view-categories-span-full-width-instead-of-side-by-side-columns
 created: 2026-08-26
 ---
 
