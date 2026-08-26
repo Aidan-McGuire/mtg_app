@@ -2,8 +2,8 @@
 id: 018
 title: Built flag on decks
 priority: medium
-status: queued
-branch:
+status: in-progress
+branch: item/18-built-flag-on-decks
 created: 2026-08-26
 ---
 
