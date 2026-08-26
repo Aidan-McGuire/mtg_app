@@ -43,11 +43,11 @@ style instead of a badge element:
 
 ## Acceptance criteria
 
-- [ ] Opening a deck's text view, cards with collection quantity > 0 are
+- [x] Opening a deck's text view, cards with collection quantity > 0 are
       visually distinguishable from cards with quantity 0.
-- [ ] The visual treatment does not visually conflict with `.focused`,
+- [x] The visual treatment does not visually conflict with `.focused`,
       `.is-commander`, or considering-row styling when combined.
-- [ ] Grid view's existing owned badge behavior is unchanged.
-- [ ] No new elements added to the row's DOM structure — verified by
+- [x] Grid view's existing owned badge behavior is unchanged.
+- [x] No new elements added to the row's DOM structure — verified by
       diffing `buildDeckTextRow`'s template against its current form (only
       a class name changes).
