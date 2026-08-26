@@ -491,7 +491,12 @@ def get_collection():
         cur.execute("""
             SELECT c.id, c.name, c.mana_cost, c.cmc, c.type_line, c.oracle_text,
                    c.colors, c.color_identity, c.image_uri, c.power, c.toughness,
-                   col.quantity
+                   col.quantity,
+                   COALESCE((
+                       SELECT SUM(dc.quantity) FROM deck_cards dc
+                       JOIN decks d ON d.id = dc.deck_id
+                       WHERE dc.card_id = c.id AND dc.is_considering = 0 AND d.built = 1
+                   ), 0) AS allocated_qty
             FROM collection col
             JOIN cards c ON c.id = col.card_id
             WHERE col.quantity > 0
