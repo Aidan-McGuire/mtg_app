@@ -2,7 +2,7 @@
 id: 019
 title: Collection filter to hide cards fully allocated to built decks
 priority: medium
-status: in-progress
+status: in-review
 branch: item/19-collection-filter-to-hide-cards-fully-allocated-to-built-decks
 created: 2026-08-26
 ---
