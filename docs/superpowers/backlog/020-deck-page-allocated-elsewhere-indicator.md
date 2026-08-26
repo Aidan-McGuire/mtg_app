@@ -2,7 +2,7 @@
 id: 020
 title: Deck-page indicator for cards fully allocated to other built decks
 priority: medium
-status: in-progress
+status: in-review
 branch: item/20-deck-page-indicator-for-cards-fully-allocated-to-other-built-decks
 created: 2026-08-26
 ---
