@@ -2,8 +2,8 @@
 id: 021
 title: Deck text view owned indicator becomes a 3-state status color
 priority: medium
-status: queued
-branch:
+status: in-review
+branch: item/21-deck-text-view-owned-indicator-becomes-a-3-state-status-color
 created: 2026-08-26
 ---
 
@@ -96,16 +96,16 @@ results' locked-elsewhere indicator (`renderDeckSearchResults`,
 
 ## Acceptance criteria
 
-- [ ] A card owned with at least one free copy shows a green left-edge
+- [x] A card owned with at least one free copy shows a green left-edge
       highlight on its text-view row.
-- [ ] A card owned but fully allocated to other built decks shows a
+- [x] A card owned but fully allocated to other built decks shows a
       yellow left-edge highlight — no separate warning glyph appears.
-- [ ] A card not owned at all shows a red left-edge highlight.
-- [ ] Every text-view row has exactly one of these three states — never
+- [x] A card not owned at all shows a red left-edge highlight.
+- [x] Every text-view row has exactly one of these three states — never
       zero, never more than one.
-- [ ] The `.focused` row style (background tint) still applies correctly
+- [x] The `.focused` row style (background tint) still applies correctly
       layered under any of the three edge colors.
-- [ ] The deck grid view's owned badge and the "Add cards" search
+- [x] The deck grid view's owned badge and the "Add cards" search
       results' locked-elsewhere `⚠` indicator are visually unchanged.
-- [ ] No remaining references to `.deck-text-locked` or the old
+- [x] No remaining references to `.deck-text-locked` or the old
       `.deck-text-row.owned` class in `static/app.js` or `static/style.css`.
