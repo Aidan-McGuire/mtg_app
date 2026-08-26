@@ -57,16 +57,16 @@ by this — this item is grid views only.
 
 ## Acceptance criteria
 
-- [ ] In the card browser, collection browser, and deck grid view, grouping
+- [x] In the card browser, collection browser, and deck grid view, grouping
       by any available category renders each category spanning the full
       grid width, with multiple cards per row inside each category
       (whatever fits at 240px-min tile width), stacked vertically
       category-by-category — not side-by-side single-card columns.
-- [ ] The deck grid view's trailing "Considering" section still renders
+- [x] The deck grid view's trailing "Considering" section still renders
       correctly (full width, same as every other category now).
-- [ ] Deck text view's grouped rendering (2-column row layout) is visually
+- [x] Deck text view's grouped rendering (2-column row layout) is visually
       unchanged.
-- [ ] Collapsing/expanding a category (`.group-header.collapsed` /
+- [x] Collapsing/expanding a category (`.group-header.collapsed` /
       `.group-body.collapsed`) still works the same as before.
-- [ ] No remaining references to `.group-section-full` in `static/app.js`
+- [x] No remaining references to `.group-section-full` in `static/app.js`
       or `static/style.css`.
