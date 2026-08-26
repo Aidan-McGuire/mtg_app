@@ -253,3 +253,62 @@ def test_worktree_already_checked_out_elsewhere_fails_clearly(stage2_repo):
     assert not (stage2_repo.path / ".claude" / "worktrees" / "1-old-title").exists()
     # main is untouched.
     assert stage2_repo.git("rev-parse", "--abbrev-ref", "HEAD").stdout.strip() != "item/1-old-title"
+
+
+def test_claim_commit_does_not_sweep_in_unrelated_staged_changes(stage2_repo):
+    # The commit this test targets only happens on the claim/rework path, not
+    # the resume path (resuming an already in-progress branch doesn't commit
+    # anything) — so drive this through a changes-requested rework, whose
+    # worktree from the original claim is still sitting on disk untouched.
+    stage2_repo.write_item(1, "Old Title", priority="high", status="queued")
+    stage2_repo.git("add", "-A")
+    stage2_repo.git("commit", "-q", "-m", "add item 1")
+    stage2_repo.run()  # claims item 1 -> branch + worktree item/1-old-title
+
+    worktree = stage2_repo.path / ".claude" / "worktrees" / "1-old-title"
+    item_on_branch = worktree / "docs/superpowers/backlog/001-old-title.md"
+    item_on_branch.write_text(
+        item_on_branch.read_text().replace("status: in-progress", "status: in-review")
+    )
+    subprocess.run(["git", "add", "-A"], cwd=worktree, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "mark in-review"], cwd=worktree, check=True)
+
+    item_on_main = stage2_repo.path / "docs/superpowers/backlog/001-old-title.md"
+    item_on_main.write_text(item_on_main.read_text().replace("status: queued", "status: changes-requested"))
+    stage2_repo.git("add", "-A")
+    stage2_repo.git("commit", "-q", "-m", "request changes")
+
+    # Stray staged file left in the original worktree (still on disk — nothing
+    # removes it between a claim and a later rework of the same item).
+    (worktree / "EXTRA.txt").write_text("unrelated staged content\n")
+    subprocess.run(["git", "add", "EXTRA.txt"], cwd=worktree, check=True)
+
+    stage2_repo.claude_log.unlink()
+    result = stage2_repo.run()
+
+    assert result.returncode == 0, result.stderr
+    # EXTRA.txt is still staged, uncommitted — the rework commit didn't touch it.
+    status = subprocess.run(
+        ["git", "status", "--porcelain"], cwd=worktree, capture_output=True, text=True, check=True
+    ).stdout
+    assert "EXTRA.txt" in status
+
+
+def test_resume_scan_logs_branch_with_no_matching_item_file(stage2_repo):
+    stage2_repo.write_item(1, "Real Item", priority="high", status="queued")
+    stage2_repo.git("add", "-A")
+    stage2_repo.git("commit", "-q", "-m", "add item 1")
+
+    # An orphan item/* branch with no matching backlog item file at all.
+    stage2_repo.git("checkout", "-q", "-b", "item/99-orphan")
+    stage2_repo.git("checkout", "-q", "main")
+
+    result = stage2_repo.run()
+
+    assert result.returncode == 0, result.stderr
+    assert "item/99-orphan" in result.stdout
+    assert "not resuming it" in result.stdout
+    on_branch = stage2_repo.git(
+        "show", "item/1-real-item:docs/superpowers/backlog/001-real-item.md"
+    ).stdout
+    assert "status: in-progress" in on_branch

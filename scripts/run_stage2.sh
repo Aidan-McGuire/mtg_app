@@ -72,7 +72,10 @@ main() {
     [ -n "$candidate_branch" ] || continue
     candidate_id="$(id_from_branch "$candidate_branch")"
     candidate_path="$(branch_item_path "$candidate_branch" "$candidate_id")"
-    [ -n "$candidate_path" ] || continue
+    if [ -z "$candidate_path" ]; then
+      echo "$(date): $candidate_branch has no matching backlog item file for id $candidate_id — not resuming it"
+      continue
+    fi
     candidate_status="$(status_on_branch "$candidate_branch" "$candidate_path")"
     if [ "$candidate_status" = "in-progress" ]; then
       BRANCH="$candidate_branch"
@@ -139,10 +142,7 @@ main() {
         branch_status=""
         [ -n "$branch_path" ] && branch_status="$(status_on_branch "$BRANCH" "$branch_path")"
 
-        if [ "$branch_status" = "in-progress" ]; then
-          : # Claimed but not finished (another item's branch won the resume scan
-            # order); carry on with the branch's own copy, claim will be a no-op.
-        elif [ "$(status_on_main "$ITEM_PATH")" = "changes-requested" ]; then
+        if [ "$(status_on_main "$ITEM_PATH")" = "changes-requested" ]; then
           REWORK=1
         else
           # Finished work waiting on the human in Stage 3 — not ours to touch.
@@ -198,7 +198,7 @@ main() {
     if git diff --cached --quiet -- "$WORKTREE_ITEM_PATH"; then
       echo "$(date): item $ITEM_ID already up to date on $BRANCH, nothing to commit"
     else
-      git commit -m "$COMMIT_MSG"
+      git commit -m "$COMMIT_MSG" -- "$WORKTREE_ITEM_PATH"
     fi
     echo "$LOG_MSG"
     ITEM_PATH="$WORKTREE_ITEM_PATH"
