@@ -2,8 +2,8 @@
 id: 019
 title: Collection filter to hide cards fully allocated to built decks
 priority: medium
-status: queued
-branch:
+status: in-review
+branch: item/19-collection-filter-to-hide-cards-fully-allocated-to-built-decks
 created: 2026-08-26
 ---
 
@@ -68,17 +68,17 @@ discussion; `deck_cards.is_considering` already distinguishes this).
 
 ## Acceptance criteria
 
-- [ ] Collection view's filter bar has a new toggle that, when active,
+- [x] Collection view's filter bar has a new toggle that, when active,
       hides any card whose owned quantity is entirely accounted for by
       built decks' main-deck (non-Considering) cards.
-- [ ] A card with more owned copies than allocated (e.g. own 3, 2
+- [x] A card with more owned copies than allocated (e.g. own 3, 2
       allocated to built decks) stays visible when the toggle is active.
-- [ ] A card allocated only to Considering sections of built decks (never
+- [x] A card allocated only to Considering sections of built decks (never
       the main deck) is treated as unallocated — never hidden by this
       toggle on that basis alone.
-- [ ] A card allocated to a deck that is NOT built doesn't count toward
+- [x] A card allocated to a deck that is NOT built doesn't count toward
       `allocated_qty` at all.
-- [ ] The toggle persists across a filter-bar "clear filters" action, same
+- [x] The toggle persists across a filter-bar "clear filters" action, same
       as `hideLands`/`unownedOnly`.
-- [ ] Card browser and deck filter bars are unchanged — no new button
+- [x] Card browser and deck filter bars are unchanged — no new button
       there.

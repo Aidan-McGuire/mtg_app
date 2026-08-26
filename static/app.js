@@ -200,7 +200,8 @@ function makeFilterModel(overrides = {}) {
     types: new Set(), cmcMin: null, cmcMax: null,
     powerMin: null, powerMax: null, toughnessMin: null, toughnessMax: null,
     exactColors: new Set(), exactColorlessOnly: false,
-    tags: new Set(), hideLands: false, unownedOnly: false, sort: 'name', dir: 'asc', ...overrides,
+    tags: new Set(), hideLands: false, unownedOnly: false, hideFullyAllocated: false,
+    sort: 'name', dir: 'asc', ...overrides,
   };
 }
 
@@ -273,6 +274,7 @@ function applyFilters(cards, model) {
     }
     if (model.hideLands && (c.type_line || '').includes('Land')) return false;
     if (model.unownedOnly && qty(c.id) > 0) return false;
+    if (model.hideFullyAllocated && c.quantity != null && (c.allocated_qty || 0) >= c.quantity) return false;
     if (model.cmcMin != null && (c.cmc ?? 0) < model.cmcMin) return false;
     if (model.cmcMax != null && (c.cmc ?? 0) > model.cmcMax) return false;
     if (model.powerMin != null || model.powerMax != null) {
@@ -391,7 +393,7 @@ function appendRangeFilterGroup(panel, label, model, minKey, maxKey, refreshBadg
  *           sortOptions:[{value,label}], tagOptions:[], onChange:fn }
  */
 function buildFilterControls(container, config) {
-  const { model, facets, sortOptions, tagOptions = [], onChange, showHideLandsToggle = false, showUnownedOnlyToggle = false } = config;
+  const { model, facets, sortOptions, tagOptions = [], onChange, showHideLandsToggle = false, showUnownedOnlyToggle = false, showHideAllocatedToggle = false } = config;
   container.innerHTML = '';
   container.className = 'filter-bar';
 
@@ -438,6 +440,19 @@ function buildFilterControls(container, config) {
     unownedBtn.addEventListener('click', () => {
       model.unownedOnly = !model.unownedOnly;
       unownedBtn.classList.toggle('active', model.unownedOnly);
+      onChange();
+    });
+  }
+
+  // Hide Allocated toggle
+  let hideAllocatedBtn = null;
+  if (showHideAllocatedToggle) {
+    hideAllocatedBtn = document.createElement('button');
+    hideAllocatedBtn.className = 'hide-allocated-btn action-btn' + (model.hideFullyAllocated ? ' active' : '');
+    hideAllocatedBtn.textContent = 'Hide Allocated';
+    hideAllocatedBtn.addEventListener('click', () => {
+      model.hideFullyAllocated = !model.hideFullyAllocated;
+      hideAllocatedBtn.classList.toggle('active', model.hideFullyAllocated);
       onChange();
     });
   }
@@ -533,7 +548,11 @@ function buildFilterControls(container, config) {
   clearBtn.addEventListener('click', () => {
     // Text search is owned by the page's search box, so Clear preserves it.
     const keepText = model.text;
-    Object.assign(model, makeFilterModel({ sort: model.sort, dir: model.dir, text: keepText, hideLands: model.hideLands, unownedOnly: model.unownedOnly }));
+    Object.assign(model, makeFilterModel({
+      sort: model.sort, dir: model.dir, text: keepText,
+      hideLands: model.hideLands, unownedOnly: model.unownedOnly,
+      hideFullyAllocated: model.hideFullyAllocated,
+    }));
     buildFilterControls(container, config);  // re-render to reset control state
     onChange();
   });
@@ -544,6 +563,7 @@ function buildFilterControls(container, config) {
   container.appendChild(dirBtn);
   if (landsBtn) container.appendChild(landsBtn);
   if (unownedBtn) container.appendChild(unownedBtn);
+  if (hideAllocatedBtn) container.appendChild(hideAllocatedBtn);
   container.appendChild(filterBtn);
   container.appendChild(panel);
 }
@@ -1590,6 +1610,7 @@ async function loadCollectionView() {
       tagOptions,
       onChange: renderCollectionGrid,
       showHideLandsToggle: true,
+      showHideAllocatedToggle: true,
     });
     renderCollectionGrid();
   } catch (e) {
