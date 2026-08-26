@@ -2,7 +2,7 @@
 id: 022
 title: Bump deck text view font sizes slightly
 priority: low
-status: in-progress
+status: in-review
 branch: item/22-bump-deck-text-view-font-sizes-slightly
 created: 2026-08-26
 ---
