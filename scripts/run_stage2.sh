@@ -104,8 +104,18 @@ main() {
         exit 0
       fi
 
-      BRANCH="$(python3 scripts/backlog_cli.py branch-name "$ITEM_PATH")"
-      ITEM_ID="$(id_from_branch "$BRANCH")"
+      ITEM_ID="$(sed -n 's/^id: *0*//p' "$ITEM_PATH" | head -n1)"
+      EXISTING_BRANCH="$(git for-each-ref --format='%(refname:short)' "refs/heads/item/${ITEM_ID}-*" | head -n1)"
+      if [ -n "$EXISTING_BRANCH" ]; then
+        # A branch already exists for this id — always reuse it by id, even if
+        # the item's title (and so its freshly-slugified branch name) changed
+        # since the branch was first cut. Prevents a retitle during
+        # changes-requested from abandoning the branch's prior work by cutting
+        # a same-id sibling branch instead of reusing the real one.
+        BRANCH="$EXISTING_BRANCH"
+      else
+        BRANCH="$(python3 scripts/backlog_cli.py branch-name "$ITEM_PATH")"
+      fi
       REWORK=0
 
       if git show-ref --verify --quiet "refs/heads/$BRANCH"; then

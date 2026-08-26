@@ -181,3 +181,43 @@ def test_finished_branch_awaiting_review_is_skipped_for_next_queued_item(stage2_
         "show", "item/2-second-item:docs/superpowers/backlog/002-second-item.md"
     ).stdout
     assert "status: in-progress" in on_branch_2
+
+
+def test_retitle_during_changes_requested_reuses_existing_branch(stage2_repo):
+    stage2_repo.write_item(1, "Old Title", priority="high", status="queued")
+    stage2_repo.git("add", "-A")
+    stage2_repo.git("commit", "-q", "-m", "add item 1")
+    stage2_repo.run()  # claims item 1 -> branch item/1-old-title
+
+    # Simulate finished work on the branch: an extra file marking "real" work,
+    # then mark in-review (as a completed Stage 2 run would). Edit inside the
+    # branch's own worktree, since the branch is already checked out there.
+    worktree = stage2_repo.path / ".claude" / "worktrees" / "1-old-title"
+    (worktree / "WORK_DONE.txt").write_text("implementation happened here\n")
+    item_on_branch = worktree / "docs/superpowers/backlog/001-old-title.md"
+    item_on_branch.write_text(
+        item_on_branch.read_text().replace("status: in-progress", "status: in-review")
+    )
+    subprocess.run(["git", "add", "-A"], cwd=worktree, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "did the actual work + mark in-review"], cwd=worktree, check=True)
+
+    # Human retitles the item and requests changes, both on main.
+    item_on_main = stage2_repo.path / "docs/superpowers/backlog/001-old-title.md"
+    item_on_main.write_text(
+        item_on_main.read_text()
+        .replace("title: Old Title", "title: New Title")
+        .replace("status: queued", "status: changes-requested")
+    )
+    stage2_repo.git("add", "-A")
+    stage2_repo.git("commit", "-q", "-m", "retitle + request changes")
+
+    stage2_repo.claude_log.unlink()
+    result = stage2_repo.run()
+
+    assert result.returncode == 0, result.stderr
+    # No sibling branch was created for the new title.
+    assert stage2_repo.git("branch", "--list", "item/1-new-title").stdout.strip() == ""
+    # The original branch was reused and still has the prior work on it.
+    assert stage2_repo.git(
+        "show", "item/1-old-title:WORK_DONE.txt"
+    ).stdout == "implementation happened here\n"
