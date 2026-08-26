@@ -191,7 +191,7 @@ function makeFilterModel(overrides = {}) {
     types: new Set(), cmcMin: null, cmcMax: null,
     powerMin: null, powerMax: null, toughnessMin: null, toughnessMax: null,
     exactColors: new Set(), exactColorlessOnly: false,
-    tags: new Set(), hideLands: false, sort: 'name', dir: 'asc', ...overrides,
+    tags: new Set(), hideLands: false, unownedOnly: false, sort: 'name', dir: 'asc', ...overrides,
   };
 }
 
@@ -263,6 +263,7 @@ function applyFilters(cards, model) {
       if (![...model.types].some(ty => tl.includes(ty))) return false;
     }
     if (model.hideLands && (c.type_line || '').includes('Land')) return false;
+    if (model.unownedOnly && qty(c.id) > 0) return false;
     if (model.cmcMin != null && (c.cmc ?? 0) < model.cmcMin) return false;
     if (model.cmcMax != null && (c.cmc ?? 0) > model.cmcMax) return false;
     if (model.powerMin != null || model.powerMax != null) {
@@ -381,7 +382,7 @@ function appendRangeFilterGroup(panel, label, model, minKey, maxKey, refreshBadg
  *           sortOptions:[{value,label}], tagOptions:[], onChange:fn }
  */
 function buildFilterControls(container, config) {
-  const { model, facets, sortOptions, tagOptions = [], onChange, showHideLandsToggle = false } = config;
+  const { model, facets, sortOptions, tagOptions = [], onChange, showHideLandsToggle = false, showUnownedOnlyToggle = false } = config;
   container.innerHTML = '';
   container.className = 'filter-bar';
 
@@ -415,6 +416,19 @@ function buildFilterControls(container, config) {
     landsBtn.addEventListener('click', () => {
       model.hideLands = !model.hideLands;
       landsBtn.classList.toggle('active', model.hideLands);
+      onChange();
+    });
+  }
+
+  // Unowned Only toggle
+  let unownedBtn = null;
+  if (showUnownedOnlyToggle) {
+    unownedBtn = document.createElement('button');
+    unownedBtn.className = 'unowned-only-btn action-btn' + (model.unownedOnly ? ' active' : '');
+    unownedBtn.textContent = 'Unowned Only';
+    unownedBtn.addEventListener('click', () => {
+      model.unownedOnly = !model.unownedOnly;
+      unownedBtn.classList.toggle('active', model.unownedOnly);
       onChange();
     });
   }
@@ -510,7 +524,7 @@ function buildFilterControls(container, config) {
   clearBtn.addEventListener('click', () => {
     // Text search is owned by the page's search box, so Clear preserves it.
     const keepText = model.text;
-    Object.assign(model, makeFilterModel({ sort: model.sort, dir: model.dir, text: keepText, hideLands: model.hideLands }));
+    Object.assign(model, makeFilterModel({ sort: model.sort, dir: model.dir, text: keepText, hideLands: model.hideLands, unownedOnly: model.unownedOnly }));
     buildFilterControls(container, config);  // re-render to reset control state
     onChange();
   });
@@ -520,6 +534,7 @@ function buildFilterControls(container, config) {
   container.appendChild(sortSel);
   container.appendChild(dirBtn);
   if (landsBtn) container.appendChild(landsBtn);
+  if (unownedBtn) container.appendChild(unownedBtn);
   container.appendChild(filterBtn);
   container.appendChild(panel);
 }
@@ -532,9 +547,11 @@ async function loadCollection() {
   for (const r of rows) state.collection[r.id] = r.quantity;
 }
 
+// ── qty ──
 function qty(cardId) {
   return state.collection[cardId] || 0;
 }
+// ── end qty ──
 
 async function increment(cardId) {
   const wasOwned = qty(cardId) > 0;
@@ -1948,6 +1965,7 @@ async function selectDeck(id) {
       tagOptions: [...new Set([...collTags, ...deckTags])].sort(),
       onChange: renderDeckContent,
       showHideLandsToggle: true,
+      showUnownedOnlyToggle: true,
     });
     showDeckEditor();
   } catch (e) {

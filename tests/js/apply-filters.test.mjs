@@ -15,7 +15,18 @@ const from = src.indexOf(START);
 const to = src.indexOf(END);
 assert.ok(from !== -1 && to > from, 'applyFilters sentinel comments not found in static/app.js');
 
-const applyFilters = new Function(`${src.slice(from, to)}; return applyFilters;`)();
+const QTY_START = '// ── qty ──';
+const QTY_END = '// ── end qty ──';
+const qtyFrom = src.indexOf(QTY_START);
+const qtyTo = src.indexOf(QTY_END);
+assert.ok(qtyFrom !== -1 && qtyTo > qtyFrom, 'qty sentinel comments not found in static/app.js');
+
+const { applyFilters, setOwned } = new Function(`
+  const state = { collection: {} };
+  ${src.slice(qtyFrom, qtyTo)}
+  ${src.slice(from, to)}
+  return { applyFilters, setOwned: (id, n) => { state.collection[id] = n; } };
+`)();
 
 function baseModel(overrides = {}) {
   return {
@@ -23,21 +34,27 @@ function baseModel(overrides = {}) {
     cmcMin: null, cmcMax: null, powerMin: null, powerMax: null,
     toughnessMin: null, toughnessMax: null, exactColors: new Set(),
     exactColorlessOnly: false, tags: new Set(), hideLands: false,
+    unownedOnly: false,
     ...overrides,
   };
 }
 
 const cards = [
-  { name: 'Grizzly Bears', power: '2', toughness: '2', cmc: 2, type_line: 'Creature — Bear', color_identity: 'G', colors: 'G' },
-  { name: 'Wise Elephant', power: '3', toughness: '5', cmc: 5, type_line: 'Creature — Elephant', color_identity: 'G', colors: 'G' },
-  { name: 'Steel Wall', power: '0', toughness: '4', cmc: 1, type_line: 'Artifact Creature — Wall', color_identity: '', colors: '' },
-  { name: 'Mystery Hydra', power: '*', toughness: '*', cmc: 1, type_line: 'Creature — Hydra', color_identity: 'G', colors: 'G' },
-  { name: 'Ancestral Vision', power: null, toughness: null, cmc: 1, type_line: 'Sorcery', color_identity: 'U', colors: 'U' },
-  { name: 'Compound Beast', power: '1+*', toughness: '1+*', cmc: 3, type_line: 'Creature — Beast', color_identity: 'G', colors: 'G' },
-  { name: 'Deathrite Shaman', power: '1', toughness: '2', cmc: 1, type_line: 'Creature — Elf Shaman', color_identity: 'BG', colors: 'BG' },
-  { name: 'Forest', power: null, toughness: null, cmc: 0, type_line: 'Basic Land — Forest', color_identity: '', colors: '' },
-  { name: 'Jwari Disruption // Jwari Ruins', power: null, toughness: null, cmc: 2, type_line: 'Instant // Land', color_identity: 'U', colors: 'U' },
+  { id: 1, name: 'Grizzly Bears', power: '2', toughness: '2', cmc: 2, type_line: 'Creature — Bear', color_identity: 'G', colors: 'G' },
+  { id: 2, name: 'Wise Elephant', power: '3', toughness: '5', cmc: 5, type_line: 'Creature — Elephant', color_identity: 'G', colors: 'G' },
+  { id: 3, name: 'Steel Wall', power: '0', toughness: '4', cmc: 1, type_line: 'Artifact Creature — Wall', color_identity: '', colors: '' },
+  { id: 4, name: 'Mystery Hydra', power: '*', toughness: '*', cmc: 1, type_line: 'Creature — Hydra', color_identity: 'G', colors: 'G' },
+  { id: 5, name: 'Ancestral Vision', power: null, toughness: null, cmc: 1, type_line: 'Sorcery', color_identity: 'U', colors: 'U' },
+  { id: 6, name: 'Compound Beast', power: '1+*', toughness: '1+*', cmc: 3, type_line: 'Creature — Beast', color_identity: 'G', colors: 'G' },
+  { id: 7, name: 'Deathrite Shaman', power: '1', toughness: '2', cmc: 1, type_line: 'Creature — Elf Shaman', color_identity: 'BG', colors: 'BG' },
+  { id: 8, name: 'Forest', power: null, toughness: null, cmc: 0, type_line: 'Basic Land — Forest', color_identity: '', colors: '' },
+  { id: 9, name: 'Jwari Disruption // Jwari Ruins', power: null, toughness: null, cmc: 2, type_line: 'Instant // Land', color_identity: 'U', colors: 'U' },
 ];
+
+// Ownership fixture: cards 1, 3, 8 are owned (qty > 0); everything else is unowned (qty 0).
+setOwned(1, 4);
+setOwned(3, 1);
+setOwned(8, 12);
 
 const names = (result) => result.map(c => c.name);
 
@@ -75,6 +92,15 @@ const cases = [
   ['hideLands false (default) shows lands too',
     baseModel({ hideLands: false }),
     ['Grizzly Bears', 'Wise Elephant', 'Steel Wall', 'Mystery Hydra', 'Ancestral Vision', 'Compound Beast', 'Deathrite Shaman', 'Forest', 'Jwari Disruption // Jwari Ruins']],
+  ['unownedOnly excludes owned cards (qty > 0), keeps unowned (qty 0)',
+    baseModel({ unownedOnly: true }),
+    ['Wise Elephant', 'Mystery Hydra', 'Ancestral Vision', 'Compound Beast', 'Deathrite Shaman', 'Jwari Disruption // Jwari Ruins']],
+  ['unownedOnly false (default) shows owned and unowned',
+    baseModel({ unownedOnly: false }),
+    ['Grizzly Bears', 'Wise Elephant', 'Steel Wall', 'Mystery Hydra', 'Ancestral Vision', 'Compound Beast', 'Deathrite Shaman', 'Forest', 'Jwari Disruption // Jwari Ruins']],
+  ['unownedOnly combines with hideLands (AND semantics): excludes owned AND excludes lands',
+    baseModel({ unownedOnly: true, hideLands: true }),
+    ['Wise Elephant', 'Mystery Hydra', 'Ancestral Vision', 'Compound Beast', 'Deathrite Shaman']],
 ];
 
 let failed = 0;

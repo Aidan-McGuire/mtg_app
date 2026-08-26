@@ -2,8 +2,8 @@
 id: 014
 title: Deck filter for cards not owned
 priority: medium
-status: queued
-branch:
+status: in-review
+branch: item/14-deck-filter-for-cards-not-owned
 created: 2026-08-26
 ---
 
@@ -47,13 +47,13 @@ as `hideLands`:
 
 ## Acceptance criteria
 
-- [ ] Deck view's filter bar has a new toggle button that, when active,
+- [x] Deck view's filter bar has a new toggle button that, when active,
       shows only deck cards with collection quantity 0.
-- [ ] Toggling it off restores the full (other-filters-permitting) list.
-- [ ] It combines correctly with other active filters (e.g. `hideLands` +
+- [x] Toggling it off restores the full (other-filters-permitting) list.
+- [x] It combines correctly with other active filters (e.g. `hideLands` +
       `unownedOnly` together — AND semantics, matching how every other
       filter in `applyFilters` composes).
-- [ ] It persists across a filter-bar "clear filters" action the same way
+- [x] It persists across a filter-bar "clear filters" action the same way
       `hideLands` does (survives; not reset to false).
-- [ ] Card browser and collection browser filter bars are unchanged — no
+- [x] Card browser and collection browser filter bars are unchanged — no
       new button there.
