@@ -578,8 +578,9 @@ class DeckCreate(BaseModel):
     name: str
 
 
-class DeckRename(BaseModel):
-    name: str
+class DeckUpdate(BaseModel):
+    name: str | None = None
+    built: bool | None = None
 
 
 class DeckImport(BaseModel):
@@ -592,14 +593,17 @@ def list_decks():
     with get_db() as conn:
         cur = conn.cursor()
         cur.execute("""
-            SELECT d.id, d.name, d.created_at,
+            SELECT d.id, d.name, d.created_at, d.built,
                    COALESCE(SUM(CASE WHEN dc.is_considering THEN 0 ELSE dc.quantity END), 0) AS card_count
             FROM decks d
             LEFT JOIN deck_cards dc ON dc.deck_id = d.id
             GROUP BY d.id
             ORDER BY d.name
         """)
-        return [dict(r) for r in cur.fetchall()]
+        rows = [dict(r) for r in cur.fetchall()]
+        for row in rows:
+            row["built"] = bool(row["built"])
+        return rows
 
 
 @app.post("/api/decks", status_code=201)
@@ -613,14 +617,18 @@ def create_deck(body: DeckCreate):
 
 
 @app.patch("/api/decks/{deck_id}")
-def rename_deck(deck_id: int, body: DeckRename):
+def update_deck(deck_id: int, body: DeckUpdate):
     with get_db() as conn:
         cur = conn.cursor()
-        cur.execute("UPDATE decks SET name = ? WHERE id = ?", (body.name.strip(), deck_id))
-        if cur.rowcount == 0:
+        cur.execute("SELECT name, built FROM decks WHERE id = ?", (deck_id,))
+        row = cur.fetchone()
+        if not row:
             raise HTTPException(404, "Deck not found")
+        new_name = body.name.strip() if body.name is not None else row["name"]
+        new_built = int(body.built) if body.built is not None else row["built"]
+        cur.execute("UPDATE decks SET name = ?, built = ? WHERE id = ?", (new_name, new_built, deck_id))
         conn.commit()
-    return {"id": deck_id, "name": body.name.strip()}
+    return {"id": deck_id, "name": new_name, "built": bool(new_built)}
 
 
 @app.delete("/api/decks/{deck_id}", status_code=204)

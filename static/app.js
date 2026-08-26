@@ -45,6 +45,15 @@ const API = {
     if (!r.ok) throw new Error('Failed to rename deck');
     return r.json();
   },
+  async setDeckBuilt(id, built) {
+    const r = await fetch(`/api/decks/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ built }),
+    });
+    if (!r.ok) throw new Error('Failed to update deck');
+    return r.json();
+  },
   async deleteDeck(id) {
     const r = await fetch(`/api/decks/${id}`, { method: 'DELETE' });
     if (!r.ok) throw new Error('Failed to delete deck');
@@ -1932,7 +1941,8 @@ function renderDeckSwitchResults() {
     item.dataset.id = deck.id;
     item.innerHTML = `
       <span class="deck-list-name">${esc(deck.name)}</span>
-      <span class="deck-list-count">${deck.card_count}</span>`;
+      <span class="deck-list-count">${deck.card_count}</span>
+      ${deck.built ? '<span class="deck-list-built-badge" title="Built">✓</span>' : ''}`;
     item.addEventListener('click', () => { selectDeck(deck.id); closeDeckSwitchPalette(); });
     el.appendChild(item);
   }
@@ -2023,6 +2033,7 @@ function renderDeckContent() {
     .reduce((s, c) => s + c.quantity, 0);
   document.getElementById('deck-editor-name').textContent =
     deck ? `${deck.name} (${total})` : `(${total})`;
+  document.getElementById('deck-built-btn').classList.toggle('active', !!(deck && deck.built));
 
   renderDeckCategoryControls();
 
@@ -2634,6 +2645,17 @@ document.getElementById('deck-switch-search').addEventListener('keydown', e => {
     e.preventDefault();
     closeDeckSwitchPalette();
   }
+});
+
+document.getElementById('deck-built-btn').addEventListener('click', async () => {
+  const deck = deckState.decks.find(d => d.id === deckState.currentDeckId);
+  if (!deck) return;
+  try {
+    const res = await API.setDeckBuilt(deck.id, !deck.built);
+    deck.built = res.built;
+    renderDeckSwitchResults();
+    renderDeckContent();
+  } catch (e) { alert('Failed to update deck.'); }
 });
 
 document.getElementById('deck-rename-btn').addEventListener('click', async () => {
