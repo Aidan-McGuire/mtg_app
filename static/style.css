@@ -240,6 +240,26 @@ kbd {
   z-index: 1;
   pointer-events: none;
 }
+.deck-card-locked-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #e74c3c;
+  color: #111;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+.deck-text-locked, .dsearch-locked {
+  color: #e74c3c;
+  font-size: 12px;
+}
 
 /* ── Grid status messages ──────────────────────────────────────────────────── */
 .grid-message {
