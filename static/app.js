@@ -2240,9 +2240,13 @@ function buildDeckCardTile(card) {
 
 function buildDeckTextRow(card) {
   const row = document.createElement('div');
+  const owned = qty(card.id) > 0;
+  const locked = owned && isLockedElsewhere(card.id);
+  const statusClass = !owned ? 'unowned' : (locked ? 'owned-locked' : 'owned-free');
   row.className = 'deck-text-row'
     + (card.id === deckState.focusedCardId ? ' focused' : '')
-    + (qty(card.id) > 0 ? ' owned' : '');
+    + ' ' + statusClass;
+  row.title = locked ? 'All owned copies are in other built decks' : (!owned ? 'Not owned' : '');
   row.dataset.id = card.id;
 
   // A commander can't be Considering, so the toggle is pointless on this row.
@@ -2251,13 +2255,9 @@ function buildDeckTextRow(card) {
             title="${card.is_considering ? 'Move back to deck' : 'Move to Considering'}">?</button>
     <kbd class="deck-kbd-hint" title="Toggle Considering">c</kbd>`;
 
-  const lockedHtml = isLockedElsewhere(card.id)
-    ? '<span class="deck-text-locked" title="All owned copies are in other built decks">⚠</span>'
-    : '';
   row.innerHTML = `
     <span class="deck-text-qty">${card.quantity}x</span>
     <span class="deck-text-name">${esc(card.name)}</span>
-    ${lockedHtml}
     <span class="deck-text-mana">${esc(card.mana_cost || '')}</span>
     ${tagChipsHtml(card.deck_tags, 'deck-tag')}
     ${consideringBtnHtml}
