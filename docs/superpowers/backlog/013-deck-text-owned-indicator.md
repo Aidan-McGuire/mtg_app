@@ -2,8 +2,8 @@
 id: 013
 title: Owned indicator on deck text view
 priority: medium
-status: queued
-branch:
+status: in-progress
+branch: item/13-owned-indicator-on-deck-text-view
 created: 2026-08-26
 ---
 
