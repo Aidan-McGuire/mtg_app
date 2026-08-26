@@ -2,7 +2,7 @@
 id: 014
 title: Deck filter for cards not owned
 priority: medium
-status: in-progress
+status: in-review
 branch: item/14-deck-filter-for-cards-not-owned
 created: 2026-08-26
 ---
