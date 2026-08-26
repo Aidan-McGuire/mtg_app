@@ -13,7 +13,9 @@ parity (010), deck grid tile size reverted to match collection (011),
 deck considering-toggle in list view + keyboard shortcut (012), owned
 indicator on deck text view (013), deck filter for unowned cards (014),
 grid-view categories span full width (015), collection/deck import never
-guesses on ambiguous name match (016), Stage 2 tooling hardening (017).
+guesses on ambiguous name match (016), Stage 2 tooling hardening (017),
+deck built flag (018), collection filter hiding fully-allocated cards
+(019), deck-page indicator for cards allocated to other built decks (020).
 
 
 
