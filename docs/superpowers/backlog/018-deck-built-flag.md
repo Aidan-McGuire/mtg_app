@@ -2,7 +2,7 @@
 id: 018
 title: Built flag on decks
 priority: medium
-status: in-progress
+status: in-review
 branch: item/18-built-flag-on-decks
 created: 2026-08-26
 ---
