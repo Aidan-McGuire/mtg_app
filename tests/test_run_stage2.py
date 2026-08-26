@@ -221,3 +221,35 @@ def test_retitle_during_changes_requested_reuses_existing_branch(stage2_repo):
     assert stage2_repo.git(
         "show", "item/1-old-title:WORK_DONE.txt"
     ).stdout == "implementation happened here\n"
+
+
+def test_worktree_already_checked_out_elsewhere_fails_clearly(stage2_repo):
+    stage2_repo.write_item(1, "Old Title", priority="high", status="queued")
+    stage2_repo.git("add", "-A")
+    stage2_repo.git("commit", "-q", "-m", "add item 1")
+    stage2_repo.run()  # creates branch item/1-old-title + its own worktree
+
+    # Simulate: the script's own worktree was removed, and a human checked
+    # the same branch out in a second worktree (e.g. to test it manually).
+    stage2_repo.git(
+        "worktree", "remove", "--force",
+        str(stage2_repo.path / ".claude" / "worktrees" / "1-old-title"),
+    )
+    human_worktree = stage2_repo.path.parent / "human-testing"
+    stage2_repo.git("worktree", "add", str(human_worktree), "item/1-old-title")
+
+    stage2_repo.claude_log.unlink()
+    result = stage2_repo.run()
+
+    # A controlled exit (1) with our own clear message, not git's raw "fatal:"
+    # failure bubbling up as exit 128 under set -e.
+    assert result.returncode == 1, (result.returncode, result.stdout, result.stderr)
+    combined = result.stdout + result.stderr
+    assert "fatal:" not in combined
+    assert "item/1-old-title" in combined
+    assert str(human_worktree) in combined
+    assert "exiting rather than fighting over it" in combined
+    # No stray worktree was created at the conventional path.
+    assert not (stage2_repo.path / ".claude" / "worktrees" / "1-old-title").exists()
+    # main is untouched.
+    assert stage2_repo.git("rev-parse", "--abbrev-ref", "HEAD").stdout.strip() != "item/1-old-title"

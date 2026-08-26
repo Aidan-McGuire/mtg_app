@@ -51,6 +51,15 @@ assert_in_worktree() {
   fi
 }
 
+# Print the worktree path currently holding branch $1, or nothing if that
+# branch isn't checked out in any worktree.
+worktree_path_for_branch() {
+  git worktree list --porcelain | awk -v want="refs/heads/$1" '
+    /^worktree / { path = substr($0, 10) }
+    $0 == "branch " want { print path; exit }
+  '
+}
+
 main() {
   # --- Resume scan. An item/* branch is only a resume target while its own copy
   # of its item file still says in-progress. A finished item's branch sticks
@@ -79,6 +88,11 @@ main() {
     WORKTREE_DIR="$REPO_ROOT/.claude/worktrees/$(basename "$BRANCH")"
 
     if [ ! -d "$WORKTREE_DIR" ]; then
+      existing_wt="$(worktree_path_for_branch "$BRANCH")"
+      if [ -n "$existing_wt" ]; then
+        echo "$(date): $BRANCH is already checked out at $existing_wt (outside this script's own worktree convention) — exiting rather than fighting over it" >&2
+        exit 1
+      fi
       git worktree add "$WORKTREE_DIR" "$BRANCH"
     fi
 
@@ -145,6 +159,11 @@ main() {
 
     if [ ! -d "$WORKTREE_DIR" ]; then
       if git show-ref --verify --quiet "refs/heads/$BRANCH"; then
+        existing_wt="$(worktree_path_for_branch "$BRANCH")"
+        if [ -n "$existing_wt" ]; then
+          echo "$(date): $BRANCH is already checked out at $existing_wt (outside this script's own worktree convention) — exiting rather than fighting over it" >&2
+          exit 1
+        fi
         git worktree add "$WORKTREE_DIR" "$BRANCH"
       else
         # Branch explicitly from main — this checkout may be on some other branch.
