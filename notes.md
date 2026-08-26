@@ -15,7 +15,9 @@ indicator on deck text view (013), deck filter for unowned cards (014),
 grid-view categories span full width (015), collection/deck import never
 guesses on ambiguous name match (016), Stage 2 tooling hardening (017),
 deck built flag (018), collection filter hiding fully-allocated cards
-(019), deck-page indicator for cards allocated to other built decks (020).
+(019), deck-page indicator for cards allocated to other built decks (020),
+deck text view tri-state owned/locked status color (021), deck text view
+font size bump (022).
 
 
 
