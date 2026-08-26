@@ -2124,12 +2124,6 @@ function renderDeckGrid() {
         buildDeckCardTile,
         { collapsedState: deckGroupCollapsed }
       );
-      // Full grid width for this single trailing section — it sits below the
-      // flat card grid, not alongside it as another narrow column. Scoped to
-      // this ungrouped-branch section only; the grouped-by-tag branch above
-      // intentionally keeps all sections (including its own Considering
-      // group) as narrow columns and must not get this class.
-      el.lastElementChild.classList.add('group-section-full');
     }
   }
 }

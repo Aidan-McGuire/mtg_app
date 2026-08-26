@@ -1168,13 +1168,7 @@ kbd {
 .group-by-select:focus { border-color: var(--accent); }
 
 /* ── Group sections ────────────────────────────────────────────────────────── */
-.group-section { margin-bottom: 20px; }
-
-/* Used only for the single trailing Considering section appended below the
-   flat (ungrouped) deck grid, so it spans the full grid width instead of
-   being auto-placed into one ~240px column. Do NOT apply to grouped-by-tag
-   sections (Deck or Collection) — those intentionally render as columns. */
-.group-section-full { grid-column: 1 / -1; }
+.group-section { margin-bottom: 20px; grid-column: 1 / -1; }
 
 .group-header {
   display: flex;
