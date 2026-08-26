@@ -2,7 +2,7 @@
 id: 021
 title: Deck text view owned indicator becomes a 3-state status color
 priority: medium
-status: in-progress
+status: in-review
 branch: item/21-deck-text-view-owned-indicator-becomes-a-3-state-status-color
 created: 2026-08-26
 ---
