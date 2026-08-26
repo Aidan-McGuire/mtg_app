@@ -2,8 +2,8 @@
 id: 017
 title: Harden Stage 2 backlog tooling (run_stage2.sh state machine)
 priority: low
-status: queued
-branch:
+status: in-review
+branch: item/17-harden-stage-2-backlog-tooling-run-stage2-sh-state-machine
 created: 2026-08-26
 ---
 
@@ -115,24 +115,24 @@ All changes are in `scripts/run_stage2.sh` and `scripts/backlog_lib.py`
 
 ## Acceptance criteria
 
-- [ ] A test suite exercises `run_stage2.sh`'s resume / fresh-claim /
+- [x] A test suite exercises `run_stage2.sh`'s resume / fresh-claim /
       rework / skip-and-continue paths against constructed git fixtures
       and passes.
-- [ ] Retitling a `changes-requested` item on `main` and then running
+- [x] Retitling a `changes-requested` item on `main` and then running
       Stage 2 reuses the item's existing branch (verified by its prior
       commits still being present on the resulting branch), not a fresh
       branch from `main`.
-- [ ] Simulating a branch checked out in a second worktree and then
+- [x] Simulating a branch checked out in a second worktree and then
       running Stage 2 against that item exits with a clear logged error
       instead of an unhandled git failure, and does not corrupt any other
       worktree/branch state.
-- [ ] The dead in-progress branch/comment is removed from the select loop
+- [x] The dead in-progress branch/comment is removed from the select loop
       with no behavior change to the surrounding logic.
-- [ ] The claim/resume commit only ever contains the item file, verified
+- [x] The claim/resume commit only ever contains the item file, verified
       by inspecting the resulting commit's changed files in a test run
       that has an extra unrelated staged file present.
-- [ ] `assert_in_worktree` fails loudly if `HEAD` isn't the expected
+- [x] `assert_in_worktree` fails loudly if `HEAD` isn't the expected
       branch, verified by a test that checks out a different branch inside
       the worktree before calling it.
-- [ ] The resume scan logs a line for every branch it skips, including the
+- [x] The resume scan logs a line for every branch it skips, including the
       item-file-not-found case.
