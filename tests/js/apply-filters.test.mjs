@@ -34,15 +34,15 @@ function baseModel(overrides = {}) {
     cmcMin: null, cmcMax: null, powerMin: null, powerMax: null,
     toughnessMin: null, toughnessMax: null, exactColors: new Set(),
     exactColorlessOnly: false, tags: new Set(), hideLands: false,
-    unownedOnly: false,
+    unownedOnly: false, hideFullyAllocated: false,
     ...overrides,
   };
 }
 
 const cards = [
-  { id: 1, name: 'Grizzly Bears', power: '2', toughness: '2', cmc: 2, type_line: 'Creature — Bear', color_identity: 'G', colors: 'G' },
+  { id: 1, name: 'Grizzly Bears', power: '2', toughness: '2', cmc: 2, type_line: 'Creature — Bear', color_identity: 'G', colors: 'G', quantity: 4, allocated_qty: 4 },
   { id: 2, name: 'Wise Elephant', power: '3', toughness: '5', cmc: 5, type_line: 'Creature — Elephant', color_identity: 'G', colors: 'G' },
-  { id: 3, name: 'Steel Wall', power: '0', toughness: '4', cmc: 1, type_line: 'Artifact Creature — Wall', color_identity: '', colors: '' },
+  { id: 3, name: 'Steel Wall', power: '0', toughness: '4', cmc: 1, type_line: 'Artifact Creature — Wall', color_identity: '', colors: '', quantity: 3, allocated_qty: 1 },
   { id: 4, name: 'Mystery Hydra', power: '*', toughness: '*', cmc: 1, type_line: 'Creature — Hydra', color_identity: 'G', colors: 'G' },
   { id: 5, name: 'Ancestral Vision', power: null, toughness: null, cmc: 1, type_line: 'Sorcery', color_identity: 'U', colors: 'U' },
   { id: 6, name: 'Compound Beast', power: '1+*', toughness: '1+*', cmc: 3, type_line: 'Creature — Beast', color_identity: 'G', colors: 'G' },
@@ -101,6 +101,12 @@ const cases = [
   ['unownedOnly combines with hideLands (AND semantics): excludes owned AND excludes lands',
     baseModel({ unownedOnly: true, hideLands: true }),
     ['Wise Elephant', 'Mystery Hydra', 'Ancestral Vision', 'Compound Beast', 'Deathrite Shaman']],
+  ['hideFullyAllocated excludes a card whose allocated_qty meets/exceeds its quantity, keeps a card with a free copy',
+    baseModel({ hideFullyAllocated: true }),
+    ['Wise Elephant', 'Steel Wall', 'Mystery Hydra', 'Ancestral Vision', 'Compound Beast', 'Deathrite Shaman', 'Forest', 'Jwari Disruption // Jwari Ruins']],
+  ['hideFullyAllocated false (default) shows everything regardless of allocation',
+    baseModel({ hideFullyAllocated: false }),
+    ['Grizzly Bears', 'Wise Elephant', 'Steel Wall', 'Mystery Hydra', 'Ancestral Vision', 'Compound Beast', 'Deathrite Shaman', 'Forest', 'Jwari Disruption // Jwari Ruins']],
 ];
 
 let failed = 0;
