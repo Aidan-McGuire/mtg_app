@@ -43,10 +43,15 @@ status_on_main() {
 }
 
 assert_in_worktree() {
-  local top
+  local top head
   top="$(git rev-parse --show-toplevel)"
   if [ "$top" != "$WORKTREE_DIR" ]; then
     echo "$(date): expected git toplevel $WORKTREE_DIR but got $top, aborting" >&2
+    exit 1
+  fi
+  head="$(git rev-parse --abbrev-ref HEAD)"
+  if [ "$head" != "$BRANCH" ]; then
+    echo "$(date): expected HEAD on branch $BRANCH but got $head, aborting" >&2
     exit 1
   fi
 }
