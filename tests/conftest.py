@@ -28,7 +28,8 @@ CREATE TABLE collection (
 CREATE TABLE decks (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
-    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    built INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE deck_cards (
     id INTEGER PRIMARY KEY,
