@@ -2,7 +2,7 @@
 id: 017
 title: Harden Stage 2 backlog tooling (run_stage2.sh state machine)
 priority: low
-status: in-progress
+status: in-review
 branch: item/17-harden-stage-2-backlog-tooling-run-stage2-sh-state-machine
 created: 2026-08-26
 ---
