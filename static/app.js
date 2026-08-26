@@ -2178,7 +2178,9 @@ function buildDeckCardTile(card) {
 
 function buildDeckTextRow(card) {
   const row = document.createElement('div');
-  row.className = 'deck-text-row' + (card.id === deckState.focusedCardId ? ' focused' : '');
+  row.className = 'deck-text-row'
+    + (card.id === deckState.focusedCardId ? ' focused' : '')
+    + (qty(card.id) > 0 ? ' owned' : '');
   row.dataset.id = card.id;
 
   // A commander can't be Considering, so the toggle is pointless on this row.
