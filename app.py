@@ -669,6 +669,20 @@ def get_deck_cards(deck_id: int):
         return rows
 
 
+@app.get("/api/decks/{deck_id}/allocations")
+def get_deck_allocations(deck_id: int):
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT dc.card_id, SUM(dc.quantity) AS qty
+            FROM deck_cards dc
+            JOIN decks d ON d.id = dc.deck_id
+            WHERE dc.is_considering = 0 AND d.built = 1 AND d.id != ?
+            GROUP BY dc.card_id
+        """, (deck_id,))
+        return {row["card_id"]: row["qty"] for row in cur.fetchall()}
+
+
 @app.post("/api/decks/import", status_code=201)
 def import_deck(body: DeckImport):
     entries = parse_decklist(body.list)
