@@ -109,3 +109,75 @@ def test_fresh_claim_of_highest_priority_queued_item(stage2_repo):
 
     on_main = (stage2_repo.path / "docs/superpowers/backlog/001-sample-item.md").read_text()
     assert "status: queued" in on_main
+
+
+def test_nothing_actionable_exits_zero_with_no_side_effects(stage2_repo):
+    stage2_repo.write_item(1, "Accepted Already", priority="high", status="accepted")
+    stage2_repo.git("add", "-A")
+    stage2_repo.git("commit", "-q", "-m", "add accepted item")
+
+    result = stage2_repo.run()
+
+    assert result.returncode == 0, result.stderr
+    assert not stage2_repo.claude_log.exists()
+    assert stage2_repo.git("branch", "--list", "item/*").stdout.strip() == ""
+
+
+def test_resumes_in_progress_branch_instead_of_selecting_a_new_item(stage2_repo):
+    # First firing claims item 1.
+    stage2_repo.write_item(1, "First Item", priority="high", status="queued")
+    stage2_repo.git("add", "-A")
+    stage2_repo.git("commit", "-q", "-m", "add item 1")
+    first = stage2_repo.run()
+    assert first.returncode == 0, first.stderr
+
+    # A second, higher-priority item appears on main before the first firing's
+    # work is finished — the resume scan must still win over item 2's select.
+    stage2_repo.write_item(2, "Second Item", priority="high", status="queued")
+    stage2_repo.git("add", "-A")
+    stage2_repo.git("commit", "-q", "-m", "add item 2")
+
+    stage2_repo.claude_log.unlink()
+    second = stage2_repo.run()
+    assert second.returncode == 0, second.stderr
+    assert "claude invoked" in stage2_repo.claude_log.read_text()
+
+    # Item 2 was never touched.
+    assert stage2_repo.git("branch", "--list", "item/2-*").stdout.strip() == ""
+    on_branch_1 = stage2_repo.git(
+        "show", "item/1-first-item:docs/superpowers/backlog/001-first-item.md"
+    ).stdout
+    assert "status: in-progress" in on_branch_1
+
+
+def test_finished_branch_awaiting_review_is_skipped_for_next_queued_item(stage2_repo):
+    # Simulate a finished-and-pushed item 1 (in-review on its branch, main
+    # still says queued) sitting untouched, and a queued item 2.
+    stage2_repo.write_item(1, "Finished Item", priority="high", status="queued")
+    stage2_repo.git("add", "-A")
+    stage2_repo.git("commit", "-q", "-m", "add item 1")
+    stage2_repo.run()  # claims item 1, branch item/1-finished-item now in-progress
+    # Branch item/1-finished-item is checked out in its own worktree by the run
+    # above — edit and commit there rather than `git checkout` it in the main
+    # checkout (git refuses to check out a branch already held by a worktree).
+    worktree = stage2_repo.path / ".claude" / "worktrees" / "1-finished-item"
+    item_on_branch = worktree / "docs/superpowers/backlog/001-finished-item.md"
+    item_on_branch.write_text(
+        item_on_branch.read_text().replace("status: in-progress", "status: in-review")
+    )
+    subprocess.run(["git", "add", "-A"], cwd=worktree, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "mark in-review"], cwd=worktree, check=True)
+
+    stage2_repo.write_item(2, "Second Item", priority="medium", status="queued")
+    stage2_repo.git("add", "-A")
+    stage2_repo.git("commit", "-q", "-m", "add item 2")
+
+    stage2_repo.claude_log.unlink()
+    result = stage2_repo.run()
+
+    assert result.returncode == 0, result.stderr
+    assert "item 1 is 'in-review'" in result.stdout or "awaiting review" in result.stdout
+    on_branch_2 = stage2_repo.git(
+        "show", "item/2-second-item:docs/superpowers/backlog/002-second-item.md"
+    ).stdout
+    assert "status: in-progress" in on_branch_2
