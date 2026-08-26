@@ -2,7 +2,7 @@
 id: 016
 title: Collection/deck import never guesses on an ambiguous name match
 priority: high
-status: in-progress
+status: in-review
 branch: item/16-collection-deck-import-never-guesses-on-an-ambiguous-name-match
 created: 2026-08-26
 ---
