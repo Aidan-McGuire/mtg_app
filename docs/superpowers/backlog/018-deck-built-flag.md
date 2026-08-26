@@ -66,14 +66,14 @@ ships the flag and its toggle UI standalone; 019/020 build on top of it.
 
 ## Acceptance criteria
 
-- [ ] A deck can be toggled between built and not-built via a button in the
+- [x] A deck can be toggled between built and not-built via a button in the
       deck editor header, and the toggle persists (reload the page, still
       set).
-- [ ] The button visually reflects the current state via the same
+- [x] The button visually reflects the current state via the same
       accent-color highlight convention already used by Hide Lands/Unowned
       Only, not a new visual language.
-- [ ] The deck-switcher list shows a small badge on decks that are built,
+- [x] The deck-switcher list shows a small badge on decks that are built,
       and no badge on decks that aren't.
-- [ ] Renaming a deck (existing functionality) still works unchanged and
+- [x] Renaming a deck (existing functionality) still works unchanged and
       does not reset its `built` flag.
-- [ ] All existing decks default to `built = 0` after the migration runs.
+- [x] All existing decks default to `built = 0` after the migration runs.
