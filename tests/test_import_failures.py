@@ -137,3 +137,109 @@ def test_resolve_import_failure(client, db_path):
 def test_resolve_nonexistent_import_failure_404(client):
     r = client.post("/api/import-failures/9999/resolve")
     assert r.status_code == 404
+
+
+def test_ambiguous_exact_name_match_is_not_found(client, db_path):
+    conn = sqlite3.connect(str(db_path))
+    conn.execute(
+        "INSERT INTO cards (oracle_id, name, mana_cost, cmc, type_line) "
+        "VALUES ('dup-a', 'Duplicate Name Card', NULL, 1, 'Creature')"
+    )
+    conn.execute(
+        "INSERT INTO cards (oracle_id, name, mana_cost, cmc, type_line) "
+        "VALUES ('dup-b', 'Duplicate Name Card', NULL, 1, 'Creature')"
+    )
+    conn.commit()
+    conn.close()
+
+    r = client.post("/api/collection/import", json={"list": "1x Duplicate Name Card"})
+    assert r.status_code == 200
+    assert r.json()["not_found"] == ["Duplicate Name Card"]
+
+    conn = sqlite3.connect(str(db_path))
+    count = conn.execute(
+        "SELECT COUNT(*) FROM import_failures WHERE card_name = 'Duplicate Name Card'"
+    ).fetchone()[0]
+    conn.close()
+    assert count == 1
+
+
+def test_ambiguous_mdfc_normalized_match_is_not_found(client, db_path):
+    conn = sqlite3.connect(str(db_path))
+    conn.execute(
+        "INSERT INTO cards (oracle_id, name, mana_cost, cmc, type_line) "
+        "VALUES ('mdfc-a', 'Riverside // Split', NULL, 2, 'Land')"
+    )
+    conn.execute(
+        "INSERT INTO cards (oracle_id, name, mana_cost, cmc, type_line) "
+        "VALUES ('mdfc-b', 'Riverside // Split', NULL, 2, 'Land')"
+    )
+    conn.commit()
+    conn.close()
+
+    # Single-slash form, as Moxfield/Archidekt export MDFCs — normalizes to
+    # "Riverside // Split", which now matches both rows above.
+    r = client.post("/api/collection/import", json={"list": "1x Riverside / Split"})
+    assert r.status_code == 200
+    assert r.json()["not_found"] == ["Riverside / Split"]
+
+    conn = sqlite3.connect(str(db_path))
+    count = conn.execute(
+        "SELECT COUNT(*) FROM import_failures WHERE card_name = 'Riverside / Split'"
+    ).fetchone()[0]
+    conn.close()
+    assert count == 1
+
+
+def test_ambiguous_front_face_only_match_is_not_found(client, db_path):
+    conn = sqlite3.connect(str(db_path))
+    conn.execute(
+        "INSERT INTO cards (oracle_id, name, mana_cost, cmc, type_line) "
+        "VALUES ('face-a', 'Shared Front // Back One', NULL, 2, 'Land')"
+    )
+    conn.execute(
+        "INSERT INTO cards (oracle_id, name, mana_cost, cmc, type_line) "
+        "VALUES ('face-b', 'Shared Front // Back Two', NULL, 2, 'Land')"
+    )
+    conn.commit()
+    conn.close()
+
+    # User wrote just the front face — matches both rows' "Shared Front //%" prefix.
+    r = client.post("/api/collection/import", json={"list": "1x Shared Front"})
+    assert r.status_code == 200
+    assert r.json()["not_found"] == ["Shared Front"]
+
+    conn = sqlite3.connect(str(db_path))
+    count = conn.execute(
+        "SELECT COUNT(*) FROM import_failures WHERE card_name = 'Shared Front'"
+    ).fetchone()[0]
+    conn.close()
+    assert count == 1
+
+
+def test_unambiguous_mdfc_normalized_match_still_resolves(client, db_path):
+    conn = sqlite3.connect(str(db_path))
+    conn.execute(
+        "INSERT INTO cards (oracle_id, name, mana_cost, cmc, type_line) "
+        "VALUES ('mdfc-solo', 'Lonely // Pathway', NULL, 2, 'Land')"
+    )
+    conn.commit()
+    conn.close()
+
+    r = client.post("/api/collection/import", json={"list": "1x Lonely / Pathway"})
+    assert r.status_code == 200
+    assert r.json()["not_found"] == []
+
+
+def test_unambiguous_front_face_only_match_still_resolves(client, db_path):
+    conn = sqlite3.connect(str(db_path))
+    conn.execute(
+        "INSERT INTO cards (oracle_id, name, mana_cost, cmc, type_line) "
+        "VALUES ('face-solo', 'Solo Front // Solo Back', NULL, 2, 'Land')"
+    )
+    conn.commit()
+    conn.close()
+
+    r = client.post("/api/collection/import", json={"list": "1x Solo Front"})
+    assert r.status_code == 200
+    assert r.json()["not_found"] == []

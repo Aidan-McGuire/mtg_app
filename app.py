@@ -255,30 +255,41 @@ def parse_decklist(text: str) -> list[tuple[int, str]]:
 
 
 def lookup_card_id(cur, name: str) -> int | None:
-    """Look up a card id by name, handling MDFC slash variants and smart quotes."""
+    """Look up a card id by name, handling MDFC slash variants and smart quotes.
+
+    Returns None both when no card matches and when a tier's query matches
+    more than one card — an ambiguous match is never silently resolved to
+    one of several candidates.
+    """
     name = name.translate(_SMART_QUOTE_TRANSLATION)
 
     # 1. Exact match
-    cur.execute("SELECT id FROM cards WHERE name = ? COLLATE NOCASE LIMIT 1", (name,))
-    row = cur.fetchone()
-    if row:
-        return row["id"]
+    cur.execute("SELECT id FROM cards WHERE name = ? COLLATE NOCASE LIMIT 2", (name,))
+    rows = cur.fetchall()
+    if len(rows) == 1:
+        return rows[0]["id"]
+    if len(rows) > 1:
+        return None
 
     # 2. Single slash → double slash (Moxfield/Archidekt export MDFCs as "A / B")
     normalized = name.replace(' / ', ' // ')
     if normalized != name:
-        cur.execute("SELECT id FROM cards WHERE name = ? COLLATE NOCASE LIMIT 1", (normalized,))
-        row = cur.fetchone()
-        if row:
-            return row["id"]
+        cur.execute("SELECT id FROM cards WHERE name = ? COLLATE NOCASE LIMIT 2", (normalized,))
+        rows = cur.fetchall()
+        if len(rows) == 1:
+            return rows[0]["id"]
+        if len(rows) > 1:
+            return None
 
     # 3. Front-face-only (user wrote just "Bala Ged Recovery" without the back face)
     cur.execute(
-        "SELECT id FROM cards WHERE name LIKE ? COLLATE NOCASE LIMIT 1",
+        "SELECT id FROM cards WHERE name LIKE ? COLLATE NOCASE LIMIT 2",
         (name + ' //%',)
     )
-    row = cur.fetchone()
-    return row["id"] if row else None
+    rows = cur.fetchall()
+    if len(rows) == 1:
+        return rows[0]["id"]
+    return None
 
 
 def _record_import_failure(cur, source: str, deck_id: int | None, card_name: str, requested_qty: int) -> None:
