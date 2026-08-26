@@ -63,14 +63,14 @@ distinction can be a future item if it turns out to matter in practice.
 
 ## Acceptance criteria
 
-- [ ] `lookup_card_id` never returns a row's id when its matching tier
+- [x] `lookup_card_id` never returns a row's id when its matching tier
       found more than one candidate row.
-- [ ] A name that matches exactly one row at any tier still resolves
+- [x] A name that matches exactly one row at any tier still resolves
       exactly as it does today (no behavior change for the common case).
-- [ ] A name whose tier-1 (or tier-2, or tier-3) query matches 2+ rows
+- [x] A name whose tier-1 (or tier-2, or tier-3) query matches 2+ rows
       results in that decklist entry appearing in `not_found` /
       `import_failures`, not a silently-chosen match.
-- [ ] Existing single-match import behavior (collection import, deck
+- [x] Existing single-match import behavior (collection import, deck
       import) is unchanged for every currently-passing case — verify
       against the current test suite for import behavior, if one exists,
       plus a manual test importing a decklist with a name known to match
