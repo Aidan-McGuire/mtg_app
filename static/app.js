@@ -2183,6 +2183,14 @@ function setDeckFocus(cardId, el) {
   renderDeckPreviewPanel();
 }
 
+// Keyboard-driven scrollIntoView (see focusDeckTile) can move a tile/row
+// under a mouse cursor that never actually moved, firing a spurious
+// `mouseenter` that would otherwise steal focus right back from the
+// keyboard. Suppress mouseenter-driven focus changes until the mouse
+// genuinely moves again.
+let ignoreHoverUntilMouseMoves = false;
+document.addEventListener('mousemove', () => { ignoreHoverUntilMouseMoves = false; });
+
 function buildDeckCardTile(card) {
   const q = qty(card.id);
   const div = document.createElement('div');
@@ -2232,7 +2240,7 @@ function buildDeckCardTile(card) {
   div.querySelector('.deck-remove-btn').addEventListener('click', e => { e.stopPropagation(); removeDeckCard(card.id); });
   const consideringBtn = div.querySelector('.deck-considering-btn');
   if (consideringBtn) consideringBtn.addEventListener('click', e => { e.stopPropagation(); toggleConsidering(card.id); });
-  div.addEventListener('mouseenter', () => setDeckFocus(card.id, div));
+  div.addEventListener('mouseenter', () => { if (!ignoreHoverUntilMouseMoves) setDeckFocus(card.id, div); });
   div.addEventListener('click', () => openModal(card, { deckId: deckState.currentDeckId }));
 
   return div;
@@ -2266,7 +2274,7 @@ function buildDeckTextRow(card) {
   const consideringBtn = row.querySelector('.deck-considering-btn');
   if (consideringBtn) consideringBtn.addEventListener('click', e => { e.stopPropagation(); toggleConsidering(card.id); });
   row.querySelector('.deck-remove-btn').addEventListener('click', e => { e.stopPropagation(); removeDeckCard(card.id); });
-  row.addEventListener('mouseenter', () => setDeckFocus(card.id, row));
+  row.addEventListener('mouseenter', () => { if (!ignoreHoverUntilMouseMoves) setDeckFocus(card.id, row); });
   row.addEventListener('click', () => openModal(card, { deckId: deckState.currentDeckId }));
   return row;
 }
@@ -2351,6 +2359,7 @@ function findTileIndex(groups, cardId) {
 
 function focusDeckTile(el) {
   if (!el) return;
+  ignoreHoverUntilMouseMoves = true;
   const card = deckState.deckCards.find(c => String(c.id) === el.dataset.id);
   setDeckFocus(card ? card.id : el.dataset.id, el);
   el.scrollIntoView({ block: 'nearest' });
