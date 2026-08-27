@@ -2,8 +2,8 @@
 id: 028
 title: Deck content-search box gets keyboard shortcut + arrow-down into results
 priority: medium
-status: queued
-branch:
+status: in-review
+branch: item/28-deck-content-search-box-gets-keyboard-shortcut-arrow-down-into-results
 created: 2026-08-27
 ---
 
