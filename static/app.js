@@ -1985,6 +1985,10 @@ async function openDeckTagPalette() {
 
   cardLabel.textContent = card.name;
   input.value = '';
+  datalist.innerHTML = '';
+
+  palette.classList.remove('hidden');
+  input.focus();
 
   let suggestions = [];
   try {
@@ -1992,11 +1996,8 @@ async function openDeckTagPalette() {
   } catch {
     suggestions = [];
   }
-  if (!palette.isConnected) return;   // closed while the request was in flight
+  if (!palette.isConnected || palette.classList.contains('hidden')) return; // closed while the request was in flight
   datalist.innerHTML = suggestions.map(s => `<option value="${esc(s)}">`).join('');
-
-  palette.classList.remove('hidden');
-  input.focus();
 }
 
 function closeDeckTagPalette() {
