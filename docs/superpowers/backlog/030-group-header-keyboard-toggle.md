@@ -2,8 +2,8 @@
 id: 030
 title: Group headers (collapse/expand) are keyboard-operable
 priority: low
-status: queued
-branch:
+status: in-progress
+branch: item/30-group-headers-collapse-expand-are-keyboard-operable
 created: 2026-08-27
 ---
 
