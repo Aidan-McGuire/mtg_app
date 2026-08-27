@@ -1,6 +1,6 @@
 # Notes
 ## Feature backlog
-
+1. make list view the default on deck page
 
 All raw ideas refined into `docs/superpowers/backlog/`: commander-in-tag-groups
 (001), wider preview panel (002), larger grouped-view tiles/headers (003),
@@ -41,3 +41,4 @@ arrow-nav scroll buffer (032).
    - Retitling a backlog item's `title` field while it's in `changes-requested` review silently starts a *new* branch from `main` on the next run (since the branch name is re-derived from the title) instead of reusing the branch with the prior work — abandoning that work without any error.
    - `git worktree add` aborts the whole run if a human has the item's branch checked out in a second worktree (e.g. while testing it in Stage 3) and the script's own worktree was removed in the meantime.
    - A few minor robustness/logging nits: an unreachable code path with a stale comment in `run_stage2.sh`'s selection loop; the `git commit` for a claim/resume isn't scoped to just the item file (would sweep in any other staged changes in that worktree); `assert_in_worktree` checks the worktree's location but not that its `HEAD` is actually on the expected branch; a branch whose item file can't be found during the resume scan is skipped silently (no log line) rather than logged like the equivalent case in the select loop.
+8. `GET /api/cards/{id}/printings` (used by the detail modal's art strip, and now also by item 023's "set preferred printing") does a live Scryfall search with `unique=art`, which frequently does not include the exact printing the local DB's bulk import picked for that card's stored `image_uri` — spot-checked 5 real cards, 4 had no match. Effect: the "already preferred" state can't be represented for those cards (the "Set as preferred printing" button shows enabled even before any click, since no thumbnail is ever recognized as the current one). Root cause is comparing two independently-chosen printings (bulk import's arbitrary first-seen pick vs. Scryfall's own art-dedup grouping) rather than a real defect in item 023's own logic. Possible fix: match printings by Scryfall card id or set+collector number instead of exact image URL, or have the printings endpoint explicitly inject the DB's current printing into the result set if missing.
