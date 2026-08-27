@@ -2,7 +2,7 @@
 id: 023
 title: Preferred printing selectable on detail modal, persists everywhere
 priority: medium
-status: in-progress
+status: in-review
 branch: item/23-preferred-printing-selectable-on-detail-modal-persists-everywhere
 created: 2026-08-27
 ---
