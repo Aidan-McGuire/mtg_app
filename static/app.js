@@ -2939,3 +2939,10 @@ document.addEventListener('mousedown', e => {
   if (btn && btn.contains(e.target)) return;   // let the opener's own click through
   closeDeckSwitchPalette();
 });
+
+document.addEventListener('mousedown', e => {
+  if (!deckTagPaletteOpen()) return;
+  const palette = document.getElementById('deck-tag-palette');
+  if (palette && palette.contains(e.target)) return;
+  closeDeckTagPalette();
+});
