@@ -2,8 +2,8 @@
 id: 025
 title: Deck action buttons bake in their keyboard shortcut hints instead of a hover-toggled hint
 priority: low
-status: queued
-branch:
+status: in-progress
+branch: item/25-deck-action-buttons-bake-in-their-keyboard-shortcut-hints-instead-of-a-hover-toggled-hint
 created: 2026-08-27
 ---
 
