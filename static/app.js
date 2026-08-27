@@ -2263,8 +2263,7 @@ function buildDeckCardTile(card) {
   // A commander can't be Considering, so the toggle is pointless on that tile.
   const consideringBtnHtml = card.is_commander ? '' : `
     <button class="deck-considering-btn${card.is_considering ? ' active' : ''}"
-            title="${card.is_considering ? 'Move back to deck' : 'Move to Considering'}">?</button>
-    <kbd class="deck-kbd-hint" title="Toggle Considering">c</kbd>`;
+            title="${card.is_considering ? 'Move back to deck' : 'Move to Considering'}"><u>C</u>onsidering</button>`;
 
   div.innerHTML = `
     <div class="deck-card-img-wrap" data-owned-wrap-for="${card.id}">${ownedBadgeHtml}${lockedBadgeHtml}${imgHtml}</div>
@@ -2277,8 +2276,7 @@ function buildDeckCardTile(card) {
         <div class="deck-actions">
           ${consideringBtnHtml}
           <button class="deck-cmd-btn${card.is_commander ? ' active' : ''}" title="Toggle commander">♛</button>
-          <kbd class="deck-kbd-hint" title="Remove focused card">⌫</kbd>
-          <button class="deck-remove-btn" title="Remove">×</button>
+          <button class="deck-remove-btn" title="Remove">⌫</button>
         </div>
       </div>
       ${tagChipsHtml(card.collection_tags, 'collection-tag')}
@@ -2311,8 +2309,7 @@ function buildDeckTextRow(card) {
   // A commander can't be Considering, so the toggle is pointless on this row.
   const consideringBtnHtml = card.is_commander ? '' : `
     <button class="deck-considering-btn${card.is_considering ? ' active' : ''}"
-            title="${card.is_considering ? 'Move back to deck' : 'Move to Considering'}">?</button>
-    <kbd class="deck-kbd-hint" title="Toggle Considering">c</kbd>`;
+            title="${card.is_considering ? 'Move back to deck' : 'Move to Considering'}"><u>C</u>onsidering</button>`;
 
   row.innerHTML = `
     <span class="deck-text-qty">${card.quantity}x</span>
@@ -2321,8 +2318,7 @@ function buildDeckTextRow(card) {
     ${tagChipsHtml(card.deck_tags, 'deck-tag')}
     ${consideringBtnHtml}
     <button class="deck-cmd-btn${card.is_commander ? ' active' : ''}" title="Toggle commander">♛</button>
-    <kbd class="deck-kbd-hint" title="Remove focused card">⌫</kbd>
-    <button class="deck-remove-btn" title="Remove">×</button>`;
+    <button class="deck-remove-btn" title="Remove">⌫</button>`;
   const consideringBtn = row.querySelector('.deck-considering-btn');
   if (consideringBtn) consideringBtn.addEventListener('click', e => { e.stopPropagation(); toggleConsidering(card.id); });
   row.querySelector('.deck-cmd-btn').addEventListener('click', e => { e.stopPropagation(); toggleCommander(card.id); });
