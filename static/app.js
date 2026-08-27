@@ -1288,6 +1288,7 @@ document.addEventListener('keydown', e => {
     if (!document.getElementById('col-import-overlay').classList.contains('hidden')) {
       closeColImportModal(); return;
     }
+    if (deckTagPaletteOpen()) { closeDeckTagPalette(); return; }
     if (deckSwitchPaletteOpen()) { closeDeckSwitchPalette(); return; }
     if (addPaletteOpen()) { closeAddPalette(); return; }
     searchInput.blur();
@@ -1319,7 +1320,7 @@ document.addEventListener('keydown', e => {
 
   // Deck page: arrow-key focus navigation drives the preview panel.
   if (decksActive && deckState.currentDeckId &&
-      !deckSwitchPaletteOpen() && !addPaletteOpen()) {
+      !deckSwitchPaletteOpen() && !addPaletteOpen() && !deckTagPaletteOpen()) {
     const typingInField = !!document.activeElement &&
       document.activeElement.matches('input, textarea, select');
     const isArrow = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key);
@@ -1339,6 +1340,11 @@ document.addEventListener('keydown', e => {
         e.preventDefault();
         toggleConsidering(card.id);
       }
+    }
+    if (!typingInField && (e.key === 't' || e.key === 'T') && deckState.focusedCardId) {
+      e.preventDefault();
+      openDeckTagPalette();
+      return;
     }
   }
 
