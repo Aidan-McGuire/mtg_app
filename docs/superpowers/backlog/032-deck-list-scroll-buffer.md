@@ -2,8 +2,8 @@
 id: 032
 title: Deck list-view arrow-key navigation scrolls with a buffer instead of pinning rows to the viewport edge
 priority: medium
-status: queued
-branch:
+status: in-review
+branch: item/32-deck-list-view-arrow-key-navigation-scrolls-with-a-buffer-instead-of-pinning-rows-to-the-viewport-edge
 created: 2026-08-27
 ---
 
