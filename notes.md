@@ -1,6 +1,6 @@
 # Notes
 ## Feature backlog
-1. default card art to standard printing if possible. will depend on scryfall api
+
 
 All raw ideas refined into `docs/superpowers/backlog/`: commander-in-tag-groups
 (001), wider preview panel (002), larger grouped-view tiles/headers (003),
@@ -17,7 +17,12 @@ guesses on ambiguous name match (016), Stage 2 tooling hardening (017),
 deck built flag (018), collection filter hiding fully-allocated cards
 (019), deck-page indicator for cards allocated to other built decks (020),
 deck text view tri-state owned/locked status color (021), deck text view
-font size bump (022).
+font size bump (022), preferred printing selectable on detail modal (023),
+commander toggle in deck list view (024), deck action buttons bake in their
+keyboard shortcut hints (025), deck modal read-only owned count (026), Enter
+opens the deck modal (027), deck content-search keyboard flow (028), apply
+deck tag to focused card via keyboard (029), group headers keyboard-operable
+(030), deck mana curve in list-view preview panel (031).
 
 
 
