@@ -22,7 +22,8 @@ commander toggle in deck list view (024), deck action buttons bake in their
 keyboard shortcut hints (025), deck modal read-only owned count (026), Enter
 opens the deck modal (027), deck content-search keyboard flow (028), apply
 deck tag to focused card via keyboard (029), group headers keyboard-operable
-(030), deck mana curve in list-view preview panel (031).
+(030), deck mana curve in list-view preview panel (031), deck list-view
+arrow-nav scroll buffer (032).
 
 
 
