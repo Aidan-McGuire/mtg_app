@@ -2320,10 +2320,12 @@ function buildDeckTextRow(card) {
     <span class="deck-text-mana">${esc(card.mana_cost || '')}</span>
     ${tagChipsHtml(card.deck_tags, 'deck-tag')}
     ${consideringBtnHtml}
+    <button class="deck-cmd-btn${card.is_commander ? ' active' : ''}" title="Toggle commander">♛</button>
     <kbd class="deck-kbd-hint" title="Remove focused card">⌫</kbd>
     <button class="deck-remove-btn" title="Remove">×</button>`;
   const consideringBtn = row.querySelector('.deck-considering-btn');
   if (consideringBtn) consideringBtn.addEventListener('click', e => { e.stopPropagation(); toggleConsidering(card.id); });
+  row.querySelector('.deck-cmd-btn').addEventListener('click', e => { e.stopPropagation(); toggleCommander(card.id); });
   row.querySelector('.deck-remove-btn').addEventListener('click', e => { e.stopPropagation(); removeDeckCard(card.id); });
   row.addEventListener('mouseenter', () => setDeckFocus(card.id, row));
   row.addEventListener('click', () => openModal(card, { deckId: deckState.currentDeckId }));
