@@ -2,7 +2,7 @@
 id: 024
 title: Add commander toggle to deck list (text) view
 priority: medium
-status: in-progress
+status: in-review
 branch: item/24-add-commander-toggle-to-deck-list-text-view
 created: 2026-08-27
 ---
