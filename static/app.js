@@ -1403,6 +1403,11 @@ document.addEventListener('keydown', e => {
         toggleConsidering(card.id);
       }
     }
+    if (!typingInField && e.key === 'Enter' && deckState.focusedCardId) {
+      e.preventDefault();
+      const card = deckState.deckCards.find(c => c.id === deckState.focusedCardId);
+      if (card) openModal(card, { deckId: deckState.currentDeckId });
+    }
   }
 
   // Everything below drives the Cards page: it reads `state.cards` and
