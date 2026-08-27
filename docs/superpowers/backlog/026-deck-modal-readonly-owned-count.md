@@ -2,8 +2,8 @@
 id: 026
 title: Detail modal shows read-only owned count when opened from a deck
 priority: medium
-status: queued
-branch:
+status: in-review
+branch: item/26-detail-modal-shows-read-only-owned-count-when-opened-from-a-deck
 created: 2026-08-27
 ---
 
