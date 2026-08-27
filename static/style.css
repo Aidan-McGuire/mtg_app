@@ -627,7 +627,7 @@ kbd {
 
 /* ── Deck search column ────────────────────────────────────────────────────── */
 /* ── Add-card palette ──────────────────────────────────────────────────────── */
-.deck-add-palette, .deck-switch-palette {
+.deck-add-palette, .deck-switch-palette, .deck-tag-palette {
   position: fixed;
   top: 110px;
   left: 50%;
@@ -686,6 +686,14 @@ kbd {
 }
 .deck-search-input:focus  { border-color: var(--accent); }
 .deck-search-input::placeholder { color: var(--muted); }
+
+.deck-tag-palette-card {
+  padding: 10px 12px 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  flex-shrink: 0;
+}
 
 #deck-search-results {
   flex: 1;
