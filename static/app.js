@@ -167,6 +167,15 @@ const API = {
   imageUrl(uri) {
     return `/api/image?url=${encodeURIComponent(uri)}`;
   },
+  async setPreferredPrinting(cardId, imageUri) {
+    const r = await fetch(`/api/cards/${cardId}/preferred-printing`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image_uri: imageUri }),
+    });
+    if (!r.ok) throw new Error('Failed to set preferred printing');
+    return r.json();
+  },
 };
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -890,6 +899,7 @@ function openModal(card, deckContext = null) {
       <div class="modal-art-strip" id="modal-art-strip">
         <span style="font-size:12px;color:var(--muted)">Loading art options…</span>
       </div>
+      <button id="modal-set-preferred-btn" class="action-btn hidden">Set as preferred printing</button>
     </div>
     <div class="modal-details">
       <div class="modal-name">${esc(card.name)}</div>
@@ -1088,8 +1098,11 @@ async function loadPrintings(card) {
 
   if (!strip.isConnected) return; // modal was closed
 
+  const preferredBtn = document.getElementById('modal-set-preferred-btn');
+
   if (!printings.length) {
     strip.innerHTML = '';
+    if (preferredBtn) preferredBtn.classList.add('hidden');
     return;
   }
 
@@ -1099,6 +1112,11 @@ async function loadPrintings(card) {
   let showingBack = false;
 
   const flipBtn = document.getElementById('modal-flip-btn');
+
+  function updatePreferredBtn() {
+    if (!preferredBtn) return;
+    preferredBtn.classList.toggle('hidden', activePrinting.image_uri === card.image_uri);
+  }
 
   function updateMainImage() {
     const mainImg = document.getElementById('modal-main-img');
@@ -1115,12 +1133,32 @@ async function loadPrintings(card) {
         flipBtn.classList.add('hidden');
       }
     }
+    updatePreferredBtn();
   }
 
   if (flipBtn) {
     flipBtn.onclick = () => {
       showingBack = !showingBack;
       updateMainImage();
+    };
+  }
+
+  if (preferredBtn) {
+    preferredBtn.onclick = async () => {
+      // Always the active printing's FRONT face — grid/list views never
+      // render a back face, even if the flip toggle is showing one now.
+      const uri = activePrinting.image_uri;
+      preferredBtn.disabled = true;
+      try {
+        await API.setPreferredPrinting(card.id, uri);
+        card.image_uri = uri;
+        syncCardArtOnCard(card.id, uri);
+        updatePreferredBtn();
+      } catch (err) {
+        console.error(err);
+      } finally {
+        preferredBtn.disabled = false;
+      }
     };
   }
 
@@ -1232,6 +1270,27 @@ function syncCollectionTagsOnCard(cardId, tags) {
 function syncDeckTagsOnCard(cardId, tags) {
   const card = deckState.deckCards.find(c => c.id === cardId);
   if (card) { card.deck_tags = tags; renderDeckContent(); }
+}
+
+// Propagate a newly-persisted preferred-printing image_uri to every cached
+// copy of this card and re-render everywhere it might be showing.
+function syncCardArtOnCard(cardId, imageUri) {
+  const inCards = state.cards.find(c => c.id === cardId);
+  if (inCards) inCards.image_uri = imageUri;
+  const inCollection = collectionState.cards.find(c => c.id === cardId);
+  if (inCollection) inCollection.image_uri = imageUri;
+  const inDeck = deckState.deckCards.find(c => c.id === cardId);
+  if (inDeck) inDeck.image_uri = imageUri;
+  if (state.modalCard && state.modalCard.id === cardId) state.modalCard.image_uri = imageUri;
+
+  // The Cards-browser grid is built incrementally via infinite scroll (no
+  // single function re-renders it from state.cards), so patch its tile
+  // images directly instead. Collection/deck grids do have such a function.
+  document.querySelectorAll(`#card-grid .card-tile[data-id="${cardId}"] img`).forEach(img => {
+    img.src = API.imageUrl(imageUri);
+  });
+  renderCollectionGrid();
+  renderDeckContent();
 }
 
 function closeModal() {
