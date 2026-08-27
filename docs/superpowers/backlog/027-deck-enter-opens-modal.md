@@ -2,7 +2,7 @@
 id: 027
 title: Enter opens the detail modal for the keyboard-focused deck card
 priority: medium
-status: in-progress
+status: in-review
 branch: item/27-enter-opens-the-detail-modal-for-the-keyboard-focused-deck-card
 created: 2026-08-27
 ---
