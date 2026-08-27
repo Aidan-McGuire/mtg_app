@@ -2042,18 +2042,49 @@ function resolvePreviewCard() {
   return [...visible].sort(cmp)[0];
 }
 
+function computeManaCurve(deckCards) {
+  const labels = ['0', '1', '2', '3', '4', '5', '6', '7+'];
+  const counts = new Array(8).fill(0);
+  for (const c of deckCards) {
+    if (c.is_commander || c.is_considering) continue;
+    if ((c.type_line || '').includes('Land')) continue;
+    const cmc = Math.round(c.cmc ?? 0);
+    const idx = Math.min(Math.max(cmc, 0), 7);
+    counts[idx] += c.quantity;
+  }
+  return labels.map((label, i) => ({ label, count: counts[i] }));
+}
+
+function renderDeckManaCurve() {
+  const buckets = computeManaCurve(deckState.deckCards);
+  const max = Math.max(1, ...buckets.map(b => b.count));
+  const bars = buckets.map(b => {
+    const pct = Math.round((b.count / max) * 100);
+    return `
+      <div class="deck-mana-curve-col">
+        <div class="deck-mana-curve-count">${b.count || ''}</div>
+        <div class="deck-mana-curve-track">
+          <div class="deck-mana-curve-bar" style="height: ${pct}%"></div>
+        </div>
+        <div class="deck-mana-curve-label">${esc(b.label)}</div>
+      </div>`;
+  }).join('');
+  return `<div class="deck-mana-curve">${bars}</div>`;
+}
+
 function renderDeckPreviewPanel() {
   const el = document.getElementById('deck-preview-panel');
   if (!el) return;
+  const curveHtml = renderDeckManaCurve();
   const card = resolvePreviewCard();
   if (!card) {
-    el.innerHTML = '<div class="deck-preview-empty">Hover or focus a card to preview it here.</div>';
+    el.innerHTML = curveHtml + '<div class="deck-preview-empty">Hover or focus a card to preview it here.</div>';
     return;
   }
   const imgHtml = card.image_uri
     ? `<img src="${API.imageUrl(card.image_uri)}" alt="${esc(card.name)}">`
     : `<div class="deck-preview-img-placeholder">${esc(card.name)}</div>`;
-  el.innerHTML = `
+  el.innerHTML = curveHtml + `
     <div class="deck-preview-img">${imgHtml}</div>
     <div class="deck-preview-name">${esc(card.name)}</div>
     <div class="deck-preview-mana">${esc(card.mana_cost || '—')}</div>
