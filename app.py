@@ -452,6 +452,24 @@ async def get_printings(card_id: int):
     return printings
 
 
+class PreferredPrinting(BaseModel):
+    image_uri: str
+
+
+@app.post("/api/cards/{card_id}/preferred-printing")
+def set_preferred_printing(card_id: int, body: PreferredPrinting):
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT id FROM cards WHERE id = ?", (card_id,))
+        if not cur.fetchone():
+            raise HTTPException(404, "Card not found")
+        cur.execute("UPDATE cards SET image_uri = ? WHERE id = ?", (body.image_uri, card_id))
+        conn.commit()
+        cur.execute(f"SELECT {CARD_COLS} FROM cards WHERE id = ?", (card_id,))
+        row = cur.fetchone()
+    return dict(row)
+
+
 @app.get("/api/cards/{card_id}/decks")
 def get_card_decks(card_id: int):
     with get_db() as conn:
