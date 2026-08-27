@@ -874,7 +874,11 @@ function openModal(card, deckContext = null) {
   // Collection-quantity editing belongs on the Cards/Collection pages only —
   // the Deck page has its own deck-quantity controls on each tile, and
   // showing this too is a second, easily-confused quantity control.
-  const collectionHtml = deckContext ? '' : `
+  const collectionHtml = deckContext ? `
+      <div class="modal-collection modal-collection-readonly">
+        <span class="qty-label${q > 0 ? ' owned' : ''}" data-qty-for="${card.id}">${q}</span>
+        <span class="qty-owned-label">owned</span>
+      </div>` : `
       <div class="modal-collection">
         <button class="qty-btn" data-action="dec" title="Remove (-)">−</button>
         <span class="qty-label${q > 0 ? ' owned' : ''}" data-qty-for="${card.id}">${q}</span>
