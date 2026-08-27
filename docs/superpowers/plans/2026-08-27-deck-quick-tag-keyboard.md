@@ -34,7 +34,7 @@
 **Interfaces:**
 - Produces DOM ids consumed by Task 2: `#deck-tag-palette`, `#deck-tag-palette-card`, `#deck-tag-input`, `#deck-tag-suggestions`.
 
-- [ ] **Step 1: Add palette markup to `static/index.html`**
+- [x] **Step 1: Add palette markup to `static/index.html`**
 
 Insert immediately after the `<!-- Deck-switch palette (decks page) -->` block (after its closing `</div>` at line 134):
 
@@ -47,7 +47,7 @@ Insert immediately after the `<!-- Deck-switch palette (decks page) -->` block (
   </div>
 ```
 
-- [ ] **Step 2: Extend the shared palette selector in `static/style.css`**
+- [x] **Step 2: Extend the shared palette selector in `static/style.css`**
 
 Change:
 ```css
@@ -70,12 +70,12 @@ Add a small label style for the card-name element right after that rule block (a
 }
 ```
 
-- [ ] **Step 3: Verify HTML/CSS are well-formed**
+- [x] **Step 3: Verify HTML/CSS are well-formed**
 
 Run: `python3 -c "import re; s=open('static/index.html').read(); assert s.count('deck-tag-palette') >= 1; print('ok')"`
 Expected: `ok`
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add static/index.html static/style.css
@@ -93,7 +93,7 @@ git commit -m "feat: add deck quick-tag palette markup and styling"
 - Consumes: `deckState.currentDeckId`, `deckState.focusedCardId`, `deckState.deckCards` (existing), `API.listDeckTags(deckId)`, `API.addDeckTag(deckId, cardId, tag)` (existing, `static/app.js:147-166`), `syncDeckTagsOnCard(cardId, tags)` (existing, `static/app.js:1232-1235`), `esc()` (existing HTML-escape helper used throughout the file).
 - Produces: `deckTagPaletteOpen()`, `openDeckTagPalette()`, `closeDeckTagPalette()` — consumed by Task 3 (global keydown block) and Task 4 (outside-click handler). Also tracks the palette's fixed target card id in module-level variable `deckTagPaletteCardId`.
 
-- [ ] **Step 1: Add the quick-tag palette section**
+- [x] **Step 1: Add the quick-tag palette section**
 
 Add this new section to `static/app.js` (suggested location: immediately after `closeDeckSwitchPalette()` at line 1953, before `renderDeckSwitchResults`):
 
@@ -171,12 +171,12 @@ document.getElementById('deck-tag-input').addEventListener('keydown', async e =>
 
 Note: `syncDeckTagsOnCard` calls `renderDeckContent()`, which re-renders deck tiles/rows but does not touch `#deck-tag-palette`, so the palette and its input stay open/focused across the re-render — no re-focus step needed.
 
-- [ ] **Step 2: Sanity-check syntax with node**
+- [x] **Step 2: Sanity-check syntax with node**
 
 Run: `/opt/homebrew/bin/node --check static/app.js`
 Expected: no output (exit code 0)
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add static/app.js
@@ -194,7 +194,7 @@ git commit -m "feat: add deck quick-tag palette open/close and input handling"
 **Interfaces:**
 - Consumes: `deckTagPaletteOpen()`, `openDeckTagPalette()`, `closeDeckTagPalette()` from Task 2.
 
-- [ ] **Step 1: Add quick-tag palette to the Escape cascade**
+- [x] **Step 1: Add quick-tag palette to the Escape cascade**
 
 In the global keydown handler's `Escape` branch (`static/app.js:1282-1296`), add a check before the existing `deckSwitchPaletteOpen()` line so Escape closes the tag palette first if it's open:
 
@@ -212,7 +212,7 @@ to:
 
 (The tag palette's own input `keydown` listener from Task 2 also handles `Escape` directly and calls `e.preventDefault()`, so in practice that listener fires first when the input has focus. This global fallback keeps behavior correct if Escape is ever dispatched without the input focused.)
 
-- [ ] **Step 2: Extend the deck-page arrow-nav guard and add the `t`/`T` case**
+- [x] **Step 2: Extend the deck-page arrow-nav guard and add the `t`/`T` case**
 
 Change (`static/app.js:1321-1343`):
 ```javascript
@@ -272,12 +272,12 @@ to:
   }
 ```
 
-- [ ] **Step 3: Sanity-check syntax with node**
+- [x] **Step 3: Sanity-check syntax with node**
 
 Run: `/opt/homebrew/bin/node --check static/app.js`
 Expected: no output (exit code 0)
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add static/app.js
@@ -294,7 +294,7 @@ git commit -m "feat: wire up t/T shortcut to open the deck quick-tag palette"
 **Interfaces:**
 - Consumes: `deckTagPaletteOpen()`, `closeDeckTagPalette()` from Task 2.
 
-- [ ] **Step 1: Add the outside-click listener**
+- [x] **Step 1: Add the outside-click listener**
 
 Append after the existing second `mousedown` listener (after line 2865, the closing `});` for the deck-switch-palette outside-click handler):
 
@@ -310,12 +310,12 @@ document.addEventListener('mousedown', e => {
 
 Note: unlike the other two palettes, the quick-tag palette has no dedicated "open" button to exempt (it opens only via the `t`/`T` shortcut while a card is focused), so the listener only needs the palette-containment check.
 
-- [ ] **Step 2: Sanity-check syntax with node**
+- [x] **Step 2: Sanity-check syntax with node**
 
 Run: `/opt/homebrew/bin/node --check static/app.js`
 Expected: no output (exit code 0)
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add static/app.js
@@ -328,7 +328,7 @@ git commit -m "feat: close deck quick-tag palette on outside click"
 
 **Files:** none (verification only)
 
-- [ ] **Step 1: Trace each acceptance criterion against the code**
+- [x] **Step 1: Trace each acceptance criterion against the code**
 
 Re-read the final state of `static/app.js`, `static/index.html`, `static/style.css`
 and confirm, by code inspection:
@@ -351,20 +351,20 @@ and confirm, by code inspection:
 7. Duplicate tag is a no-op — `(card.deck_tags || []).includes(val)` check
    before calling `API.addDeckTag`, matching `buildTagEditor`'s dedupe.
 
-- [ ] **Step 2: Run the JS unit test suite as a regression check**
+- [x] **Step 2: Run the JS unit test suite as a regression check**
 
 Run: `/opt/homebrew/bin/node tests/js/*.test.mjs` (or iterate each file under `tests/js/` individually if globbing doesn't expand in the shell used)
 Expected: all existing tests pass (this feature's DOM-event code is unlikely
 to be covered, per the task brief — this is a regression check, not new
 coverage).
 
-- [ ] **Step 3: Run the backend test suite**
+- [x] **Step 3: Run the backend test suite**
 
 Run: `python3 -m pytest`
 Expected: all pass. If `mtg.db` is an uninitialized stub, first run:
 `python3 -c "import main; main.initialize_database(); main.migrate_database()"`
 
-- [ ] **Step 4: Final commit if any fixups were needed**
+- [x] **Step 4: Final commit if any fixups were needed**
 
 ```bash
 git add -A
