@@ -1730,6 +1730,7 @@ document.getElementById('deck-content-search').addEventListener('keydown', e => 
   if (e.key === 'Escape') { e.target.blur(); deckState.query = ''; renderDeckContent(); }
   else if (e.key === 'ArrowDown') {
     e.preventDefault();
+    e.stopPropagation();
     const containerId = deckState.deckView === 'grid' ? 'deck-grid-view' : 'deck-text-view';
     const groups = deckNavGroups(document.getElementById(containerId));
     if (groups.length && groups[0].length) {
