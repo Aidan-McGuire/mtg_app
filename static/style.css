@@ -1209,6 +1209,7 @@ kbd {
   color: var(--muted);
 }
 .group-header:hover { color: var(--text); }
+.group-header:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .group-header-label {
   font-size: 13px;
