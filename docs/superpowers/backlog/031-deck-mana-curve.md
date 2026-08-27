@@ -2,8 +2,8 @@
 id: 031
 title: Deck mana curve in the list-view preview panel
 priority: low
-status: queued
-branch:
+status: in-review
+branch: item/31-deck-mana-curve-in-the-list-view-preview-panel
 created: 2026-08-27
 ---
 
