@@ -48,7 +48,7 @@
 - Consumes: `deckState.focusedCardId`, `deckState.deckCards`, `deckState.currentDeckId`, `openModal(card, opts)` — all pre-existing, unchanged signatures.
 - Produces: no new exports; purely adds a keydown side effect.
 
-- [ ] **Step 1: Insert the Enter case**
+- [x] **Step 1: Insert the Enter case**
 
 Insert immediately after the `c`/`C` block (after line 1342's closing `}`, before line 1343's closing `}` of the outer `if`):
 
@@ -60,24 +60,24 @@ Insert immediately after the `c`/`C` block (after line 1342's closing `}`, befor
     }
 ```
 
-- [ ] **Step 2: Verify against acceptance criteria by code reading**
+- [x] **Step 2: Verify against acceptance criteria by code reading**
 
 Walk through each:
 - Grid view: card gets `focusedCardId` set via `setDeckFocus` (hover/arrow-nav, `static/app.js:2179`) in both grid and list view identically — confirm `handleDeckColumnNavKey` and `setDeckFocus` are view-agnostic (used for both `deck-grid-view` and `deck-text-view`, line 1327-1328). Enter reuses the same `openModal(card, { deckId })` call as the existing tile/row click handlers (`static/app.js:2236`, `2270`), so deck-context modal (no quantity stepper) is preserved.
 - Typing guard: `typingInField` (line 1323-1324) matches `input, textarea, select`, covering the content search box and tag inputs — Enter is a no-op while any of those has focus.
 - No focus guard: `deckState.focusedCardId` is `null` by default and reset to `null` on deck switch (`static/app.js:1992`) — the `&& deckState.focusedCardId` condition short-circuits, matching Backspace/`c` behavior exactly.
 
-- [ ] **Step 3: Syntax check**
+- [x] **Step 3: Syntax check**
 
 Run: `/opt/homebrew/bin/node --check static/app.js` (fallback: any working `node --check static/app.js`)
 Expected: no output, exit code 0.
 
-- [ ] **Step 4: Backend regression check**
+- [x] **Step 4: Backend regression check**
 
 Run: `python3 -m pytest -q`
 Expected: full pass, same as before this change (this item touches no backend code).
 
-- [ ] **Step 5: Diff review**
+- [x] **Step 5: Diff review**
 
 Run: `git diff static/app.js`
 Expected: exactly one new 5-line block added inside the deck-page keydown handler; no other lines changed.
