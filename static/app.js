@@ -1295,12 +1295,13 @@ document.addEventListener('keydown', e => {
     return;
   }
 
-  // '/' opens the add palette (decks) or focuses the relevant search input
+  // '/' focuses the relevant search input
   if (e.key === '/') {
     const typingInField = !!document.activeElement &&
       document.activeElement.matches('input, textarea');
-    if (decksActive && !typingInField) {
-      e.preventDefault(); openAddPalette(); return;
+    const deckContentSearch = document.getElementById('deck-content-search');
+    if (decksActive && !typingInField && document.activeElement !== deckContentSearch) {
+      e.preventDefault(); deckContentSearch.focus(); return;
     } else if (collectionViewActive() && document.activeElement !== collectionSearch) {
       e.preventDefault(); collectionSearch.focus(); return;
     } else if (browserActive && document.activeElement !== searchInput) {
@@ -1314,6 +1315,15 @@ document.addEventListener('keydown', e => {
       document.activeElement.matches('input, textarea');
     if (decksActive && !typingInField) {
       e.preventDefault(); openDeckSwitchPalette(); return;
+    }
+  }
+
+  // 'a' opens the add-cards palette
+  if (e.key === 'a' || e.key === 'A') {
+    const typingInField = !!document.activeElement &&
+      document.activeElement.matches('input, textarea');
+    if (decksActive && !typingInField) {
+      e.preventDefault(); openAddPalette(); return;
     }
   }
 
@@ -1718,6 +1728,15 @@ document.getElementById('deck-content-search').addEventListener('input', e => {
 
 document.getElementById('deck-content-search').addEventListener('keydown', e => {
   if (e.key === 'Escape') { e.target.blur(); deckState.query = ''; renderDeckContent(); }
+  else if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    const containerId = deckState.deckView === 'grid' ? 'deck-grid-view' : 'deck-text-view';
+    const groups = deckNavGroups(document.getElementById(containerId));
+    if (groups.length && groups[0].length) {
+      e.target.blur();
+      focusDeckTile(groups[0][0]);
+    }
+  }
 });
 
 document.getElementById('collection-group-by').addEventListener('change', e => {
