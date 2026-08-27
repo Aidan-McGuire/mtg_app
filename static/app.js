@@ -1568,14 +1568,19 @@ function renderGroupSection(container, group, buildTileFn, opts = {}, allGroups 
     <span class="group-header-count">${group.cards.length}</span>
     ${collapsedState ? '<span class="group-header-chevron">▾</span>' : ''}`;
   if (collapsedState) {
-    header.addEventListener('click', () => {
+    header.setAttribute('tabindex', '0');
+    header.setAttribute('role', 'button');
+    header.setAttribute('aria-expanded', String(!isCollapsed));
+
+    const toggleGroup = () => {
       if (collapsedState.has(group.label)) {
         collapsedState.delete(group.label);
       } else {
         collapsedState.add(group.label);
       }
-      header.classList.toggle('collapsed');
+      const nowCollapsed = header.classList.toggle('collapsed');
       body.classList.toggle('collapsed');
+      header.setAttribute('aria-expanded', String(!nowCollapsed));
 
       const ordered = sortGroupsByCollapsed(allGroups, collapsedState);
       const idx = ordered.findIndex(g => g.label === group.label);
@@ -1586,6 +1591,14 @@ function renderGroupSection(container, group, buildTileFn, opts = {}, allGroups 
       if (section.nextElementSibling !== nextEl) {
         if (nextEl) container.insertBefore(section, nextEl);
         else container.appendChild(section);
+      }
+    };
+
+    header.addEventListener('click', toggleGroup);
+    header.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+        e.preventDefault();
+        toggleGroup();
       }
     });
   }
