@@ -2,7 +2,7 @@
 id: 029
 title: Apply a deck tag to the keyboard-focused deck card without the mouse
 priority: high
-status: in-progress
+status: in-review
 branch: item/29-apply-a-deck-tag-to-the-keyboard-focused-deck-card-without-the-mouse
 created: 2026-08-27
 ---
