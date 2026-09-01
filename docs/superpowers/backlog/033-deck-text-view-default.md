@@ -33,12 +33,21 @@ default-value flip, not a new preference system.
 
 ## Acceptance criteria
 
-- [ ] Opening any deck (fresh page load, or switching decks) shows the text
-      (list) view by default, not the grid view.
-- [ ] The "Text" toggle button shows as active on initial load; the "Grid"
-      button does not.
-- [ ] Clicking the "Grid" toggle still switches to grid view and updates the
-      active button state as before (existing toggle behavior unchanged).
-- [ ] Keyboard navigation and other view-dependent behavior (e.g. column nav
+- [x] Opening any deck (fresh page load, or switching decks) shows the text
+      (list) view by default, not the grid view. Verified: `deckState.deckView`
+      initializes to `'text'`, confirmed served correctly by `curl`.
+- [x] The "Text" toggle button shows as active on initial load; the "Grid"
+      button does not. Verified via `curl` against a throwaway local server
+      (browser extension unavailable in this session for a live click-through).
+- [x] Clicking the "Grid" toggle still switches to grid view and updates the
+      active button state as before (existing toggle behavior unchanged). Not
+      re-verified live this run (no browser access); the click handler itself
+      is untouched by this change — it unconditionally sets `deckState.deckView`
+      from `btn.dataset.dview` and toggles `active` off the whole button group,
+      so the new initial value cannot affect its behavior.
+- [x] Keyboard navigation and other view-dependent behavior (e.g. column nav
       in grid view) still functions correctly after the default change, since
       it branches on `deckState.deckView === 'grid'` elsewhere in the code.
+      Not re-verified live this run; those branches are pre-existing and were
+      already exercised any time a user manually switched to Text view before
+      this change, so flipping the default does not exercise new code paths.
