@@ -2,8 +2,8 @@
 id: 033
 title: Make text (list) view the default on the deck page
 priority: low
-status: queued
-branch:
+status: in-progress
+branch: item/33-make-text-list-view-the-default-on-the-deck-page
 created: 2026-08-31
 ---
 
