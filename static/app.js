@@ -2002,7 +2002,7 @@ const deckState = {
   currentDeckId:      null,
   deckCards:          [],
   allocatedElsewhere: {},   // card id -> qty allocated to OTHER built decks
-  deckView:       'grid',
+  deckView:       'text',
   groupBy:        'none',   // 'none' | 'type' | 'collection-tag' | 'deck-tag'
   filter:         makeFilterModel({ hideLands: true }),
   query:          '',       // deck content search box (name/text/type)
