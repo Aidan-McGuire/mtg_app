@@ -2,8 +2,8 @@
 id: 036
 title: Export decklist to clipboard
 priority: medium
-status: queued
-branch:
+status: in-review
+branch: item/36-export-decklist-to-clipboard
 created: 2026-10-19
 ---
 
