@@ -1,5 +1,6 @@
 # Notes
 ## Feature backlog
+1. (REFINED → `docs/superpowers/backlog/036-export-decklist-to-clipboard.md`) export decklist
 
 All raw ideas refined into `docs/superpowers/backlog/`: commander-in-tag-groups
 (001), wider preview panel (002), larger grouped-view tiles/headers (003),
