@@ -1382,6 +1382,17 @@ document.addEventListener('keydown', e => {
     }
   }
 
+  // 'e' / Shift+E copy the decklist (main only / main + considering)
+  if (e.key === 'e' || e.key === 'E') {
+    const typingInField = !!document.activeElement &&
+      document.activeElement.matches('input, textarea, select');
+    if (decksActive && deckState.currentDeckId && !typingInField &&
+        !e.ctrlKey && !e.metaKey && !e.altKey &&
+        !deckSwitchPaletteOpen() && !addPaletteOpen() && !deckTagPaletteOpen()) {
+      e.preventDefault(); copyDecklist(e.shiftKey); return;
+    }
+  }
+
   // 'a' opens the add-cards palette
   if (e.key === 'a' || e.key === 'A') {
     const typingInField = !!document.activeElement &&
@@ -2909,6 +2920,44 @@ document.getElementById('deck-switch-search').addEventListener('keydown', e => {
     closeDeckSwitchPalette();
   }
 });
+
+// "1x Name" lines: commander first, rest alphabetical; with includeConsidering,
+// a blank line then the Considering cards. Always the whole deck (unfiltered).
+function buildDecklistText(cards, includeConsidering) {
+  const byName = (a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+  const line = c => `${c.quantity}x ${c.name}`;
+  const main = cards.filter(c => !c.is_considering);
+  const mainSorted = [
+    ...main.filter(c => c.is_commander),
+    ...main.filter(c => !c.is_commander).sort(byName),
+  ];
+  const blocks = [mainSorted.map(line).join('\n')];
+  if (includeConsidering) {
+    blocks.push(cards.filter(c => c.is_considering).sort(byName).map(line).join('\n'));
+  }
+  return blocks.filter(Boolean).join('\n\n');
+}
+
+async function copyDecklist(includeConsidering) {
+  const btn = document.getElementById(includeConsidering ? 'deck-copy-all-btn' : 'deck-copy-btn');
+  const text = buildDecklistText(deckState.deckCards, includeConsidering);
+  let msg;
+  if (!text) msg = 'Nothing to copy';
+  else {
+    try { await navigator.clipboard.writeText(text); msg = 'Copied ✓'; }
+    catch (e) { msg = 'Copy failed'; }
+  }
+  // Pin the width so the label swap doesn't reflow the button row.
+  btn.style.minWidth = btn.offsetWidth + 'px';
+  btn.textContent = msg;
+  clearTimeout(btn._flashTimer);
+  btn._flashTimer = setTimeout(() => {
+    btn.textContent = btn.dataset.label;
+    btn.style.minWidth = '';
+  }, 1500);
+}
+document.getElementById('deck-copy-btn').addEventListener('click', () => copyDecklist(false));
+document.getElementById('deck-copy-all-btn').addEventListener('click', () => copyDecklist(true));
 
 document.getElementById('deck-built-btn').addEventListener('click', async () => {
   const deck = deckState.decks.find(d => d.id === deckState.currentDeckId);
